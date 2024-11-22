@@ -1,7 +1,7 @@
 <pre class='metadata'>
 Title: Summarizing `std::execution::bulk()` issues
 Shortname: P3481
-Level: 0
+Level: 1
 Status: P
 Group: wg21
 Editor: Lucian Radu Teodorescu, Garmin, lucteo@lucteo.ro
