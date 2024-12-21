@@ -1,5 +1,5 @@
 <pre class='metadata'>
-Title: Summarizing `std::execution::bulk()` issues
+Title: `std::execution::bulk()` issues
 Shortname: P3481
 Level: 1
 Status: P
@@ -11,87 +11,181 @@ Audience: SG1, LEWG
 URL: http://wg21.link/P3481R0
 Abstract: When [[P2300R10]] was merged into the working draft, a subsequent review of the github issue tracker discovered several outstanding issues relating to the use of the bulk algorithm that was in P2300R10 which were not addressed during the LEWG review. These issues mostly account for better expressing what bulk can and cannot do.
 
-          This paper tries to summarize these issues, give some ideas on the solution and promises to return back with a complete design.
+          This paper explores these issues and proposes a way to address them, making `bulk()` better for the users.
 Markup Shorthands: markdown yes
 </pre>
 
-<pre class=biblio>
-{
-    "exec.bulk": {
-        "authors": ["ISO WG21"],
-        "title": "Working Draft: Programming Languages — C++ -- `execution::bulk`",
-        "publisher": "ISO",
-        "href": "https://eel.is/c++draft/exec.bulk"
-    },
-    "alg.foreach": {
-        "authors": ["ISO WG21"],
-        "title": "Working Draft: Programming Languages — C++ -- For each",
-        "publisher": "ISO",
-        "href": "https://eel.is/c++draft/alg.foreach"
-    },
-    "parallel_for": {
-        "authors": ["Intel"],
-        "title": "Intel® oneAPI Threading Building Blocks Developer Guide and API Reference -- parallel_for",
-        "href": "https://www.intel.com/content/www/us/en/docs/onetbb/developer-guide-api-reference/2021-6/parallel-for.html"
-    }
+<style>
+div.ed-note, span.ed-note {
+  color: blue !important;
+  font: initial;
+  font-family: sans-serif;
 }
-</pre>
+div.ed-note:before, span.ed-note:before {
+  content: "[Editorial note: ";
+  font-style: italic;
+}
+div.ed-note:after, span.ed-note:after {
+  content: " — end note]";
+  font-style: italic;
+}
+.ins, ins, ins *, span.ins, span.ins * {
+  background-color: light-dark(#cfc, hsl(120, 100.00%, 15%));
+  color: light-dark(#000, #ddd);
+  text-decoration: none;
+}
+.del, del, del *, span.del, span.del * {
+  background-color: light-dark(#fcc,hsl(0, 100.00%, 20%));
+  color: light-dark(#000, #ddd);
+  text-decoration: line-through;
+  text-decoration-color: #c00;
+}
+div.ed-note *, span.ed-note * {
+  color: blue !important;
+  margin-top: 0em;
+  margin-bottom: 0em;
+}
+div.ed-note blockquote {
+  margin-left: 2em;
+}
+div.block-insert, div.block-insert {
+  background-color: light-dark(#cfc, hsl(120, 100.00%, 15%));
+  padding-left: 0;
+  padding-right: 1.6em;
+}
+div.block-insert pre.highlight {
+  background-color: transparent;
+}
+</style>
+
+# Changes history # {#history}
+
+## R1 ## {#r1}
+
+- In R1 we change the paper to conform to the feedback from SG1.
+- Add wording section.
+
+---
+
+
+R0 was presented at the SG1 meeting in November 2024 in Wrocław, Poland.
+SG1 provided the following feedback in the form of polls:
+
+1. If we have chunking, we need to expose a control on the chunk size.
+
+    ```
+    | SF | F | N | A | SA |
+    | 1  | 2 | 3 | 1 | 1  |
+    ```
+
+    No consensus
+
+
+2. We need a version of the `bulk` API that presents the chunk to the callable in order to implement the parallel algorithms
+
+    ```
+    | SF | F | N | A | SA |
+    | 4  | 2 | 1 | 0 | 1  |
+    ```
+    Consensus
+
+3. We need a version of the bulk API that creates an execution agent per iteration.
+
+    ```
+    | SF | F | N | A | SA |
+    | 2  | 3 | 3 | 0 | 0  |
+    ```
+
+    Unanimous consent
+
+4. We believe / desire:
+    1. Bulk needs an execution policy to describe the callable, IF the scheduler also has an execution
+        policy (for debugging for example) then a conservative choice should be used (`seq` is more
+        conservative than `par`)
+    2. No SG1 concerns with the proposed exception handling
+    3. No change to status quo on default implementation of bulk being serial
+    4. No change to status quo on bulk having a predecessor
+    5. Forms of bulk needed:
+        - `bulk` -> `f(i)` -> `bulk_chunked`
+        - `bulk_chunked` -> `f(b, e)`
+        - `bulk_unchunked` -> `f(i)` "execution agent per iteration"
+
+    ```
+    | SF | F | N | A | SA |
+    | 5  | 2 | 1 | 0 | 0  |
+    ```
+
+    Unanimous consent
+
 
 # Motivation # {#motivation}
 
-There are several shortcomings of the `bulk` as defined by [[exec.bulk]], that this paper tries to summarize:
--	`bulk` shall allow default alternative implementations,
--	`bulk` shall allow to call the functor concurrently,
--	`bulk` shall allow cancellation,
--	`bulk` shall have well defined exceptions behavior in non-sequential executions,
--	`bulk`'s functor shall be copyable,
--	`bulk` shall take an execution policy paremeter allow specifying an execution policy,
--	`bulk` shall be more suitable for the use case with many small iterations.
+For most algorithms defined in [[P2300R10]], the default implementation typically describes the desired behavior.
+However, this is not the case for `bulk`.
 
-In [[exec.bulk]] we specify the behavior of `bulk`, in the absence of any customizations, as being equivalent to a C++ code.
-This has a few of drawbacks:
--	Limits vendors ability to customize the behavior for improving performance (e.g., adaptive partitioning, vectorization, etc.)
--	Doesn't allow out-of-order execution of the given functor.
--	Doesn't allow cancellation of the `bulk` work.
+The expectation for `bulk` is that it will be customized for most use cases.
+The default implementation is a common-denominator solution that is not necessarily optimal for the majority of scenarios.
 
-Users of `bulk` expect that the given functor to be called concurrently. The current specification breaks this expectation.
+The description in [[exec.bulk]] specifies the default implementation but does not outline any requirements for customizations.
+This creates uncertainty for users regarding what they can expect when invoking `bulk`.
 
-Another reasonable expectation that is broken by `bulk` is to support cancellation of the work.
-If the environment of `bulk` has a cancellable token, and cancellation is signaled, the `bulk` implementation will simply ignore it (after the predecessor sender was completed).
+This paper addresses this issue by specifying what is permissible in a customization of `bulk`.
 
-In the default implementation of `bulk`, we don't have a need to copy the given functor f, as the code can sequentially access it by using a reference to it ([[exec.bulk]]).
-Considering customization, we don't specify what the `bulk` implementation can do with the given functor. This is especially problematic for implementation of `bulk` that rely on parallelism or may move computations to other execution contexts.
-By contrast, the `std::for_each` that takes an execution policy ([[alg.foreach]]) has a requirement that the given function needs to be `Cpp17CopyConstructible`.
+A second issue this paper seeks to resolve is the lack of an execution policy for the provided functor.
+For example, if the functor is unsuitable for the par_unseq execution policy, there is currently no mechanism for users to specify this.
 
-Similarly, the current specification of `bulk` doesn't specify if the arguments passed to `f` are copyable.
-These arguments are produced by the input sender, and they need to be used in all the invocations to `f`, and in the invocation to `set_value`.
-If `f` and `set_value` are executed in different execution contexts, we may need to be able to copy the arguments.
+A third issue this paper addresses is the absence of chunking in the default implementation of `bulk`.
+Invoking the functor for every element in a range can lead to performance challenges in certain use cases.
 
-The specification of `bulk` ([[exec.bulk]]) doesn't properly address exception propagation when we are not just forwarding the error from the previous sender.
-This spans on two levels:
 
-1. In the default implementation, as soon as one exception is raised from calling `f`, it is forwarded to the error completion signal.  
-    But, if we want to make the default implementation customizable (see above issues), the same strategy cannot be applied.
-    In a concurrent execution of `f`, detecting the first exception thrown may not make sense; also, we might have multiple exceptions thrown before we manage to complete with error.
+## Allowed behavior for `bulk` customizations ## {#motivation.allowed}
 
-2. The specification for customized versions of `bulk` doesn't mention what happens when `f` throws.
-    We need to also specify the general expectations in this case, so that users of `bulk` know what can happen when they utilize this algorithm.
+From the specification of bulk in [[exec.bulk]], if we have customized `bulk`, the following are unclear:
+- Can `bulk` invoke the given functor concurrently?
+- Can `bulk` create decayed copies of the given functor?
+- Can `bulk` create decayed copies of the values produced by the previous sender?
+- Can `bulk` handle cancellation within the algorithm?
+- How should `bulk` respond to exceptions thrown by the given functor?
 
-One shall note that, for customizations of `bulk` that execute `f` on different hardware, there may not be a way to forward the exceptions thrown by `f` to the receiver connected with the `bulk` sender.
+## Execution policy for the given functor ## {#motivation.policy}
 
-Another omission from the specification is the execution policy allowed for the given functor `f`.
-Similar to `for_each`, users might expect that `bulk` also takes an execution policy as argument.
-This is needed for the following reasons:
+Similar to `for_each` ([[alg.foreach]]) users might expect the `bulk` algorithm to take an execution policy as argument.
+The execution policy would define the execution capabilities of the given function.
 
--	While not including an execution policy is fine for the default implementation of `bulk`, as specified, this is not sufficient if the customizations may choose different execution policies.
+There are two main reasons for wanting an execution policy to accompany the function passed to `bulk`:
+1. To better tailor the algorithm to the available hardware.
+2. To improve usage in generic code.
 
--	A default execution policy isn't enough; there is hardware that supports both `par` and `par_unseq` execution policy semantics, while there is hardware that supports `par_unseq`.
-    Standardizing the API without execution policies might occasionally give one or several hardware vendors an advantage and there is hardware that performs better with `par_unseq`.
+Currently, we have hardware that supports both `par` and `par_unseq` execution policy semantics, as well as hardware that only supports `par_unseq`.
+Standardizing the API without execution policies implies that the language chooses a default execution policy for `bulk`.
+This decision could favor certain hardware vendors over others.
 
--	Not having the execution policy, may force the users to fall back to `for_each` for functions that only support `par` execution policy; this is an impediment to generic programming.
+From a generic programming perspective, consider a scenario where a user implements a function like the following:
 
-There is also a performance problem with the way `bulk` is defined for cases in which we have many iterations, and we would benefit from chunking together consecutive operations.
-Here is an example:
+```
+void process(std::vector<int>& data, auto std::invocable<int> f) {
+  // call `f` for each element in `data`; try using `bulk`.
+  // can we call `f` concurrently?
+}
+```
+
+In the body of the generic function process, we do not know the constraints imposed on `f`.
+Can we assume that `f` can be invoked with the `par_unseq` execution policy?
+Can it be invoked with the `par` execution policy?
+Or should we default to the `seq` execution policy?
+
+Since there is no way to infer the execution policy that should apply to `f`, the implementation of process must be conservative and default to the `unseq` execution policy.
+However, in most cases, the `par` or `par_unseq` execution policy would likely be more appropriate.
+
+
+## Chunking ## {#motivation.chunking}
+
+The current specification of bulk ([[exec.bulk]]) does not support chunking.
+This limitation presents a performance issue for certain use cases.
+
+If two iterations can potentially be executed together more efficiently than in isolation, chunking would provide a performance benefit.
+
+Let us take an example:
 
 ```
 std::atomic<std::uint32_t> sum{0};
@@ -102,8 +196,8 @@ ex::sender auto s = ex::bulk(ex::just(), std::execution::par, 100'000,
   });
 ```
 
-In this example, we are doing 100,000 atomic operations.
-A better implementation would allow us to have an atomic operation for each chunk of work, and allow each chunk of work to sum things locally; this may look like:
+In this example, we perform 100,000 atomic operations.
+A more efficient implementation would allow a single atomic operation for each chunk of work, enabling each chunk to perform local summation. This approach might look like:
 
 ```
 std::atomic<std::uint32_t> sum{0};
@@ -117,20 +211,33 @@ ex::sender auto s = ex::bulk_chunked(ex::just(), std::execution::par, 100'000,
   });
 ```
 
+Other similar examples exist where grouping operations together can improve performance.
+This is particularly important when the functor passed to bulk cannot be inlined or when the functor is expensive to invoke.
 
 
-# Design discussions # {#design}
+# API # {#api}
 
 Define bulk to match the following API:
 
 ```
-// NEW: algorithm to be used as a basis operation
+// NEW: algorithm to be used as a default basis operation
 template<execution::sender Predecessor,
          typename ExecutionPolicy,
          std::integral Size,
          std::invocable<Size, Size, values-sent-by(Predecessor)...> Func
 >
 execution::sender auto bulk_chunked(Predecessor pred,
+                                    ExecutionPolicy&& pol,
+                                    Size size,
+                                    Func f);
+
+// NEW: algorithm to ensure one execution agent per iteration
+template<execution::sender Predecessor,
+         typename ExecutionPolicy,
+         std::integral Size,
+         std::invocable<Size, Size, values-sent-by(Predecessor)...> Func
+>
+execution::sender auto bulk_unchunked(Predecessor pred,
                                     ExecutionPolicy&& pol,
                                     Size size,
                                     Func f);
@@ -160,17 +267,29 @@ execution::sender auto bulk(Predecessor pred,
 ```
 
 The `bulk_chunked` algorithm is a customization point returning a sender that describes a work with following properties:
+- Let `args...` be the values sent by the predecessor.
 - In the absence of any errors, call `f(b, e, args...)` zero or multiple times, such as, for every `i` in range [0, `size`), there is exactly one call to `f(b, e, args...)` with i ∈ [`b`, `e`).
     All the calls to `f` strongly happen before any call to `set_value`.
 
 - If any call to `f` throws, then the sender completes on receiver `rcvr` with `set_error(std::move(rcvr), e)`, where `e` is one of the exceptions thrown, or is an exception derived from `std::runtime_error`.
     Before calling `set_error`, the operation may call `f(b, e, args...)` zero or multiple times, such as, for every `i` in range [0, `size`), there is maximum one call to `f(b, e, args...)` with `i` ∈ [`b`, `e`).
 
+The `bulk_unchunked` algorithm is a customization point returning a sender that describes a work with following properties:
+- Let `args...` be the values sent by the predecessor.
+- In the absence of any errors, call `f(i, args...)` zero or multiple times, such as, for every `i` in range [0, `size`), there is exactly one call to `f(i, args...)`.
+    All the calls to `f` strongly happen before any call to `set_value`.
+
+- If any call to `f` throws, then the sender completes on receiver `rcvr` with `set_error(std::move(rcvr), e)`, where `e` is one of the exceptions thrown, or is an exception derived from `std::runtime_error`.
+    Before calling `set_error`, the operation may call `f(i, args...)` zero or multiple times, such as, for every `i` in range [0, `size`), there is maximum one call to `f(i, args...)`.
+
 The `bulk` algorithm is a customization point.
 The default implementation calls `bulk_chunked` as shown above.
 
 
-## Use chunked version as a basis operation ## {#chunked}
+
+# Design discussions # {#design}
+
+## Use chunked version as a basis operation ## {#design.chunked}
 
 To address the performance problem described in the motivation, we propose to add a chunked version for `bulk`.
 This allows implementations to process the iteration space in chunks, and take advantage of the locality of the chunk processing.
@@ -185,10 +304,20 @@ Passing a range as parameters to the functor passed to `bulk_chunked` is similar
 An implementation of `bulk` can be easily built on top of `bulk_chunked` without losing performance (as shown in the Proposal section).
 
 
-## Using execution policies ## {#policies}
+## Also define an unchunked version ## {#design.unchunked}
+
+For GPUs is important to have a version of `bulk` that ensures one execution agent per iteration.
+Defining `bulk` in terms of `bulk_chunked` would not be efficient for GPUs.
+
+Moreover, for composabiliy reasons, we need a way to specify which version of `bulk` will not do any chunking.
+
+For this reasons, we need to have a version of `bulk` that doesn't do any chunking.
+
+
+## Using execution policies ## {#design.policies}
 
 As discussed in the Motivation section, not having the possibility to specify execution policies for the `bulk` algorithm is a downside.
-If the default execution policy for regular algorithms is seq, for `bulk` (and `bulk_chunked`) it makes more sense for the default to be par or par_unseq.
+If the default execution policy for regular algorithms is `seq`, for most common uses of `bulk` (and `bulk_chunked`/`bulk_unchunked`) it makes more sense for the default to be `par` or `par_unseq`.
 But, there are cases in which any of these two would be more appropriate.
 Thus, we cannot choose a default policy.
 
@@ -215,41 +344,55 @@ auto bulk_chunked_seq(auto prev, auto size, auto f);
 auto bulk_chunked_unseq(auto prev, auto size, auto f);
 auto bulk_chunked_par(auto prev, auto size, auto f);
 auto bulk_chunked_par_unseq(auto prev, auto size, auto f);
+
+auto bulk_unchunked_seq(auto prev, auto size, auto f);
+auto bulk_unchunked_unseq(auto prev, auto size, auto f);
+auto bulk_unchunked_par(auto prev, auto size, auto f);
+auto bulk_unchunked_par_unseq(auto prev, auto size, auto f);
 ```
 
 We dropped this idea, as this isn't scalable.
 Moreover, the user can easily add these overloads in their codebase.
 
-## Relaxing the default implementation ## {#relaxing}
+## Reducing execution policies ## {#design.reducing}
 
-As mentioned in the Motivation section, the way the un-customized `bulk` is defined by [[exec.bulk]] is too constrained and doesn't meet typical user's expectations.
-With this definition, the default `bulk` implementation needs to be serial.
+We have an execution policy given to the `bulk` algorithms, but we might have another one attached to a scheduler and/or to the execution agent.
+In this case, we need to "reduce" the execution policies to a single one.
 
-We would want to relax this over-specification of the algorithm and specify the minimal properties that need to hold for the implementation.
-We would want to specify that the functor needs to be called for the entire range, but leave the details to the implementation.
-This allows the implementation to fine-tune the algorithm and make it more performant for the envisioned usage/hardware.
+We propose to use the most conservative execution policy; i.e., `seq` is more conservative than `par`, which is more conservative than `par_unseq`.
 
-Such a relaxed specification should allow:
--	Calling the given functor concurrently.
--	Making decay copies of the values produced by the previous sender (if the values produced are copyable).
--	Handling cancellation inside the `bulk` algorithm.
 
-With this change we also require that the given functor be copy-constructible.
-This will make `bulk` require the same type of function as a `for_each` with an execution policy.
+## Adding constraints on customizations ## {#design.constraints}
 
-The derided direction is to specify that `bulk` can react to cancellation requests, but leave the details of how cancellation is implemented to be unspecified.
-One implementation might choose to check for cancellation for every iteration, while others may want to check for cancellation on processing a batch of items.
+The current specification of `bulk` in [[exec.bulk]] doesn't define any constraints for the customization of the algorithm.
+The default implementation (a serial version of `bulk`) is expected to be very different that its customizations.
+
+Having customizations in mind, we need to define the minimal constraints that need to hold for the implementation.
+We propose the following:
+- Require `f` to be copy-constructible.
+- Allow `f` to be invoked according to the specified execution policy (and don't assume it's going to be called serially).
+- Allow the values produced by the previous sender to be decay copied (if the values produced are copyable).
+- Allow the algorithm to handle cancellation requests, but don't mandate it.
+
+
+We want to require that the given functor be copy-constructible so that `bulk` requires the same type of function as a `for_each` with an execution policy.
+Adding an execution policy to `bulk`/`bulk_chunked`/`bulk_unchunked` would also align them with `for_each`.
+
+If `f` is allowed to be invoked concurrently, then implementations may want to copy the arguments passed to it.
+
+Another important point for a `bulk` operation is how it should react to cancellation requests.
+We want to specify that `bulk` should be able to react to cancellation requests, but not make this mandatory.
 It shall be also possible for vendors to completely ignore cancellation requests (if, for example, supporting cancellation would actually slow down the main uses-cases that the vendor is optimizing for).
+Also, the way cancellation is implemented should be left unspecified.
 
 Checking the cancellation token every iteration may be expensive for certain cases.
 A cancellation check requires an acquire memory barrier (which may be too much for really small functors), and might prevent vectorization.
 Thus, implementations may want to check the cancellation every *N* iterations; *N* can be a statically known number, or can be dynamically determined.
 
-In our proposal, `bulk` is implemented in terms of `bulk_chunked`.
-Thus, we define the minimal constraints on `bulk_chunked`.
+As `bulk`, `bulk_chunked`, and `bulk_unchunked` are customization points, we need to specify these contraints to all three of them.
 
 
-## Exception handling ## {#exceptions}
+## Exception handling ## {#design.exceptions}
 
 While there are multiple solutions to specify which errors can be thrown by `bulk`, the most sensible ones seem to be:
 1. pick an arbitrary exception thrown by one of the invocations of `f` (maybe using a atomic operations to select the first thrown exception),
@@ -271,47 +414,187 @@ Based on the experience with the existing parallel frameworks we incline to reco
 
 -	Catching any exception already indicates that something went wrong, thus a good implementation might initiate a cancellation mechanism to finish already failed work as soon as possible.
 
+On top of that, for special cases we also want to allow option 3.
 
-## Other considerations ## {#other}
 
-### Dropping a predecessor ### {#other-dropping}
-It is still an open question whether `bulk_chunked` whether `bulk`. The options are:
--	No predecessor API
--	Only predecessor API (status quo)
--	Both with and without predecessor
+# Specification # {#specification}
 
-The questions are:
--	What are the user expectations?
--	What are more common use-cases?
--	In case of both, which one is the basis operation?
--	In case of both, which one is customizable?
--	etc.
+## In [execution.syn] ## {#specification.syn}
 
-There is too much room for a design for a moment. We didn't explore it well-enough, thus we are not ready to recommend any design.
-
-Please find the example below, how both `bulk_chunked` both with and without predecessor might coexist:
-
+<span class="ed-note">After `struct bulk_t { unspecified };`, add:</span>
 ```
-template<execution::sender Predecessor,
-         typename ExecutionPolicy,
-         std::integral Size,
-         std::invocable<Size, Size, values-sent-by(Predecessor)...> Func
->
-execution::sender auto bulk_chunked_with_pred(Predecessor pred,
-                                              ExecutionPolicy&& pol,
-                                              Size size,
-                                              Func f) {
-  return let_value(pred, [func, size, pol] (auto&&... vals) {
-    return bulk_chunked(pol, size, [&](auto b, auto e) {
-      func(b, e, vals...);
-    });
-  });
+struct bulk_chunked_t { unspecified };
+struct bulk_unchunked_t { unspecified };
+```
+
+<span class="ed-note">After `inline constexpr bulk_t bulk{};`, add:</span>
+```
+inline constexpr bulk_chunked_t bulk_chunked{};
+inline constexpr bulk_unchunked_t bulk_unchunked{};
+```
+
+## In [exec.bulk] ## {#specification.bulk}
+
+<span class="ed-note">Rename the title of the section from “execution::bulk” to “execution::bulk, execution::bulk_chunked, and execution::bulk_unchunked”.</span>
+
+<span class="ed-note">Apply the following changes (no track changes for paragraph numbering):</span>
+
+1. `bulk`<ins>, `bulk_chunked`, and `bulk_unchunked`</ins> run<del>s</del> a task repeatedly for every index in an index space.
+
+2. The <del>name</del><ins>names</ins> `bulk`<ins>, `bulk_chunked`, and `bulk_unchunked`</ins> <del>denotes a</del><ins>denote</ins> pipeable sender adaptor <del>object</del><ins>objects</ins>.<ins>
+    Let <i>`bulk-algo`</i> be either `bulk`, `bulk_chunked` or `bulk_unchunked`.</ins>
+    For subexpressions `sndr`, <ins>`policy`,</ins> `shape`, and `f`, let <ins>`Policy` be `decltype(auto(policy))` and</ins> `Shape` be `decltype(auto(shape))`.<del>
+    If `decltype((sndr))` does not satisfy `sender`, or if `Shape` does not satisfy `integral`, or if `decltype((f))` does not satisfy <i>`movable-value`</i>, `bulk(sndr, shape, f)` is ill-formed.</del><ins>
+    The expression <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is ill-formed if any of the following is true:
+    
+      - `decltype((sndr))` does not satisfy `sender`,
+      - `std::is_execution_policy_v<std::remove_cvref_t<Policy>>` is `false`,
+      - `Shape` does not satisfy `integral`,
+      - `decltype((f))` does not satisfy the Cpp17CopyConstructible requirements.</ins>
+
+3. Otherwise, the expression <del>`bulk(sndr, shape, f)`</del><ins><i>`bulk-algo`</i>`(sndr, policy, shape, f)`</ins> is expression-equivalent to:
+
+        <div class="del">
+        <pre highlight="c++" class="del">
+        transform_sender(
+          <i>get-domain-early</i>(sndr),
+          <i>make-sender</i>(bulk, <i>product-type</i>{shape, f}, sndr))
+        </pre>
+        </div>
+
+        <div class="block-insert">
+        <pre highlight="c++">
+        transform_sender(
+          <i>get-domain-early</i>(sndr),
+          <i>make-sender</i>(<i>bulk-algo</i>, <i>product-type</i>{policy, shape, f}, sndr))
+        </pre>
+        </div>
+
+    except that `sndr` is evaluated only once.
+
+4. The exposition-only class template <i>`impls-for`</i> ([exec.snd.general]) is specialized for <del>`bulk_t`</del><ins><i>`B`</i>, where <ins><i>`B`</i> is either `bulk_chunked_t` or `bulk_unchunked_t`,</ins> as follows:
+
+        <pre highlight="c++">
+        namespace std::execution {
+          template&lt;>
+          struct <i>impls-for</i>&lt;<del>bulk_t</del><ins><i>B</i></ins>> : <i>default-impls</i> {
+            static constexpr auto complete = <i>see below</i>;
+          };
+        }
+        </pre>
+
+    1. The member <code><i>impls-for</i>&lt;<del>bulk_t</del><ins><i>B</i></ins>>::complete</code> is initialized with a callable object equivalent to the following lambda:
+
+          <pre highlight="c++">
+          []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
+            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept -> void requires <i>see below</i> {
+              if constexpr (same_as&lt;Tag, set_value_t>) {
+                <del>auto& [shape, f] = state;</del>
+                <ins>auto& [policy, shape, f] = state;</ins>
+                constexpr bool nothrow = noexcept(f(auto(shape), args...));
+                <i>TRY-EVAL</i>(rcvr, [&]() noexcept(nothrow) {
+                  for (decltype(auto(shape)) i = 0; i < shape; ++i) {
+                    f(auto(i), args...);
+                  }
+                  Tag()(std::move(rcvr), std::forward&lt;Args>(args)...);
+                }());
+              } else {
+                Tag()(std::move(rcvr), std::forward&lt;Args>(args)...);
+              }
+            }
+          </pre>
+
+          1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), args...)` is well-formed.
+
+<div class="block-insert">
+5. The exposition-only class template <i>`impls-for`</i> ([exec.snd.general]) is specialized for `bulk_t` as follows:
+
+        <pre highlight="c++">
+        namespace std::execution {
+          template&lt;>
+          struct <i>impls-for</i>&lt;bulk_t> : <i>default-impls</i> {
+            static constexpr auto complete = <i>see below</i>;
+          };
+        }
+        </pre>
+
+    1. The member <code><i>impls-for</i>&lt;bulk_t>::complete</code> is initialized with a callable object equivalent to the following lambda:
+
+          <pre highlight="c++">
+          []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
+            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept -> void requires <i>see below</i> {
+              auto& [policy, shape, f] = state;
+              constexpr bool nothrow = noexcept(f(auto(shape), args...));
+              auto new_f = [func=std::move(f)]<typename... Vs>(Size begin, Size end, Vs&... vs)
+                  noexcept(nothrow) {
+                while (begin != end) f(begin++, std::forward<Vs>(vs)...);
+              }
+              std::invoke(<i>impls-for</i>&lt;bulk_chunked_t>::complete, Index()
+                <i>product-type</i>{policy, shape, std::move(new_f)},
+                rcvr, Tag(), std::forward&lt;Args>(args)...);
+            }
+          </pre>
+
+          1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), args...)` is well-formed.
+
+</div>
+
+6. <ins>If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, let</ins> <del>Let</del> the subexpression `out_sndr` denote the result of the invocation <del>`bulk`</del><ins><i>`bulk-algo`</i></ins>`(sndr, `<ins>`policy,`</ins>` shape, f)` or an object equal to such, and let the subexpression `rcvr` denote a receiver such that the expression `connect(out_sndr, rcvr)` is well-formed.
+    The expression `connect(out_sndr, rcvr)` has undefined behavior unless it creates an asynchronous operation ([async.ops]) that, when started:
+
+      - <del>on a value completion operation, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of the input sender, and</del>
+
+      - <del>propagates all completion operations sent by `sndr`.<del>
+
+      <ins>
+      - <ins>if `sndr` completes with value, if `args` is a pack of lvalue subexpressions referring to the value completion result datums of `snd`, then:</ins>
+      
+        - if `out_sndr` also completes with value, then:
+
+            - if <i>`bulk-algo`</i> is `bulk` or `bulk_unchunked`, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`;
+            
+            - if <i>`bulk-algo`</i> is `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range [`0`, `shape`], such as for every `i` of type `Shape` from `0` to `shape`, there is an invocation with a pair `b` and `e`, such as `b <= i < e`;</ins>
+
+        - if `out_sndr` completes with `set_error(rcvr, e)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal, and `e` is either:
+
+            - an exception thrown by an invocation of `f`, or
+            
+            - an exception derived from `std::runtime_error`;
+
+        - if `out_sndr` completes with `set_stopped(rcvr, e)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal;
+            </ins>
+
+      - if `sndr` doesn't complete with value, the completion signal is forwarded to `recv`
+      
+      - the function `f` is invoked in a way that is not compatible with the execution policy `policy`.</ins>
+
+<ins>
+7. If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, then the asyncrhonous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is allowed (but not required) to:
+
+    - complete with `set_stopped()` if cancellation is requested (through the connected receiver);
+    - ignore cancellation requests;
+    - make decaying copies of the values produced by the predecessor sender, if the values are copyable.
+        </ins>
+
+<pre class=biblio>
+{
+    "exec.bulk": {
+        "authors": ["ISO WG21"],
+        "title": "Working Draft: Programming Languages — C++ -- `execution::bulk`",
+        "publisher": "ISO",
+        "href": "https://eel.is/c++draft/exec.bulk"
+    },
+    "alg.foreach": {
+        "authors": ["ISO WG21"],
+        "title": "Working Draft: Programming Languages — C++ -- For each",
+        "publisher": "ISO",
+        "href": "https://eel.is/c++draft/alg.foreach"
+    },
+    "parallel_for": {
+        "authors": ["Intel"],
+        "title": "Intel® oneAPI Threading Building Blocks Developer Guide and API Reference -- parallel_for",
+        "href": "https://www.intel.com/content/www/us/en/docs/onetbb/developer-guide-api-reference/2021-6/parallel-for.html"
+    }
 }
-```
+</pre>
 
-
-# Conclusion # {#conclusion}
-
-We identified several significant issues with `std::execution:bulk` API, which are better to be fixed before C++26 timeframe.
-Some of the solutions are likely problematic to add later if `bulk` is going to be released in the upcoming standard.
-At the same time, more exploration is required before proposing a good design for `bulk`.

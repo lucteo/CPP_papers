@@ -2,7 +2,7 @@
  <head>
   <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
   <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-  <title>P3481R1: Summarizing std::execution::bulk() issues</title>
+  <title>P3481R1: std::execution::bulk() issues</title>
 <style data-fill-with="stylesheet">/******************************************************************************
  *                   Style sheet for the W3C specifications                   *
  *
@@ -1561,11 +1561,53 @@ Possible extra rowspan handling
     blockquote c-[vi] { color: inherit; } /* Name.Variable.Instance */
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
-  <meta content="Bikeshed version 742f3d674, updated Mon Nov 4 14:56:54 2024 -0800" name="generator">
+  <meta content="Bikeshed version ac5ea272d, updated Fri Dec 6 15:45:15 2024 -0800" name="generator">
   <link href="http://wg21.link/P3481R0" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="821981689452ec97223d77546c1966d30e472283" name="revision">
+  <meta content="1ba1312b731876a8be824bae1f9c1252e5755498" name="revision">
   <meta content="dark light" name="color-scheme">
+<style>
+div.ed-note, span.ed-note {
+  color: blue !important;
+  font: initial;
+  font-family: sans-serif;
+}
+div.ed-note:before, span.ed-note:before {
+  content: "[Editorial note: ";
+  font-style: italic;
+}
+div.ed-note:after, span.ed-note:after {
+  content: " — end note]";
+  font-style: italic;
+}
+.ins, ins, ins *, span.ins, span.ins * {
+  background-color: light-dark(#cfc, hsl(120, 100.00%, 15%));
+  color: light-dark(#000, #ddd);
+  text-decoration: none;
+}
+.del, del, del *, span.del, span.del * {
+  background-color: light-dark(#fcc,hsl(0, 100.00%, 20%));
+  color: light-dark(#000, #ddd);
+  text-decoration: line-through;
+  text-decoration-color: #c00;
+}
+div.ed-note *, span.ed-note * {
+  color: blue !important;
+  margin-top: 0em;
+  margin-bottom: 0em;
+}
+div.ed-note blockquote {
+  margin-left: 2em;
+}
+div.block-insert, div.block-insert {
+  background-color: light-dark(#cfc, hsl(120, 100.00%, 15%));
+  padding-left: 0;
+  padding-right: 1.6em;
+}
+div.block-insert pre.highlight {
+  background-color: transparent;
+}
+</style>
 <style>/* Boilerplate: style-autolinks */
 .css.css, .property.property, .descriptor.descriptor {
     color: var(--a-normal-text);
@@ -2088,8 +2130,8 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
  <body class="h-entry">
   <div class="head">
    <p data-fill-with="logo"></p>
-   <h1 class="p-name no-ref" id="title">P3481R1<br>Summarizing <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2024-11-23">2024-11-23</time></span></h2>
+   <h1 class="p-name no-ref" id="title">P3481R1<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
+   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2024-12-22">2024-12-22</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2110,26 +2152,40 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="p-summary" data-fill-with="abstract">
    <h2 class="no-num no-toc no-ref heading settled" id="abstract"><span class="content">Abstract</span></h2>
    <p>When <a data-link-type="biblio" href="#biblio-p2300r10" title="`std::execution`">[P2300R10]</a> was merged into the working draft, a subsequent review of the github issue tracker discovered several outstanding issues relating to the use of the bulk algorithm that was in P2300R10 which were not addressed during the LEWG review. These issues mostly account for better expressing what bulk can and cannot do.</p>
-   <p>This paper tries to summarize these issues, give some ideas on the solution and promises to return back with a complete design.</p>
+   <p>This paper explores these issues and proposes a way to address them, making <code class="highlight"><c- n>bulk</c-><c- p>()</c-></code> better for the users.</p>
   </div>
   <nav data-fill-with="table-of-contents" id="toc">
    <h2 class="no-num no-toc no-ref" id="contents">Table of Contents</h2>
    <ol class="toc" role="directory">
-    <li><a href="#motivation"><span class="secno">1</span> <span class="content">Motivation</span></a>
     <li>
-     <a href="#design"><span class="secno">2</span> <span class="content">Design discussions</span></a>
+     <a href="#history"><span class="secno">1</span> <span class="content">Changes history</span></a>
      <ol class="toc">
-      <li><a href="#chunked"><span class="secno">2.1</span> <span class="content">Use chunked version as a basis operation</span></a>
-      <li><a href="#policies"><span class="secno">2.2</span> <span class="content">Using execution policies</span></a>
-      <li><a href="#relaxing"><span class="secno">2.3</span> <span class="content">Relaxing the default implementation</span></a>
-      <li><a href="#exceptions"><span class="secno">2.4</span> <span class="content">Exception handling</span></a>
-      <li>
-       <a href="#other"><span class="secno">2.5</span> <span class="content">Other considerations</span></a>
-       <ol class="toc">
-        <li><a href="#other-dropping"><span class="secno">2.5.1</span> <span class="content">Dropping a predecessor</span></a>
-       </ol>
+      <li><a href="#r1"><span class="secno">1.1</span> <span class="content">R1</span></a>
      </ol>
-    <li><a href="#conclusion"><span class="secno">3</span> <span class="content">Conclusion</span></a>
+    <li>
+     <a href="#motivation"><span class="secno">2</span> <span class="content">Motivation</span></a>
+     <ol class="toc">
+      <li><a href="#motivation.allowed"><span class="secno">2.1</span> <span class="content">Allowed behavior for <code class="highlight"><c- n>bulk</c-></code> customizations</span></a>
+      <li><a href="#motivation.policy"><span class="secno">2.2</span> <span class="content">Execution policy for the given functor</span></a>
+      <li><a href="#motivation.chunking"><span class="secno">2.3</span> <span class="content">Chunking</span></a>
+     </ol>
+    <li><a href="#api"><span class="secno">3</span> <span class="content">API</span></a>
+    <li>
+     <a href="#design"><span class="secno">4</span> <span class="content">Design discussions</span></a>
+     <ol class="toc">
+      <li><a href="#design.chunked"><span class="secno">4.1</span> <span class="content">Use chunked version as a basis operation</span></a>
+      <li><a href="#design.unchunked"><span class="secno">4.2</span> <span class="content">Also define an unchunked version</span></a>
+      <li><a href="#design.policies"><span class="secno">4.3</span> <span class="content">Using execution policies</span></a>
+      <li><a href="#design.reducing"><span class="secno">4.4</span> <span class="content">Reducing execution policies</span></a>
+      <li><a href="#design.constraints"><span class="secno">4.5</span> <span class="content">Adding constraints on customizations</span></a>
+      <li><a href="#design.exceptions"><span class="secno">4.6</span> <span class="content">Exception handling</span></a>
+     </ol>
+    <li>
+     <a href="#specification"><span class="secno">5</span> <span class="content">Specification</span></a>
+     <ol class="toc">
+      <li><a href="#specification.syn"><span class="secno">5.1</span> <span class="content">In [execution.syn]</span></a>
+      <li><a href="#specification.bulk"><span class="secno">5.2</span> <span class="content">In [exec.bulk]</span></a>
+     </ol>
     <li>
      <a href="#references"><span class="secno"></span> <span class="content">References</span></a>
      <ol class="toc">
@@ -2138,69 +2194,121 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
    </ol>
   </nav>
   <main>
-   <h2 class="heading settled" data-level="1" id="motivation"><span class="secno">1. </span><span class="content">Motivation</span><a class="self-link" href="#motivation"></a></h2>
-   <p>There are several shortcomings of the <code class="highlight"><c- n>bulk</c-></code> as defined by <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a>, that this paper tries to summarize:</p>
+   <h2 class="heading settled" data-level="1" id="history"><span class="secno">1. </span><span class="content">Changes history</span><a class="self-link" href="#history"></a></h2>
+   <h3 class="heading settled" data-level="1.1" id="r1"><span class="secno">1.1. </span><span class="content">R1</span><a class="self-link" href="#r1"></a></h3>
    <ul>
     <li data-md>
-     <p><code class="highlight"><c- n>bulk</c-></code> shall allow default alternative implementations,</p>
+     <p>In R1 we change the paper to conform to the feedback from SG1.</p>
     <li data-md>
-     <p><code class="highlight"><c- n>bulk</c-></code> shall allow to call the functor concurrently,</p>
-    <li data-md>
-     <p><code class="highlight"><c- n>bulk</c-></code> shall allow cancellation,</p>
-    <li data-md>
-     <p><code class="highlight"><c- n>bulk</c-></code> shall have well defined exceptions behavior in non-sequential executions,</p>
-    <li data-md>
-     <p><code class="highlight"><c- n>bulk</c-></code>’s functor shall be copyable,</p>
-    <li data-md>
-     <p><code class="highlight"><c- n>bulk</c-></code> shall take an execution policy paremeter allow specifying an execution policy,</p>
-    <li data-md>
-     <p><code class="highlight"><c- n>bulk</c-></code> shall be more suitable for the use case with many small iterations.</p>
+     <p>Add wording section.</p>
    </ul>
-   <p>In <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a> we specify the behavior of <code class="highlight"><c- n>bulk</c-></code>, in the absence of any customizations, as being equivalent to a C++ code.
-This has a few of drawbacks:</p>
-   <ul>
-    <li data-md>
-     <p>Limits vendors ability to customize the behavior for improving performance (e.g., adaptive partitioning, vectorization, etc.)</p>
-    <li data-md>
-     <p>Doesn’t allow out-of-order execution of the given functor.</p>
-    <li data-md>
-     <p>Doesn’t allow cancellation of the <code class="highlight"><c- n>bulk</c-></code> work.</p>
-   </ul>
-   <p>Users of <code class="highlight"><c- n>bulk</c-></code> expect that the given functor to be called concurrently. The current specification breaks this expectation.</p>
-   <p>Another reasonable expectation that is broken by <code class="highlight"><c- n>bulk</c-></code> is to support cancellation of the work.
-If the environment of <code class="highlight"><c- n>bulk</c-></code> has a cancellable token, and cancellation is signaled, the <code class="highlight"><c- n>bulk</c-></code> implementation will simply ignore it (after the predecessor sender was completed).</p>
-   <p>In the default implementation of <code class="highlight"><c- n>bulk</c-></code>, we don’t have a need to copy the given functor f, as the code can sequentially access it by using a reference to it (<a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a>).
-Considering customization, we don’t specify what the <code class="highlight"><c- n>bulk</c-></code> implementation can do with the given functor. This is especially problematic for implementation of <code class="highlight"><c- n>bulk</c-></code> that rely on parallelism or may move computations to other execution contexts.
-By contrast, the <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>for_each</c-></code> that takes an execution policy (<a data-link-type="biblio" href="#biblio-algforeach" title="Working Draft: Programming Languages — C++ -- For each">[alg.foreach]</a>) has a requirement that the given function needs to be <code class="highlight"><c- n>Cpp17CopyConstructible</c-></code>.</p>
-   <p>Similarly, the current specification of <code class="highlight"><c- n>bulk</c-></code> doesn’t specify if the arguments passed to <code class="highlight"><c- n>f</c-></code> are copyable.
-These arguments are produced by the input sender, and they need to be used in all the invocations to <code class="highlight"><c- n>f</c-></code>, and in the invocation to <code class="highlight"><c- n>set_value</c-></code>.
-If <code class="highlight"><c- n>f</c-></code> and <code class="highlight"><c- n>set_value</c-></code> are executed in different execution contexts, we may need to be able to copy the arguments.</p>
-   <p>The specification of <code class="highlight"><c- n>bulk</c-></code> (<a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a>) doesn’t properly address exception propagation when we are not just forwarding the error from the previous sender.
-This spans on two levels:</p>
+   <hr>
+   <p>R0 was presented at the SG1 meeting in November 2024 in Wrocław, Poland.
+SG1 provided the following feedback in the form of polls:</p>
    <ol>
     <li data-md>
-     <p>In the default implementation, as soon as one exception is raised from calling <code class="highlight"><c- n>f</c-></code>, it is forwarded to the error completion signal.
-But, if we want to make the default implementation customizable (see above issues), the same strategy cannot be applied.
-In a concurrent execution of <code class="highlight"><c- n>f</c-></code>, detecting the first exception thrown may not make sense; also, we might have multiple exceptions thrown before we manage to complete with error.</p>
+     <p>If we have chunking, we need to expose a control on the chunk size.</p>
+<pre class="highlight"><c- o>|</c-> <c- n>SF</c-> <c- o>|</c-> <c- n>F</c-> <c- o>|</c-> <c- n>N</c-> <c- o>|</c-> <c- n>A</c-> <c- o>|</c-> <c- n>SA</c-> <c- o>|</c->
+<c- o>|</c-> <c- mi>1</c->  <c- o>|</c-> <c- mi>2</c-> <c- o>|</c-> <c- mi>3</c-> <c- o>|</c-> <c- mi>1</c-> <c- o>|</c-> <c- mi>1</c->  <c- o>|</c->
+</pre>
+     <p>No consensus</p>
     <li data-md>
-     <p>The specification for customized versions of <code class="highlight"><c- n>bulk</c-></code> doesn’t mention what happens when <code class="highlight"><c- n>f</c-></code> throws.
-We need to also specify the general expectations in this case, so that users of <code class="highlight"><c- n>bulk</c-></code> know what can happen when they utilize this algorithm.</p>
+     <p>We need a version of the <code class="highlight"><c- n>bulk</c-></code> API that presents the chunk to the callable in order to implement the parallel algorithms</p>
+<pre class="highlight"><c- o>|</c-> <c- n>SF</c-> <c- o>|</c-> <c- n>F</c-> <c- o>|</c-> <c- n>N</c-> <c- o>|</c-> <c- n>A</c-> <c- o>|</c-> <c- n>SA</c-> <c- o>|</c->
+<c- o>|</c-> <c- mi>4</c->  <c- o>|</c-> <c- mi>2</c-> <c- o>|</c-> <c- mi>1</c-> <c- o>|</c-> <c- mi>0</c-> <c- o>|</c-> <c- mi>1</c->  <c- o>|</c->
+</pre>
+     <p>Consensus</p>
+    <li data-md>
+     <p>We need a version of the bulk API that creates an execution agent per iteration.</p>
+<pre class="highlight"><c- o>|</c-> <c- n>SF</c-> <c- o>|</c-> <c- n>F</c-> <c- o>|</c-> <c- n>N</c-> <c- o>|</c-> <c- n>A</c-> <c- o>|</c-> <c- n>SA</c-> <c- o>|</c->
+<c- o>|</c-> <c- mi>2</c->  <c- o>|</c-> <c- mi>3</c-> <c- o>|</c-> <c- mi>3</c-> <c- o>|</c-> <c- mi>0</c-> <c- o>|</c-> <c- mi>0</c->  <c- o>|</c->
+</pre>
+     <p>Unanimous consent</p>
+    <li data-md>
+     <p>We believe / desire:</p>
+     <ol>
+      <li data-md>
+       <p>Bulk needs an execution policy to describe the callable, IF the scheduler also has an execution
+policy (for debugging for example) then a conservative choice should be used (<code class="highlight"><c- n>seq</c-></code> is more
+conservative than <code class="highlight"><c- n>par</c-></code>)</p>
+      <li data-md>
+       <p>No SG1 concerns with the proposed exception handling</p>
+      <li data-md>
+       <p>No change to status quo on default implementation of bulk being serial</p>
+      <li data-md>
+       <p>No change to status quo on bulk having a predecessor</p>
+      <li data-md>
+       <p>Forms of bulk needed:</p>
+       <ul>
+        <li data-md>
+         <p><code class="highlight"><c- n>bulk</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>)</c-></code> -> <code class="highlight"><c- n>bulk_chunked</c-></code></p>
+        <li data-md>
+         <p><code class="highlight"><c- n>bulk_chunked</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code></p>
+        <li data-md>
+         <p><code class="highlight"><c- n>bulk_unchunked</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>)</c-></code> "execution agent per iteration"</p>
+       </ul>
+     </ol>
+<pre class="highlight"><c- o>|</c-> <c- n>SF</c-> <c- o>|</c-> <c- n>F</c-> <c- o>|</c-> <c- n>N</c-> <c- o>|</c-> <c- n>A</c-> <c- o>|</c-> <c- n>SA</c-> <c- o>|</c->
+<c- o>|</c-> <c- mi>5</c->  <c- o>|</c-> <c- mi>2</c-> <c- o>|</c-> <c- mi>1</c-> <c- o>|</c-> <c- mi>0</c-> <c- o>|</c-> <c- mi>0</c->  <c- o>|</c->
+</pre>
+     <p>Unanimous consent</p>
    </ol>
-   <p>One shall note that, for customizations of <code class="highlight"><c- n>bulk</c-></code> that execute <code class="highlight"><c- n>f</c-></code> on different hardware, there may not be a way to forward the exceptions thrown by <code class="highlight"><c- n>f</c-></code> to the receiver connected with the <code class="highlight"><c- n>bulk</c-></code> sender.</p>
-   <p>Another omission from the specification is the execution policy allowed for the given functor <code class="highlight"><c- n>f</c-></code>.
-Similar to <code class="highlight"><c- n>for_each</c-></code>, users might expect that <code class="highlight"><c- n>bulk</c-></code> also takes an execution policy as argument.
-This is needed for the following reasons:</p>
+   <h2 class="heading settled" data-level="2" id="motivation"><span class="secno">2. </span><span class="content">Motivation</span><a class="self-link" href="#motivation"></a></h2>
+   <p>For most algorithms defined in <a data-link-type="biblio" href="#biblio-p2300r10" title="`std::execution`">[P2300R10]</a>, the default implementation typically describes the desired behavior.
+However, this is not the case for <code class="highlight"><c- n>bulk</c-></code>.</p>
+   <p>The expectation for <code class="highlight"><c- n>bulk</c-></code> is that it will be customized for most use cases.
+The default implementation is a common-denominator solution that is not necessarily optimal for the majority of scenarios.</p>
+   <p>The description in <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a> specifies the default implementation but does not outline any requirements for customizations.
+This creates uncertainty for users regarding what they can expect when invoking <code class="highlight"><c- n>bulk</c-></code>.</p>
+   <p>This paper addresses this issue by specifying what is permissible in a customization of <code class="highlight"><c- n>bulk</c-></code>.</p>
+   <p>A second issue this paper seeks to resolve is the lack of an execution policy for the provided functor.
+For example, if the functor is unsuitable for the par_unseq execution policy, there is currently no mechanism for users to specify this.</p>
+   <p>A third issue this paper addresses is the absence of chunking in the default implementation of <code class="highlight"><c- n>bulk</c-></code>.
+Invoking the functor for every element in a range can lead to performance challenges in certain use cases.</p>
+   <h3 class="heading settled" data-level="2.1" id="motivation.allowed"><span class="secno">2.1. </span><span class="content">Allowed behavior for <code class="highlight"><c- n>bulk</c-></code> customizations</span><a class="self-link" href="#motivation.allowed"></a></h3>
+   <p>From the specification of bulk in <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a>, if we have customized <code class="highlight"><c- n>bulk</c-></code>, the following are unclear:</p>
    <ul>
     <li data-md>
-     <p>While not including an execution policy is fine for the default implementation of <code class="highlight"><c- n>bulk</c-></code>, as specified, this is not sufficient if the customizations may choose different execution policies.</p>
+     <p>Can <code class="highlight"><c- n>bulk</c-></code> invoke the given functor concurrently?</p>
     <li data-md>
-     <p>A default execution policy isn’t enough; there is hardware that supports both <code class="highlight"><c- n>par</c-></code> and <code class="highlight"><c- n>par_unseq</c-></code> execution policy semantics, while there is hardware that supports <code class="highlight"><c- n>par_unseq</c-></code>.
-Standardizing the API without execution policies might occasionally give one or several hardware vendors an advantage and there is hardware that performs better with <code class="highlight"><c- n>par_unseq</c-></code>.</p>
+     <p>Can <code class="highlight"><c- n>bulk</c-></code> create decayed copies of the given functor?</p>
     <li data-md>
-     <p>Not having the execution policy, may force the users to fall back to <code class="highlight"><c- n>for_each</c-></code> for functions that only support <code class="highlight"><c- n>par</c-></code> execution policy; this is an impediment to generic programming.</p>
+     <p>Can <code class="highlight"><c- n>bulk</c-></code> create decayed copies of the values produced by the previous sender?</p>
+    <li data-md>
+     <p>Can <code class="highlight"><c- n>bulk</c-></code> handle cancellation within the algorithm?</p>
+    <li data-md>
+     <p>How should <code class="highlight"><c- n>bulk</c-></code> respond to exceptions thrown by the given functor?</p>
    </ul>
-   <p>There is also a performance problem with the way <code class="highlight"><c- n>bulk</c-></code> is defined for cases in which we have many iterations, and we would benefit from chunking together consecutive operations.
-Here is an example:</p>
+   <h3 class="heading settled" data-level="2.2" id="motivation.policy"><span class="secno">2.2. </span><span class="content">Execution policy for the given functor</span><a class="self-link" href="#motivation.policy"></a></h3>
+   <p>Similar to <code class="highlight"><c- n>for_each</c-></code> (<a data-link-type="biblio" href="#biblio-algforeach" title="Working Draft: Programming Languages — C++ -- For each">[alg.foreach]</a>) users might expect the <code class="highlight"><c- n>bulk</c-></code> algorithm to take an execution policy as argument.
+The execution policy would define the execution capabilities of the given function.</p>
+   <p>There are two main reasons for wanting an execution policy to accompany the function passed to <code class="highlight"><c- n>bulk</c-></code>:</p>
+   <ol>
+    <li data-md>
+     <p>To better tailor the algorithm to the available hardware.</p>
+    <li data-md>
+     <p>To improve usage in generic code.</p>
+   </ol>
+   <p>Currently, we have hardware that supports both <code class="highlight"><c- n>par</c-></code> and <code class="highlight"><c- n>par_unseq</c-></code> execution policy semantics, as well as hardware that only supports <code class="highlight"><c- n>par_unseq</c-></code>.
+Standardizing the API without execution policies implies that the language chooses a default execution policy for <code class="highlight"><c- n>bulk</c-></code>.
+This decision could favor certain hardware vendors over others.</p>
+   <p>From a generic programming perspective, consider a scenario where a user implements a function like the following:</p>
+<pre class="highlight"><c- b>void</c-> <c- nf>process</c-><c- p>(</c-><c- n>std</c-><c- o>::</c-><c- n>vector</c-><c- o>&lt;</c-><c- b>int</c-><c- o>>&amp;</c-> <c- n>data</c-><c- p>,</c-> <c- k>auto</c-> <c- n>std</c-><c- o>::</c-><c- n>invocable</c-><c- o>&lt;</c-><c- b>int</c-><c- o>></c-> <c- n>f</c-><c- p>)</c-> <c- p>{</c->
+  <c- c1>// call `f` for each element in `data`; try using `bulk`.</c->
+  <c- c1>// can we call `f` concurrently?</c->
+<c- p>}</c->
+</pre>
+   <p>In the body of the generic function process, we do not know the constraints imposed on <code class="highlight"><c- n>f</c-></code>.
+Can we assume that <code class="highlight"><c- n>f</c-></code> can be invoked with the <code class="highlight"><c- n>par_unseq</c-></code> execution policy?
+Can it be invoked with the <code class="highlight"><c- n>par</c-></code> execution policy?
+Or should we default to the <code class="highlight"><c- n>seq</c-></code> execution policy?</p>
+   <p>Since there is no way to infer the execution policy that should apply to <code class="highlight"><c- n>f</c-></code>, the implementation of process must be conservative and default to the <code class="highlight"><c- n>unseq</c-></code> execution policy.
+However, in most cases, the <code class="highlight"><c- n>par</c-></code> or <code class="highlight"><c- n>par_unseq</c-></code> execution policy would likely be more appropriate.</p>
+   <h3 class="heading settled" data-level="2.3" id="motivation.chunking"><span class="secno">2.3. </span><span class="content">Chunking</span><a class="self-link" href="#motivation.chunking"></a></h3>
+   <p>The current specification of bulk (<a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a>) does not support chunking.
+This limitation presents a performance issue for certain use cases.</p>
+   <p>If two iterations can potentially be executed together more efficiently than in isolation, chunking would provide a performance benefit.</p>
+   <p>Let us take an example:</p>
 <pre class="highlight"><c- n>std</c-><c- o>::</c-><c- n>atomic</c-><c- o>&lt;</c-><c- n>std</c-><c- o>::</c-><c- b>uint32_t</c-><c- o>></c-> <c- n>sum</c-><c- p>{</c-><c- mi>0</c-><c- p>};</c->
 <c- n>std</c-><c- o>::</c-><c- n>vector</c-><c- o>&lt;</c-><c- n>std</c-><c- o>::</c-><c- b>uint32_t</c-><c- o>></c-> <c- n>data</c-><c- p>;</c->
 <c- n>ex</c-><c- o>::</c-><c- n>sender</c-> <c- k>auto</c-> <c- n>s</c-> <c- o>=</c-> <c- n>ex</c-><c- o>::</c-><c- n>bulk</c-><c- p>(</c-><c- n>ex</c-><c- o>::</c-><c- n>just</c-><c- p>(),</c-> <c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>par</c-><c- p>,</c-> <c- mi>100'000</c-><c- p>,</c->
@@ -2208,8 +2316,8 @@ Here is an example:</p>
     <c- n>sum</c-><c- p>.</c-><c- n>fetch_add</c-><c- p>(</c-><c- n>data</c-><c- p>[</c-><c- n>idx</c-><c- p>]);</c->
   <c- p>});</c->
 </pre>
-   <p>In this example, we are doing 100,000 atomic operations.
-A better implementation would allow us to have an atomic operation for each chunk of work, and allow each chunk of work to sum things locally; this may look like:</p>
+   <p>In this example, we perform 100,000 atomic operations.
+A more efficient implementation would allow a single atomic operation for each chunk of work, enabling each chunk to perform local summation. This approach might look like:</p>
 <pre class="highlight"><c- n>std</c-><c- o>::</c-><c- n>atomic</c-><c- o>&lt;</c-><c- n>std</c-><c- o>::</c-><c- b>uint32_t</c-><c- o>></c-> <c- n>sum</c-><c- p>{</c-><c- mi>0</c-><c- p>};</c->
 <c- n>ex</c-><c- o>::</c-><c- n>sender</c-> <c- k>auto</c-> <c- n>s</c-> <c- o>=</c-> <c- n>ex</c-><c- o>::</c-><c- n>bulk_chunked</c-><c- p>(</c-><c- n>ex</c-><c- o>::</c-><c- n>just</c-><c- p>(),</c-> <c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>par</c-><c- p>,</c-> <c- mi>100'000</c-><c- p>,</c->
   <c- p>[</c-><c- o>&amp;</c-><c- n>sum</c-><c- p>,</c-><c- o>&amp;</c-><c- n>data</c-><c- p>](</c-><c- n>std</c-><c- o>::</c-><c- b>uint32_t</c-> <c- n>begin</c-><c- p>,</c-> <c- n>std</c-><c- o>::</c-><c- b>uint32_t</c-> <c- n>end</c-><c- p>)</c-> <c- p>{</c->
@@ -2220,15 +2328,28 @@ A better implementation would allow us to have an atomic operation for each chun
     <c- n>sum</c-><c- p>.</c-><c- n>fetch_add</c-><c- p>(</c-><c- n>partial_sum</c-><c- p>);</c->
   <c- p>});</c->
 </pre>
-   <h2 class="heading settled" data-level="2" id="design"><span class="secno">2. </span><span class="content">Design discussions</span><a class="self-link" href="#design"></a></h2>
+   <p>Other similar examples exist where grouping operations together can improve performance.
+This is particularly important when the functor passed to bulk cannot be inlined or when the functor is expensive to invoke.</p>
+   <h2 class="heading settled" data-level="3" id="api"><span class="secno">3. </span><span class="content">API</span><a class="self-link" href="#api"></a></h2>
    <p>Define bulk to match the following API:</p>
-<pre class="highlight"><c- c1>// NEW: algorithm to be used as a basis operation</c->
+<pre class="highlight"><c- c1>// NEW: algorithm to be used as a default basis operation</c->
 <c- k>template</c-><c- o>&lt;</c-><c- n>execution</c-><c- o>::</c-><c- n>sender</c-> <c- n>Predecessor</c-><c- p>,</c->
          <c- k>typename</c-> <c- nc>ExecutionPolicy</c-><c- p>,</c->
          <c- n>std</c-><c- o>::</c-><c- n>integral</c-> <c- n>Size</c-><c- p>,</c->
          <c- n>std</c-><c- o>::</c-><c- n>invocable</c-><c- o>&lt;</c-><c- n>Size</c-><c- p>,</c-> <c- n>Size</c-><c- p>,</c-> <c- n>values</c-><c- o>-</c-><c- n>sent</c-><c- o>-</c-><c- n>by</c-><c- p>(</c-><c- n>Predecessor</c-><c- p>)...</c-><c- o>></c-> <c- n>Func</c->
 <c- o>></c->
 <c- n>execution</c-><c- o>::</c-><c- n>sender</c-> <c- k>auto</c-> <c- n>bulk_chunked</c-><c- p>(</c-><c- n>Predecessor</c-> <c- n>pred</c-><c- p>,</c->
+                                    <c- n>ExecutionPolicy</c-><c- o>&amp;&amp;</c-> <c- n>pol</c-><c- p>,</c->
+                                    <c- n>Size</c-> <c- n>size</c-><c- p>,</c->
+                                    <c- n>Func</c-> <c- n>f</c-><c- p>);</c->
+
+<c- c1>// NEW: algorithm to ensure one execution agent per iteration</c->
+<c- k>template</c-><c- o>&lt;</c-><c- n>execution</c-><c- o>::</c-><c- n>sender</c-> <c- n>Predecessor</c-><c- p>,</c->
+         <c- k>typename</c-> <c- nc>ExecutionPolicy</c-><c- p>,</c->
+         <c- n>std</c-><c- o>::</c-><c- n>integral</c-> <c- n>Size</c-><c- p>,</c->
+         <c- n>std</c-><c- o>::</c-><c- n>invocable</c-><c- o>&lt;</c-><c- n>Size</c-><c- p>,</c-> <c- n>Size</c-><c- p>,</c-> <c- n>values</c-><c- o>-</c-><c- n>sent</c-><c- o>-</c-><c- n>by</c-><c- p>(</c-><c- n>Predecessor</c-><c- p>)...</c-><c- o>></c-> <c- n>Func</c->
+<c- o>></c->
+<c- n>execution</c-><c- o>::</c-><c- n>sender</c-> <c- k>auto</c-> <c- n>bulk_unchunked</c-><c- p>(</c-><c- n>Predecessor</c-> <c- n>pred</c-><c- p>,</c->
                                     <c- n>ExecutionPolicy</c-><c- o>&amp;&amp;</c-> <c- n>pol</c-><c- p>,</c->
                                     <c- n>Size</c-> <c- n>size</c-><c- p>,</c->
                                     <c- n>Func</c-> <c- n>f</c-><c- p>);</c->
@@ -2259,15 +2380,29 @@ A better implementation would allow us to have an atomic operation for each chun
    <p>The <code class="highlight"><c- n>bulk_chunked</c-></code> algorithm is a customization point returning a sender that describes a work with following properties:</p>
    <ul>
     <li data-md>
+     <p>Let <code class="highlight"><c- n>args</c-><c- p>...</c-></code> be the values sent by the predecessor.</p>
+    <li data-md>
      <p>In the absence of any errors, call <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times, such as, for every <code class="highlight"><c- n>i</c-></code> in range [0, <code class="highlight"><c- n>size</c-></code>), there is exactly one call to <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> with i ∈ [<code class="highlight"><c- n>b</c-></code>, <code class="highlight"><c- n>e</c-></code>).
 All the calls to <code class="highlight"><c- n>f</c-></code> strongly happen before any call to <code class="highlight"><c- n>set_value</c-></code>.</p>
     <li data-md>
      <p>If any call to <code class="highlight"><c- n>f</c-></code> throws, then the sender completes on receiver <code class="highlight"><c- n>rcvr</c-></code> with <code class="highlight"><c- n>set_error</c-><c- p>(</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>rcvr</c-><c- p>),</c-> <c- n>e</c-><c- p>)</c-></code>, where <code class="highlight"><c- n>e</c-></code> is one of the exceptions thrown, or is an exception derived from <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>runtime_error</c-></code>.
 Before calling <code class="highlight"><c- n>set_error</c-></code>, the operation may call <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times, such as, for every <code class="highlight"><c- n>i</c-></code> in range [0, <code class="highlight"><c- n>size</c-></code>), there is maximum one call to <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> with <code class="highlight"><c- n>i</c-></code> ∈ [<code class="highlight"><c- n>b</c-></code>, <code class="highlight"><c- n>e</c-></code>).</p>
    </ul>
+   <p>The <code class="highlight"><c- n>bulk_unchunked</c-></code> algorithm is a customization point returning a sender that describes a work with following properties:</p>
+   <ul>
+    <li data-md>
+     <p>Let <code class="highlight"><c- n>args</c-><c- p>...</c-></code> be the values sent by the predecessor.</p>
+    <li data-md>
+     <p>In the absence of any errors, call <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times, such as, for every <code class="highlight"><c- n>i</c-></code> in range [0, <code class="highlight"><c- n>size</c-></code>), there is exactly one call to <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code>.
+All the calls to <code class="highlight"><c- n>f</c-></code> strongly happen before any call to <code class="highlight"><c- n>set_value</c-></code>.</p>
+    <li data-md>
+     <p>If any call to <code class="highlight"><c- n>f</c-></code> throws, then the sender completes on receiver <code class="highlight"><c- n>rcvr</c-></code> with <code class="highlight"><c- n>set_error</c-><c- p>(</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>rcvr</c-><c- p>),</c-> <c- n>e</c-><c- p>)</c-></code>, where <code class="highlight"><c- n>e</c-></code> is one of the exceptions thrown, or is an exception derived from <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>runtime_error</c-></code>.
+Before calling <code class="highlight"><c- n>set_error</c-></code>, the operation may call <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times, such as, for every <code class="highlight"><c- n>i</c-></code> in range [0, <code class="highlight"><c- n>size</c-></code>), there is maximum one call to <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code>.</p>
+   </ul>
    <p>The <code class="highlight"><c- n>bulk</c-></code> algorithm is a customization point.
 The default implementation calls <code class="highlight"><c- n>bulk_chunked</c-></code> as shown above.</p>
-   <h3 class="heading settled" data-level="2.1" id="chunked"><span class="secno">2.1. </span><span class="content">Use chunked version as a basis operation</span><a class="self-link" href="#chunked"></a></h3>
+   <h2 class="heading settled" data-level="4" id="design"><span class="secno">4. </span><span class="content">Design discussions</span><a class="self-link" href="#design"></a></h2>
+   <h3 class="heading settled" data-level="4.1" id="design.chunked"><span class="secno">4.1. </span><span class="content">Use chunked version as a basis operation</span><a class="self-link" href="#design.chunked"></a></h3>
    <p>To address the performance problem described in the motivation, we propose to add a chunked version for <code class="highlight"><c- n>bulk</c-></code>.
 This allows implementations to process the iteration space in chunks, and take advantage of the locality of the chunk processing.
 This is useful when publishing the effects of the functor may be expensive (the example from the motivation) and when the given functor cannot be inlined.</p>
@@ -2276,9 +2411,14 @@ For example, computing the results of a Mandelbrot fractal on a line is an unbal
 Some values can be computed very fast, while others take longer to compute.</p>
    <p>Passing a range as parameters to the functor passed to <code class="highlight"><c- n>bulk_chunked</c-></code> is similar to the way Intel TBB’s <code class="highlight"><c- n>parallel_for</c-></code> functions (see <a data-link-type="biblio" href="#biblio-parallel_for" title="Intel® oneAPI Threading Building Blocks Developer Guide and API Reference -- parallel_for">[parallel_for]</a>).</p>
    <p>An implementation of <code class="highlight"><c- n>bulk</c-></code> can be easily built on top of <code class="highlight"><c- n>bulk_chunked</c-></code> without losing performance (as shown in the Proposal section).</p>
-   <h3 class="heading settled" data-level="2.2" id="policies"><span class="secno">2.2. </span><span class="content">Using execution policies</span><a class="self-link" href="#policies"></a></h3>
+   <h3 class="heading settled" data-level="4.2" id="design.unchunked"><span class="secno">4.2. </span><span class="content">Also define an unchunked version</span><a class="self-link" href="#design.unchunked"></a></h3>
+   <p>For GPUs is important to have a version of <code class="highlight"><c- n>bulk</c-></code> that ensures one execution agent per iteration.
+Defining <code class="highlight"><c- n>bulk</c-></code> in terms of <code class="highlight"><c- n>bulk_chunked</c-></code> would not be efficient for GPUs.</p>
+   <p>Moreover, for composabiliy reasons, we need a way to specify which version of <code class="highlight"><c- n>bulk</c-></code> will not do any chunking.</p>
+   <p>For this reasons, we need to have a version of <code class="highlight"><c- n>bulk</c-></code> that doesn’t do any chunking.</p>
+   <h3 class="heading settled" data-level="4.3" id="design.policies"><span class="secno">4.3. </span><span class="content">Using execution policies</span><a class="self-link" href="#design.policies"></a></h3>
    <p>As discussed in the Motivation section, not having the possibility to specify execution policies for the <code class="highlight"><c- n>bulk</c-></code> algorithm is a downside.
-If the default execution policy for regular algorithms is seq, for <code class="highlight"><c- n>bulk</c-></code> (and <code class="highlight"><c- n>bulk_chunked</c-></code>) it makes more sense for the default to be par or par_unseq.
+If the default execution policy for regular algorithms is <code class="highlight"><c- n>seq</c-></code>, for most common uses of <code class="highlight"><c- n>bulk</c-></code> (and <code class="highlight"><c- n>bulk_chunked</c-></code>/<code class="highlight"><c- n>bulk_unchunked</c-></code>) it makes more sense for the default to be <code class="highlight"><c- n>par</c-></code> or <code class="highlight"><c- n>par_unseq</c-></code>.
 But, there are cases in which any of these two would be more appropriate.
 Thus, we cannot choose a default policy.</p>
    <p>One criticism of this solution is that each invocation of <code class="highlight"><c- n>bulk</c-></code> needs to contain an extra parameter that is typically verbose to type.
@@ -2299,35 +2439,45 @@ Something like:</p>
 <c- k>auto</c-> <c- n>bulk_chunked_unseq</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>);</c->
 <c- k>auto</c-> <c- n>bulk_chunked_par</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>);</c->
 <c- k>auto</c-> <c- n>bulk_chunked_par_unseq</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>);</c->
+
+<c- k>auto</c-> <c- n>bulk_unchunked_seq</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>);</c->
+<c- k>auto</c-> <c- n>bulk_unchunked_unseq</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>);</c->
+<c- k>auto</c-> <c- n>bulk_unchunked_par</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>);</c->
+<c- k>auto</c-> <c- n>bulk_unchunked_par_unseq</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>);</c->
 </pre>
    <p>We dropped this idea, as this isn’t scalable.
 Moreover, the user can easily add these overloads in their codebase.</p>
-   <h3 class="heading settled" data-level="2.3" id="relaxing"><span class="secno">2.3. </span><span class="content">Relaxing the default implementation</span><a class="self-link" href="#relaxing"></a></h3>
-   <p>As mentioned in the Motivation section, the way the un-customized <code class="highlight"><c- n>bulk</c-></code> is defined by <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a> is too constrained and doesn’t meet typical user’s expectations.
-With this definition, the default <code class="highlight"><c- n>bulk</c-></code> implementation needs to be serial.</p>
-   <p>We would want to relax this over-specification of the algorithm and specify the minimal properties that need to hold for the implementation.
-We would want to specify that the functor needs to be called for the entire range, but leave the details to the implementation.
-This allows the implementation to fine-tune the algorithm and make it more performant for the envisioned usage/hardware.</p>
-   <p>Such a relaxed specification should allow:</p>
+   <h3 class="heading settled" data-level="4.4" id="design.reducing"><span class="secno">4.4. </span><span class="content">Reducing execution policies</span><a class="self-link" href="#design.reducing"></a></h3>
+   <p>We have an execution policy given to the <code class="highlight"><c- n>bulk</c-></code> algorithms, but we might have another one attached to a scheduler and/or to the execution agent.
+In this case, we need to "reduce" the execution policies to a single one.</p>
+   <p>We propose to use the most conservative execution policy; i.e., <code class="highlight"><c- n>seq</c-></code> is more conservative than <code class="highlight"><c- n>par</c-></code>, which is more conservative than <code class="highlight"><c- n>par_unseq</c-></code>.</p>
+   <h3 class="heading settled" data-level="4.5" id="design.constraints"><span class="secno">4.5. </span><span class="content">Adding constraints on customizations</span><a class="self-link" href="#design.constraints"></a></h3>
+   <p>The current specification of <code class="highlight"><c- n>bulk</c-></code> in <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a> doesn’t define any constraints for the customization of the algorithm.
+The default implementation (a serial version of <code class="highlight"><c- n>bulk</c-></code>) is expected to be very different that its customizations.</p>
+   <p>Having customizations in mind, we need to define the minimal constraints that need to hold for the implementation.
+We propose the following:</p>
    <ul>
     <li data-md>
-     <p>Calling the given functor concurrently.</p>
+     <p>Require <code class="highlight"><c- n>f</c-></code> to be copy-constructible.</p>
     <li data-md>
-     <p>Making decay copies of the values produced by the previous sender (if the values produced are copyable).</p>
+     <p>Allow <code class="highlight"><c- n>f</c-></code> to be invoked according to the specified execution policy (and don’t assume it’s going to be called serially).</p>
     <li data-md>
-     <p>Handling cancellation inside the <code class="highlight"><c- n>bulk</c-></code> algorithm.</p>
+     <p>Allow the values produced by the previous sender to be decay copied (if the values produced are copyable).</p>
+    <li data-md>
+     <p>Allow the algorithm to handle cancellation requests, but don’t mandate it.</p>
    </ul>
-   <p>With this change we also require that the given functor be copy-constructible.
-This will make <code class="highlight"><c- n>bulk</c-></code> require the same type of function as a <code class="highlight"><c- n>for_each</c-></code> with an execution policy.</p>
-   <p>The derided direction is to specify that <code class="highlight"><c- n>bulk</c-></code> can react to cancellation requests, but leave the details of how cancellation is implemented to be unspecified.
-One implementation might choose to check for cancellation for every iteration, while others may want to check for cancellation on processing a batch of items.
-It shall be also possible for vendors to completely ignore cancellation requests (if, for example, supporting cancellation would actually slow down the main uses-cases that the vendor is optimizing for).</p>
+   <p>We want to require that the given functor be copy-constructible so that <code class="highlight"><c- n>bulk</c-></code> requires the same type of function as a <code class="highlight"><c- n>for_each</c-></code> with an execution policy.
+Adding an execution policy to <code class="highlight"><c- n>bulk</c-></code>/<code class="highlight"><c- n>bulk_chunked</c-></code>/<code class="highlight"><c- n>bulk_unchunked</c-></code> would also align them with <code class="highlight"><c- n>for_each</c-></code>.</p>
+   <p>If <code class="highlight"><c- n>f</c-></code> is allowed to be invoked concurrently, then implementations may want to copy the arguments passed to it.</p>
+   <p>Another important point for a <code class="highlight"><c- n>bulk</c-></code> operation is how it should react to cancellation requests.
+We want to specify that <code class="highlight"><c- n>bulk</c-></code> should be able to react to cancellation requests, but not make this mandatory.
+It shall be also possible for vendors to completely ignore cancellation requests (if, for example, supporting cancellation would actually slow down the main uses-cases that the vendor is optimizing for).
+Also, the way cancellation is implemented should be left unspecified.</p>
    <p>Checking the cancellation token every iteration may be expensive for certain cases.
 A cancellation check requires an acquire memory barrier (which may be too much for really small functors), and might prevent vectorization.
 Thus, implementations may want to check the cancellation every <em>N</em> iterations; <em>N</em> can be a statically known number, or can be dynamically determined.</p>
-   <p>In our proposal, <code class="highlight"><c- n>bulk</c-></code> is implemented in terms of <code class="highlight"><c- n>bulk_chunked</c-></code>.
-Thus, we define the minimal constraints on <code class="highlight"><c- n>bulk_chunked</c-></code>.</p>
-   <h3 class="heading settled" data-level="2.4" id="exceptions"><span class="secno">2.4. </span><span class="content">Exception handling</span><a class="self-link" href="#exceptions"></a></h3>
+   <p>As <code class="highlight"><c- n>bulk</c-></code>, <code class="highlight"><c- n>bulk_chunked</c-></code>, and <code class="highlight"><c- n>bulk_unchunked</c-></code> are customization points, we need to specify these contraints to all three of them.</p>
+   <h3 class="heading settled" data-level="4.6" id="design.exceptions"><span class="secno">4.6. </span><span class="content">Exception handling</span><a class="self-link" href="#design.exceptions"></a></h3>
    <p>While there are multiple solutions to specify which errors can be thrown by <code class="highlight"><c- n>bulk</c-></code>, the most sensible ones seem to be:</p>
    <ol>
     <li data-md>
@@ -2349,52 +2499,223 @@ Thus, we can peak arbitrary exception to throw</p>
     <li data-md>
      <p>Catching any exception already indicates that something went wrong, thus a good implementation might initiate a cancellation mechanism to finish already failed work as soon as possible.</p>
    </ul>
-   <h3 class="heading settled" data-level="2.5" id="other"><span class="secno">2.5. </span><span class="content">Other considerations</span><a class="self-link" href="#other"></a></h3>
-   <h4 class="heading settled" data-level="2.5.1" id="other-dropping"><span class="secno">2.5.1. </span><span class="content">Dropping a predecessor</span><a class="self-link" href="#other-dropping"></a></h4>
-    It is still an open question whether <code class="highlight"><c- n>bulk_chunked</c-></code> whether <code class="highlight"><c- n>bulk</c-></code>. The options are: 
-   <ul>
+   <p>On top of that, for special cases we also want to allow option 3.</p>
+   <h2 class="heading settled" data-level="5" id="specification"><span class="secno">5. </span><span class="content">Specification</span><a class="self-link" href="#specification"></a></h2>
+   <h3 class="heading settled" data-level="5.1" id="specification.syn"><span class="secno">5.1. </span><span class="content">In [execution.syn]</span><a class="self-link" href="#specification.syn"></a></h3>
+   <p><span class="ed-note">After <code class="highlight"><c- k>struct</c-> <c- nc>bulk_t</c-> <c- p>{</c-> <c- n>unspecified</c-> <c- p>};</c-></code>, add:</span></p>
+<pre class="highlight"><c- k>struct</c-> <c- nc>bulk_chunked_t</c-> <c- p>{</c-> <c- n>unspecified</c-> <c- p>};</c->
+<c- k>struct</c-> <c- nc>bulk_unchunked_t</c-> <c- p>{</c-> <c- n>unspecified</c-> <c- p>};</c->
+</pre>
+   <p><span class="ed-note">After <code class="highlight"><c- kr>inline</c-> <c- k>constexpr</c-> <c- n>bulk_t</c-> <c- n>bulk</c-><c- p>{};</c-></code>, add:</span></p>
+<pre class="highlight"><c- kr>inline</c-> <c- k>constexpr</c-> <c- n>bulk_chunked_t</c-> <c- n>bulk_chunked</c-><c- p>{};</c->
+<c- kr>inline</c-> <c- k>constexpr</c-> <c- n>bulk_unchunked_t</c-> <c- n>bulk_unchunked</c-><c- p>{};</c->
+</pre>
+   <h3 class="heading settled" data-level="5.2" id="specification.bulk"><span class="secno">5.2. </span><span class="content">In [exec.bulk]</span><a class="self-link" href="#specification.bulk"></a></h3>
+   <p><span class="ed-note">Rename the title of the section from “execution::bulk” to “execution::bulk, execution::bulk_chunked, and execution::bulk_unchunked”.</span></p>
+   <p><span class="ed-note">Apply the following changes (no track changes for paragraph numbering):</span></p>
+   <ol>
     <li data-md>
-     <p>No predecessor API</p>
+     <p>
+      <code class="highlight"><c- n>bulk</c-></code>
+      <ins>, <code class="highlight"><c- n>bulk_chunked</c-></code>, and <code class="highlight"><c- n>bulk_unchunked</c-></code></ins>
+       run
+      <del>s</del>
+       a task repeatedly for every index in an index space.
+     </p>
     <li data-md>
-     <p>Only predecessor API (status quo)</p>
+     <p>
+      The 
+      <del>name</del>
+      <ins>names</ins>
+       <code class="highlight"><c- n>bulk</c-></code>
+      <ins>, <code class="highlight"><c- n>bulk_chunked</c-></code>, and <code class="highlight"><c- n>bulk_unchunked</c-></code></ins>
+      <del>denotes a</del>
+      <ins>denote</ins>
+       pipeable sender adaptor 
+      <del>object</del>
+      <ins>objects</ins>
+      .
+      <ins> Let <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> be either <code class="highlight"><c- n>bulk</c-></code>, <code class="highlight"><c- n>bulk_chunked</c-></code> or <code class="highlight"><c- n>bulk_unchunked</c-></code>.</ins>
+       For subexpressions <code class="highlight"><c- n>sndr</c-></code>, 
+      <ins><code class="highlight"><c- n>policy</c-></code>,</ins>
+       <code class="highlight"><c- n>shape</c-></code>, and <code class="highlight"><c- n>f</c-></code>, let 
+      <ins><code class="highlight"><c- n>Policy</c-></code> be <code class="highlight"><c- k>decltype</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>policy</c-><c- p>))</c-></code> and</ins>
+       <code class="highlight"><c- n>Shape</c-></code> be <code class="highlight"><c- k>decltype</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>))</c-></code>.
+      <del> If <code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>sndr</c-><c- p>))</c-></code> does not satisfy <code class="highlight"><c- n>sender</c-></code>, or if <code class="highlight"><c- n>Shape</c-></code> does not satisfy <code class="highlight"><c- n>integral</c-></code>, or if <code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>f</c-><c- p>))</c-></code> does not satisfy <i><code class="highlight"><c- n>movable</c-><c- o>-</c-><c- n>value</c-></code></i>, <code class="highlight"><c- n>bulk</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is ill-formed.</del>
+      <ins> The expression <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is ill-formed if any of the following is true:</ins>
+     </p>
+     <ul>
+      <li data-md>
+       <p><code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>sndr</c-><c- p>))</c-></code> does not satisfy <code class="highlight"><c- n>sender</c-></code>,</p>
+      <li data-md>
+       <p><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>is_execution_policy_v</c-><c- o>&lt;</c-><c- n>std</c-><c- o>::</c-><c- n>remove_cvref_t</c-><c- o>&lt;</c-><c- n>Policy</c-><c- o>>></c-></code> is <code class="highlight">false</code>,</p>
+      <li data-md>
+       <p><code class="highlight"><c- n>Shape</c-></code> does not satisfy <code class="highlight"><c- n>integral</c-></code>,</p>
+      <li data-md>
+       <p><code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>f</c-><c- p>))</c-></code> does not satisfy the Cpp17CopyConstructible requirements.</p>
+     </ul>
     <li data-md>
-     <p>Both with and without predecessor</p>
-   </ul>
-   <p>The questions are:</p>
-   <ul>
+     <p>
+      Otherwise, the expression 
+      <del><code class="highlight"><c- n>bulk</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code></del>
+      <ins><i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code></ins>
+       is expression-equivalent to:
+     </p>
+     <div class="del">
+<pre class="del highlight"><c- n>transform_sender</c-><c- p>(</c->
+  <i><c- n>get</c-><c- o>-</c-><c- n>domain</c-><c- o>-</c-><c- n>early</c-></i><c- p>(</c-><c- n>sndr</c-><c- p>),</c->
+  <i><c- n>make</c-><c- o>-</c-><c- n>sender</c-></i><c- p>(</c-><c- n>bulk</c-><c- p>,</c-> <i><c- n>product</c-><c- o>-</c-><c- n>type</c-></i><c- p>{</c-><c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>},</c-> <c- n>sndr</c-><c- p>))</c->
+</pre>
+     </div>
+     <div class="block-insert">
+<pre class="highlight"><c- n>transform_sender</c-><c- p>(</c->
+  <i><c- n>get</c-><c- o>-</c-><c- n>domain</c-><c- o>-</c-><c- n>early</c-></i><c- p>(</c-><c- n>sndr</c-><c- p>),</c->
+  <i><c- n>make</c-><c- o>-</c-><c- n>sender</c-></i><c- p>(</c-><i><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></i><c- p>,</c-> <i><c- n>product</c-><c- o>-</c-><c- n>type</c-></i><c- p>{</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>},</c-> <c- n>sndr</c-><c- p>))</c->
+</pre>
+     </div>
+     <p>except that <code class="highlight"><c- n>sndr</c-></code> is evaluated only once.</p>
     <li data-md>
-     <p>What are the user expectations?</p>
-    <li data-md>
-     <p>What are more common use-cases?</p>
-    <li data-md>
-     <p>In case of both, which one is the basis operation?</p>
-    <li data-md>
-     <p>In case of both, which one is customizable?</p>
-    <li data-md>
-     <p>etc.</p>
-   </ul>
-   <p>There is too much room for a design for a moment. We didn’t explore it well-enough, thus we are not ready to recommend any design.</p>
-   <p>Please find the example below, how both <code class="highlight"><c- n>bulk_chunked</c-></code> both with and without predecessor might coexist:</p>
-<pre class="highlight"><c- k>template</c-><c- o>&lt;</c-><c- n>execution</c-><c- o>::</c-><c- n>sender</c-> <c- n>Predecessor</c-><c- p>,</c->
-         <c- k>typename</c-> <c- nc>ExecutionPolicy</c-><c- p>,</c->
-         <c- n>std</c-><c- o>::</c-><c- n>integral</c-> <c- n>Size</c-><c- p>,</c->
-         <c- n>std</c-><c- o>::</c-><c- n>invocable</c-><c- o>&lt;</c-><c- n>Size</c-><c- p>,</c-> <c- n>Size</c-><c- p>,</c-> <c- n>values</c-><c- o>-</c-><c- n>sent</c-><c- o>-</c-><c- n>by</c-><c- p>(</c-><c- n>Predecessor</c-><c- p>)...</c-><c- o>></c-> <c- n>Func</c->
-<c- o>></c->
-<c- n>execution</c-><c- o>::</c-><c- n>sender</c-> <c- k>auto</c-> <c- n>bulk_chunked_with_pred</c-><c- p>(</c-><c- n>Predecessor</c-> <c- n>pred</c-><c- p>,</c->
-                                              <c- n>ExecutionPolicy</c-><c- o>&amp;&amp;</c-> <c- n>pol</c-><c- p>,</c->
-                                              <c- n>Size</c-> <c- n>size</c-><c- p>,</c->
-                                              <c- n>Func</c-> <c- n>f</c-><c- p>)</c-> <c- p>{</c->
-  <c- k>return</c-> <c- n>let_value</c-><c- p>(</c-><c- n>pred</c-><c- p>,</c-> <c- p>[</c-><c- n>func</c-><c- p>,</c-> <c- n>size</c-><c- p>,</c-> <c- n>pol</c-><c- p>]</c-> <c- p>(</c-><c- k>auto</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>vals</c-><c- p>)</c-> <c- p>{</c->
-    <c- k>return</c-> <c- n>bulk_chunked</c-><c- p>(</c-><c- n>pol</c-><c- p>,</c-> <c- n>size</c-><c- p>,</c-> <c- p>[</c-><c- o>&amp;</c-><c- p>](</c-><c- k>auto</c-> <c- n>b</c-><c- p>,</c-> <c- k>auto</c-> <c- n>e</c-><c- p>)</c-> <c- p>{</c->
-      <c- n>func</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>vals</c-><c- p>...);</c->
-    <c- p>});</c->
-  <c- p>});</c->
+     <p>
+      The exposition-only class template <i><code class="highlight"><c- n>impls</c-><c- o>-</c-><c- k>for</c-></code></i> ([exec.snd.general]) is specialized for 
+      <del><code class="highlight"><c- n>bulk_t</c-></code></del>
+      <ins>
+       <i><code class="highlight"><c- n>B</c-></code></i>, where 
+       <ins><i><code class="highlight"><c- n>B</c-></code></i> is either <code class="highlight"><c- n>bulk_chunked_t</c-></code> or <code class="highlight"><c- n>bulk_unchunked_t</c-></code>,</ins>
+        as follows:
+      </ins>
+     </p>
+<pre class="highlight"><c- k>namespace</c-> <c- nn>std</c-><c- o>::</c-><c- nn>execution</c-> <c- p>{</c->
+  <c- k>template</c-><c- o>&lt;></c->
+  <c- k>struct</c-> <i><c- nc>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><i><c- n>B</c-></i></ins><c- o>></c-> <c- o>:</c-> <i><c- k>default</c-><c- o>-</c-><c- n>impls</c-></i> <c- p>{</c->
+    <c- k>static</c-> <c- k>constexpr</c-> <c- k>auto</c-> <c- n>complete</c-> <c- o>=</c-> <i><c- n>see</c-> <c- n>below</c-></i><c- p>;</c->
+  <c- p>};</c->
 <c- p>}</c->
 </pre>
-   <h2 class="heading settled" data-level="3" id="conclusion"><span class="secno">3. </span><span class="content">Conclusion</span><a class="self-link" href="#conclusion"></a></h2>
-   <p>We identified several significant issues with <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>:</c-><c- n>bulk</c-></code> API, which are better to be fixed before C++26 timeframe.
-Some of the solutions are likely problematic to add later if <code class="highlight"><c- n>bulk</c-></code> is going to be released in the upcoming standard.
-At the same time, more exploration is required before proposing a good design for <code class="highlight"><c- n>bulk</c-></code>.</p>
+     <ol>
+      <li data-md>
+       <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><i><c- n>B</c-></i></ins><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
+<pre class="highlight"><c- p>[]</c-><c- o>&lt;</c-><c- k>class</c-> <c- nc>Index</c-><c- p>,</c-> <c- k>class</c-> <c- nc>State</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Rcvr</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Tag</c-><c- p>,</c-> <c- k>class</c-><c- p>...</c-> <c- n>Args</c-><c- o>></c->
+  <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c-> <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
+    <c- k>if</c-> <c- k>constexpr</c-> <c- p>(</c-><c- n>same_as</c-><c- o>&lt;</c-><c- n>Tag</c-><c- p>,</c-> <c- n>set_value_t</c-><c- o>></c-><c- p>)</c-> <c- p>{</c->
+      <del><c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c-></del>
+      <ins><c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c-></ins>
+      <c- k>constexpr</c-> <c- b>bool</c-> <c- n>nothrow</c-> <c- o>=</c-> <c- k>noexcept</c-><c- p>(</c-><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...));</c->
+      <i><c- n>TRY</c-><c- o>-</c-><c- n>EVAL</c-></i><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- p>[</c-><c- o>&amp;</c-><c- p>]()</c-> <c- k>noexcept</c-><c- p>(</c-><c- n>nothrow</c-><c- p>)</c-> <c- p>{</c->
+        <c- k>for</c-> <c- p>(</c-><c- k>decltype</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>))</c-> <c- n>i</c-> <c- o>=</c-> <c- mi>0</c-><c- p>;</c-> <c- n>i</c-> <c- o>&lt;</c-> <c- n>shape</c-><c- p>;</c-> <c- o>++</c-><c- n>i</c-><c- p>)</c-> <c- p>{</c->
+          <c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>i</c-><c- p>),</c-> <c- n>args</c-><c- p>...);</c->
+        <c- p>}</c->
+        <c- n>Tag</c-><c- p>()(</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>rcvr</c-><c- p>),</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><c- o>&lt;</c-><c- n>Args</c-><c- o>></c-><c- p>(</c-><c- n>args</c-><c- p>)...);</c->
+      <c- p>}());</c->
+    <c- p>}</c-> <c- k>else</c-> <c- p>{</c->
+      <c- n>Tag</c-><c- p>()(</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>rcvr</c-><c- p>),</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><c- o>&lt;</c-><c- n>Args</c-><c- o>></c-><c- p>(</c-><c- n>args</c-><c- p>)...);</c->
+    <c- p>}</c->
+  <c- p>}</c->
+</pre>
+       <ol>
+        <li data-md>
+         <p>The expression in the <em>requires-clause</em> of the lambda above is <code class="highlight">true</code> if and only if <code class="highlight"><c- n>Tag</c-></code> denotes a type other than <code class="highlight"><c- n>set_value_t</c-></code> or if the expression <code class="highlight"><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...)</c-></code> is well-formed.</p>
+       </ol>
+     </ol>
+   </ol>
+   <div class="block-insert">
+    <ol start="5">
+     <li data-md>
+      <p>The exposition-only class template <i><code class="highlight"><c- n>impls</c-><c- o>-</c-><c- k>for</c-></code></i> ([exec.snd.general]) is specialized for <code class="highlight"><c- n>bulk_t</c-></code> as follows:</p>
+<pre class="highlight"><c- k>namespace</c-> <c- nn>std</c-><c- o>::</c-><c- nn>execution</c-> <c- p>{</c->
+  <c- k>template</c-><c- o>&lt;></c->
+  <c- k>struct</c-> <i><c- nc>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_t</c-><c- o>></c-> <c- o>:</c-> <i><c- k>default</c-><c- o>-</c-><c- n>impls</c-></i> <c- p>{</c->
+    <c- k>static</c-> <c- k>constexpr</c-> <c- k>auto</c-> <c- n>complete</c-> <c- o>=</c-> <i><c- n>see</c-> <c- n>below</c-></i><c- p>;</c->
+  <c- p>};</c->
+<c- p>}</c->
+</pre>
+      <ol>
+       <li data-md>
+        <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_t</c-><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
+<pre class="highlight"><c- p>[]</c-><c- o>&lt;</c-><c- k>class</c-> <c- nc>Index</c-><c- p>,</c-> <c- k>class</c-> <c- nc>State</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Rcvr</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Tag</c-><c- p>,</c-> <c- k>class</c-><c- p>...</c-> <c- n>Args</c-><c- o>></c->
+  <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c-> <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
+    <c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c->
+    <c- k>constexpr</c-> <c- b>bool</c-> <c- n>nothrow</c-> <c- o>=</c-> <c- k>noexcept</c-><c- p>(</c-><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...));</c->
+    <c- k>auto</c-> <c- n>new_f</c-> <c- o>=</c-> <c- p>[</c-><c- n>func</c-><c- o>=</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>f</c-><c- p>)]</c-><typename... vs><c- p>(</c-><c- n>Size</c-> <c- n>begin</c-><c- p>,</c-> <c- n>Size</c-> <c- n>end</c-><c- p>,</c-> <c- n>Vs</c-><c- o>&amp;</c-><c- p>...</c-> <c- n>vs</c-><c- p>)</c->
+        <c- k>noexcept</c-><c- p>(</c-><c- n>nothrow</c-><c- p>)</c-> <c- p>{</c->
+      <c- k>while</c-> <c- p>(</c-><c- n>begin</c-> <c- o>!=</c-> <c- n>end</c-><c- p>)</c-> <c- n>f</c-><c- p>(</c-><c- n>begin</c-><c- o>++</c-><c- p>,</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><vs><c- p>(</c-><c- n>vs</c-><c- p>)...);</c->
+    <c- p>}</c->
+    <c- n>std</c-><c- o>::</c-><c- n>invoke</c-><c- p>(</c-><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_chunked_t</c-><c- o>>::</c-><c- n>complete</c-><c- p>,</c-> <c- n>Index</c-><c- p>()</c->
+      <i><c- n>product</c-><c- o>-</c-><c- n>type</c-></i><c- p>{</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>new_f</c-><c- p>)},</c->
+      <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>(),</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><c- o>&lt;</c-><c- n>Args</c-><c- o>></c-><c- p>(</c-><c- n>args</c-><c- p>)...);</c->
+  <c- p>}</c->
+</vs></typename...></pre>
+        <ol>
+         <li data-md>
+          <p>The expression in the <em>requires-clause</em> of the lambda above is <code class="highlight">true</code> if and only if <code class="highlight"><c- n>Tag</c-></code> denotes a type other than <code class="highlight"><c- n>set_value_t</c-></code> or if the expression <code class="highlight"><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...)</c-></code> is well-formed.</p>
+        </ol>
+      </ol>
+    </ol>
+   </div>
+   <ol start="6">
+    <li data-md>
+     <ins>If <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_chunked</c-></code>, <code class="highlight"><c- n>bulk_unchunked</c-></code>, or <code class="highlight"><c- n>bulk</c-></code>, let</ins>
+     <del>Let</del>
+      the subexpression <code class="highlight"><c- n>out_sndr</c-></code> denote the result of the invocation 
+     <del><code class="highlight"><c- n>bulk</c-></code></del>
+     <ins><i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i></ins>
+     <code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> </code>
+     <ins><code class="highlight"><c- n>policy</c-><c- p>,</c-></code></ins>
+     <code class="highlight"> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> or an object equal to such, and let the subexpression <code class="highlight"><c- n>rcvr</c-></code> denote a receiver such that the expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_sndr</c-><c- p>,</c-> <c- n>rcvr</c-><c- p>)</c-></code> is well-formed.
+The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_sndr</c-><c- p>,</c-> <c- n>rcvr</c-><c- p>)</c-></code> has undefined behavior unless it creates an asynchronous operation ([async.ops]) that, when started: 
+     <ul>
+      <li data-md>
+       <del>on a value completion operation, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>, where <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of the input sender, and</del>
+      <li data-md>
+       <del>
+        propagates all completion operations sent by <code class="highlight"><c- n>sndr</c-></code>.
+        <del></del>
+       </del>
+     </ul>
+     <ins>
+      <ul>
+       <li data-md>
+        <ins>if <code class="highlight"><c- n>sndr</c-></code> completes with value, if <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of <code class="highlight"><c- n>snd</c-></code>, then:</ins>
+        <ul>
+         <li data-md>
+          <p>if <code class="highlight"><c- n>out_sndr</c-></code> also completes with value, then:</p>
+          <ul>
+           <li data-md>
+            <p>if <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk</c-></code> or <code class="highlight"><c- n>bulk_unchunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>;</p>
+           <li data-md>
+            <p>if <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_chunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times with pairs of <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> in range [<code class="highlight"><c- mi>0</c-></code>, <code class="highlight"><c- n>shape</c-></code>], such as for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>, there is an invocation with a pair <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code>, such as <code class="highlight"><c- n>b</c-> <c- o>&lt;=</c-> <c- n>i</c-> <c- o>&lt;</c-> <c- n>e</c-></code>;</p>
+          </ul>
+         <li data-md>
+          <p>if <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_error</c-><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code>, the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> as described above before the completion signal, and <code class="highlight"><c- n>e</c-></code> is either:</p>
+          <ul>
+           <li data-md>
+            <p>an exception thrown by an invocation of <code class="highlight"><c- n>f</c-></code>, or</p>
+           <li data-md>
+            <p>an exception derived from <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>runtime_error</c-></code>;</p>
+          </ul>
+         <li data-md>
+          <p>if <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_stopped</c-><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code>, the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> as described above before the completion signal;</p>
+        </ul>
+       <li data-md>
+        <p>if <code class="highlight"><c- n>sndr</c-></code> doesn’t complete with value, the completion signal is forwarded to <code class="highlight"><c- n>recv</c-></code></p>
+       <li data-md>
+        <p>the function <code class="highlight"><c- n>f</c-></code> is invoked in a way that is not compatible with the execution policy <code class="highlight"><c- n>policy</c-></code>.</p>
+      </ul>
+     </ins>
+   </ol>
+   <ins>
+    <ol start="7">
+     <li data-md>
+      <p>If <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_chunked</c-></code>, <code class="highlight"><c- n>bulk_unchunked</c-></code>, or <code class="highlight"><c- n>bulk</c-></code>, then the asyncrhonous operation corresponding to <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is allowed (but not required) to:</p>
+      <ul>
+       <li data-md>
+        <p>complete with <code class="highlight"><c- n>set_stopped</c-><c- p>()</c-></code> if cancellation is requested (through the connected receiver);</p>
+       <li data-md>
+        <p>ignore cancellation requests;</p>
+       <li data-md>
+        <p>make decaying copies of the values produced by the predecessor sender, if the values are copyable.</p>
+      </ul>
+    </ol>
+   </ins>
   </main>
 <script>
 (function() {
