@@ -1564,7 +1564,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version ac5ea272d, updated Fri Dec 6 15:45:15 2024 -0800" name="generator">
   <link href="http://wg21.link/P3481R0" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="b29fdb8ad4f36f4b1edfad444d696b62d8801347" name="revision">
+  <meta content="2df38b2711ffa14b091baad98229be643f6baf49" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2131,7 +2131,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">P3481R1<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-01-10">2025-01-10</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-01-11">2025-01-11</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2674,7 +2674,7 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
      <ins>
       <ul>
        <li data-md>
-        <ins>if <code class="highlight"><c- n>sndr</c-></code> completes with value, if <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of <code class="highlight"><c- n>snd</c-></code>, then:</ins>
+        <ins>if <code class="highlight"><c- n>sndr</c-></code> completes with <code class="highlight"><c- n>set_value</c-><c- p>(</c-><c- n>args</c-><c- p>...)</c-></code>:</ins>
         <ul>
          <li data-md>
           <p>if <code class="highlight"><c- n>out_sndr</c-></code> also completes with value, then:</p>
@@ -2693,12 +2693,12 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
             <p>an exception derived from <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>runtime_error</c-></code>;</p>
           </ul>
          <li data-md>
-          <p>if <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_stopped</c-><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code>, the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> as described above before the completion signal;</p>
+          <p>if <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_stopped</c-><c- p>(</c-><c- n>rcvr</c-><c- p>)</c-></code>, the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> as described above before the completion signal;</p>
         </ul>
        <li data-md>
-        <p>if <code class="highlight"><c- n>sndr</c-></code> doesn’t complete with value, the completion signal is forwarded to <code class="highlight"><c- n>recv</c-></code></p>
+        <p>if <code class="highlight"><c- n>sndr</c-></code> does not complete with <code class="highlight"><c- n>set_value</c-><c- p>(...)</c-></code>, the completion signal is forwarded to <code class="highlight"><c- n>recv</c-></code></p>
        <li data-md>
-        <p>the function <code class="highlight"><c- n>f</c-></code> is invoked in a way that is not compatible with the execution policy <code class="highlight"><c- n>policy</c-></code>.</p>
+        <p>the function <code class="highlight"><c- n>f</c-></code> is invoked in a way that is compatible with the execution policy <code class="highlight"><c- n>policy</c-></code>.</p>
       </ul>
      </ins>
    </ol>

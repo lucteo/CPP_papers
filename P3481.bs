@@ -547,7 +547,7 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
       - <del>propagates all completion operations sent by `sndr`.<del>
 
       <ins>
-      - <ins>if `sndr` completes with value, if `args` is a pack of lvalue subexpressions referring to the value completion result datums of `snd`, then:</ins>
+      - <ins>if `sndr` completes with `set_value(args...)`:</ins>
       
         - if `out_sndr` also completes with value, then:
 
@@ -561,12 +561,12 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
             
             - an exception derived from `std::runtime_error`;
 
-        - if `out_sndr` completes with `set_stopped(rcvr, e)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal;
+        - if `out_sndr` completes with `set_stopped(rcvr)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal;
             </ins>
 
-      - if `sndr` doesn't complete with value, the completion signal is forwarded to `recv`
+      - if `sndr` does not complete with `set_value(...)`, the completion signal is forwarded to `recv`
       
-      - the function `f` is invoked in a way that is not compatible with the execution policy `policy`.</ins>
+      - the function `f` is invoked in a way that is compatible with the execution policy `policy`.</ins>
 
 <ins>
 7. If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, then the asyncrhonous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is allowed (but not required) to:
