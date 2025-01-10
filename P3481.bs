@@ -132,7 +132,7 @@ This creates uncertainty for users regarding what they can expect when invoking 
 This paper addresses this issue by specifying what is permissible in a customization of `bulk`.
 
 A second issue this paper seeks to resolve is the lack of an execution policy for the provided functor.
-For example, if the functor is unsuitable for the par_unseq execution policy, there is currently no mechanism for users to specify this.
+For example, if the functor is unsuitable for the `par_unseq` execution policy, there is currently no mechanism for users to specify this.
 
 A third issue this paper addresses is the absence of chunking in the default implementation of `bulk`.
 Invoking the functor for every element in a range can lead to performance challenges in certain use cases.
@@ -174,7 +174,7 @@ Can we assume that `f` can be invoked with the `par_unseq` execution policy?
 Can it be invoked with the `par` execution policy?
 Or should we default to the `seq` execution policy?
 
-Since there is no way to infer the execution policy that should apply to `f`, the implementation of process must be conservative and default to the `unseq` execution policy.
+Since there is no way to infer the execution policy that should apply to `f`, the implementation of process must be conservative and default to the `seq` execution policy.
 However, in most cases, the `par` or `par_unseq` execution policy would likely be more appropriate.
 
 
@@ -362,12 +362,12 @@ In this case, we need to "reduce" the execution policies to a single one.
 We propose to use the most conservative execution policy; i.e., `seq` is more conservative than `par`, which is more conservative than `par_unseq`.
 
 
-## Adding constraints on customizations ## {#design.constraints}
+## Expectations on customizations ## {#design.expectations}
 
-The current specification of `bulk` in [[exec.bulk]] doesn't define any constraints for the customization of the algorithm.
+The current specification of `bulk` in [[exec.bulk]] doesn't define any constraints/expectations for the customization of the algorithm.
 The default implementation (a serial version of `bulk`) is expected to be very different that its customizations.
 
-Having customizations in mind, we need to define the minimal constraints that need to hold for the implementation.
+Having customizations in mind, we need to define the minimal expectations.
 We propose the following:
 - Require `f` to be copy-constructible.
 - Allow `f` to be invoked according to the specified execution policy (and don't assume it's going to be called serially).
@@ -450,7 +450,7 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
       - `decltype((sndr))` does not satisfy `sender`,
       - `std::is_execution_policy_v<std::remove_cvref_t<Policy>>` is `false`,
       - `Shape` does not satisfy `integral`,
-      - `decltype((f))` does not satisfy the Cpp17CopyConstructible requirements.</ins>
+      - `decltype((f))` does not model the `copy_constructible` concept.</ins>
 
 3. Otherwise, the expression <del>`bulk(sndr, shape, f)`</del><ins><i>`bulk-algo`</i>`(sndr, policy, shape, f)`</ins> is expression-equivalent to:
 

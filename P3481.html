@@ -1564,7 +1564,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version ac5ea272d, updated Fri Dec 6 15:45:15 2024 -0800" name="generator">
   <link href="http://wg21.link/P3481R0" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="1ba1312b731876a8be824bae1f9c1252e5755498" name="revision">
+  <meta content="b29fdb8ad4f36f4b1edfad444d696b62d8801347" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2131,7 +2131,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">P3481R1<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2024-12-22">2024-12-22</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-01-10">2025-01-10</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2177,7 +2177,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
       <li><a href="#design.unchunked"><span class="secno">4.2</span> <span class="content">Also define an unchunked version</span></a>
       <li><a href="#design.policies"><span class="secno">4.3</span> <span class="content">Using execution policies</span></a>
       <li><a href="#design.reducing"><span class="secno">4.4</span> <span class="content">Reducing execution policies</span></a>
-      <li><a href="#design.constraints"><span class="secno">4.5</span> <span class="content">Adding constraints on customizations</span></a>
+      <li><a href="#design.expectations"><span class="secno">4.5</span> <span class="content">Expectations on customizations</span></a>
       <li><a href="#design.exceptions"><span class="secno">4.6</span> <span class="content">Exception handling</span></a>
      </ol>
     <li>
@@ -2262,7 +2262,7 @@ The default implementation is a common-denominator solution that is not necessar
 This creates uncertainty for users regarding what they can expect when invoking <code class="highlight"><c- n>bulk</c-></code>.</p>
    <p>This paper addresses this issue by specifying what is permissible in a customization of <code class="highlight"><c- n>bulk</c-></code>.</p>
    <p>A second issue this paper seeks to resolve is the lack of an execution policy for the provided functor.
-For example, if the functor is unsuitable for the par_unseq execution policy, there is currently no mechanism for users to specify this.</p>
+For example, if the functor is unsuitable for the <code class="highlight"><c- n>par_unseq</c-></code> execution policy, there is currently no mechanism for users to specify this.</p>
    <p>A third issue this paper addresses is the absence of chunking in the default implementation of <code class="highlight"><c- n>bulk</c-></code>.
 Invoking the functor for every element in a range can lead to performance challenges in certain use cases.</p>
    <h3 class="heading settled" data-level="2.1" id="motivation.allowed"><span class="secno">2.1. </span><span class="content">Allowed behavior for <code class="highlight"><c- n>bulk</c-></code> customizations</span><a class="self-link" href="#motivation.allowed"></a></h3>
@@ -2302,7 +2302,7 @@ This decision could favor certain hardware vendors over others.</p>
 Can we assume that <code class="highlight"><c- n>f</c-></code> can be invoked with the <code class="highlight"><c- n>par_unseq</c-></code> execution policy?
 Can it be invoked with the <code class="highlight"><c- n>par</c-></code> execution policy?
 Or should we default to the <code class="highlight"><c- n>seq</c-></code> execution policy?</p>
-   <p>Since there is no way to infer the execution policy that should apply to <code class="highlight"><c- n>f</c-></code>, the implementation of process must be conservative and default to the <code class="highlight"><c- n>unseq</c-></code> execution policy.
+   <p>Since there is no way to infer the execution policy that should apply to <code class="highlight"><c- n>f</c-></code>, the implementation of process must be conservative and default to the <code class="highlight"><c- n>seq</c-></code> execution policy.
 However, in most cases, the <code class="highlight"><c- n>par</c-></code> or <code class="highlight"><c- n>par_unseq</c-></code> execution policy would likely be more appropriate.</p>
    <h3 class="heading settled" data-level="2.3" id="motivation.chunking"><span class="secno">2.3. </span><span class="content">Chunking</span><a class="self-link" href="#motivation.chunking"></a></h3>
    <p>The current specification of bulk (<a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a>) does not support chunking.
@@ -2451,10 +2451,10 @@ Moreover, the user can easily add these overloads in their codebase.</p>
    <p>We have an execution policy given to the <code class="highlight"><c- n>bulk</c-></code> algorithms, but we might have another one attached to a scheduler and/or to the execution agent.
 In this case, we need to "reduce" the execution policies to a single one.</p>
    <p>We propose to use the most conservative execution policy; i.e., <code class="highlight"><c- n>seq</c-></code> is more conservative than <code class="highlight"><c- n>par</c-></code>, which is more conservative than <code class="highlight"><c- n>par_unseq</c-></code>.</p>
-   <h3 class="heading settled" data-level="4.5" id="design.constraints"><span class="secno">4.5. </span><span class="content">Adding constraints on customizations</span><a class="self-link" href="#design.constraints"></a></h3>
-   <p>The current specification of <code class="highlight"><c- n>bulk</c-></code> in <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a> doesn’t define any constraints for the customization of the algorithm.
+   <h3 class="heading settled" data-level="4.5" id="design.expectations"><span class="secno">4.5. </span><span class="content">Expectations on customizations</span><a class="self-link" href="#design.expectations"></a></h3>
+   <p>The current specification of <code class="highlight"><c- n>bulk</c-></code> in <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a> doesn’t define any constraints/expectations for the customization of the algorithm.
 The default implementation (a serial version of <code class="highlight"><c- n>bulk</c-></code>) is expected to be very different that its customizations.</p>
-   <p>Having customizations in mind, we need to define the minimal constraints that need to hold for the implementation.
+   <p>Having customizations in mind, we need to define the minimal expectations.
 We propose the following:</p>
    <ul>
     <li data-md>
@@ -2552,7 +2552,7 @@ Thus, we can peak arbitrary exception to throw</p>
       <li data-md>
        <p><code class="highlight"><c- n>Shape</c-></code> does not satisfy <code class="highlight"><c- n>integral</c-></code>,</p>
       <li data-md>
-       <p><code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>f</c-><c- p>))</c-></code> does not satisfy the Cpp17CopyConstructible requirements.</p>
+       <p><code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>f</c-><c- p>))</c-></code> does not model the <code class="highlight"><c- n>copy_constructible</c-></code> concept.</p>
      </ul>
     <li data-md>
      <p>
