@@ -1561,10 +1561,10 @@ Possible extra rowspan handling
     blockquote c-[vi] { color: inherit; } /* Name.Variable.Instance */
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
-  <meta content="Bikeshed version 6270e4735, updated Tue Aug 6 12:12:30 2024 -0700" name="generator">
+  <meta content="Bikeshed version ac5ea272d, updated Fri Dec 6 15:45:15 2024 -0800" name="generator">
   <link href="http://wg21.link/P3481R1" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="a3b2357644e46605a00efe6688026bcf2f2a1d4b" name="revision">
+  <meta content="8de4c943aef2506be5dded6149ddad233901d700" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2131,7 +2131,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">P3481R1<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-01-10">2025-01-10</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-01-11">2025-01-11</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2373,7 +2373,8 @@ Some values can be computed very fast, while others take longer to compute.</p>
    <h3 class="heading settled" data-level="4.2" id="design.unchunked"><span class="secno">4.2. </span><span class="content">Also define an unchunked version</span><a class="self-link" href="#design.unchunked"></a></h3>
    <p>For GPUs is important to have a version of <code class="highlight"><c- n>bulk</c-></code> that ensures one execution agent per iteration.
 Defining <code class="highlight"><c- n>bulk</c-></code> in terms of <code class="highlight"><c- n>bulk_chunked</c-></code> would not be efficient for GPUs.</p>
-   <p>Moreover, for composability reasons, we need a way to specify which version of <code class="highlight"><c- n>bulk</c-></code> will not do any chunking.</p>
+   <p>Moreover, for composability reasons, we need a way to specify which version of <code class="highlight"><c- n>bulk</c-></code> will not do any chunking.
+For example, an algorithm tailored for GPUs that depends on <code class="highlight"><c- n>bulk</c-></code> would not want to have chunking, and, without controlling the specialization for <code class="highlight"><c- n>bulk</c-></code>, it must not accidentally call a chunked version of <code class="highlight"><c- n>bulk</c-></code>.</p>
    <p>For this reasons, we need to have a version of <code class="highlight"><c- n>bulk</c-></code> that doesn’t do any chunking.</p>
    <h3 class="heading settled" data-level="4.3" id="design.policies"><span class="secno">4.3. </span><span class="content">Using execution policies</span><a class="self-link" href="#design.policies"></a></h3>
    <p>As discussed in the <a href="#motivation">§ 2 Motivation</a> section, not having the possibility to specify execution policies for the <code class="highlight"><c- n>bulk</c-></code> algorithm is a downside.
@@ -2429,15 +2430,16 @@ compile-time error.</p>
     <li data-md>
      <p>Give a compile-time error right away for any pair of conflicting policies.</p>
    </ul>
-   <p>Anyway, exploration of this problem is out of scope of this paper.</p>
+   <p>Anyway, exploration of this problem is out of scope of this paper.
+For the purpose of this paper, we need to ensure that the way the given function is called is compatible with the execution policy passed to <code class="highlight"><c- n>bulk</c-></code>.</p>
    <h3 class="heading settled" data-level="4.5" id="design.expectations"><span class="secno">4.5. </span><span class="content">Expectations on customizations</span><a class="self-link" href="#design.expectations"></a></h3>
    <p>The current specification of <code class="highlight"><c- n>bulk</c-></code> in <a data-link-type="biblio" href="#biblio-execbulk" title="Working Draft: Programming Languages — C++ -- `execution::bulk`">[exec.bulk]</a> doesn’t define any constraints/expectations for the customization of the algorithm.
 The default implementation (a serial version of <code class="highlight"><c- n>bulk</c-></code>) is expected to be very different that its customizations.</p>
-   <p>Having customizations in mind, we need to define the minimal expectations.
+   <p>Having customizations in mind, we need to define the minimal expectations for calling <code class="highlight"><c- n>bulk</c-></code>.
 We propose the following:</p>
    <ul>
     <li data-md>
-     <p>Rely on <code class="highlight"><c- n>f</c-></code> to be copy-constructible. That means, that <code class="highlight"><c- n>bulk</c-></code> API shall have a constrain for <code class="highlight"><c- n>f</c-></code>.</p>
+     <p>Mandate <code class="highlight"><c- n>f</c-></code> to be copy-constructible.</p>
     <li data-md>
      <p>Allow <code class="highlight"><c- n>f</c-></code> to be invoked according to the specified execution policy (and don’t assume it’s going to be called serially).</p>
     <li data-md>
@@ -2462,7 +2464,7 @@ Thus, implementations may want to check the cancellation every <em>N</em> iterat
     <li data-md>
      <p>pick an arbitrary exception thrown by one of the invocations of <code class="highlight"><c- n>f</c-></code> (maybe using a atomic operations to select the first thrown exception),</p>
     <li data-md>
-     <p>reduce the exceptions to another exception that can carry one or more of the thrown exceptions using a user-defined reduction operation,</p>
+     <p>reduce the exceptions to another exception that can carry one or more of the thrown exceptions using a user-defined reduction operation (similar to using <code class="highlight"><c- n>exception_list</c-></code> as discussed by <a data-link-type="biblio" href="#biblio-p0333r0" title="Improving Parallel Algorithm Exception Handling">[P0333R0]</a>),</p>
     <li data-md>
      <p>allow implementations to produce a new exception type (e.g., to represent failures outside of <code class="highlight"><c- n>f</c-></code>, or to represent failure to transmit the original exception to the receiver)</p>
    </ol>
@@ -2527,7 +2529,7 @@ Thus, we can peak arbitrary exception to throw</p>
       <li data-md>
        <p><code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>sndr</c-><c- p>))</c-></code> does not satisfy <code class="highlight"><c- n>sender</c-></code>,</p>
       <li data-md>
-       <p><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>is_execution_policy_v</c-><c- o>&lt;</c-><c- n>std</c-><c- o>::</c-><c- n>remove_cvref_t</c-><c- o>&lt;</c-><c- n>Policy</c-><c- o>>></c-></code> is <code class="highlight">false</code>,</p>
+       <ins><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>is_execution_policy_v</c-><c- o>&lt;</c-><c- n>std</c-><c- o>::</c-><c- n>remove_cvref_t</c-><c- o>&lt;</c-><c- n>Policy</c-><c- o>>></c-></code> is <code class="highlight">false</code>,</ins>
       <li data-md>
        <p><code class="highlight"><c- n>Shape</c-></code> does not satisfy <code class="highlight"><c- n>integral</c-></code>,</p>
       <li data-md>
@@ -2555,26 +2557,23 @@ Thus, we can peak arbitrary exception to throw</p>
      <p>except that <code class="highlight"><c- n>sndr</c-></code> is evaluated only once.</p>
     <li data-md>
      <p>
-      The exposition-only class template <i><code class="highlight"><c- n>impls</c-><c- o>-</c-><c- k>for</c-></code></i> ([exec.snd.general]) is specialized for 
-      <del><code class="highlight"><c- n>bulk_t</c-></code></del>
-      <ins>
-       <i><code class="highlight"><c- n>B</c-></code></i>, where 
-       <ins><i><code class="highlight"><c- n>B</c-></code></i> is either <code class="highlight"><c- n>bulk_chunked_t</c-></code> or <code class="highlight"><c- n>bulk_unchunked_t</c-></code>,</ins>
-        as follows:
-      </ins>
+      The exposition-only class template <i><code class="highlight"><c- n>impls</c-><c- o>-</c-><c- k>for</c-></code></i> ([exec.snd.general]) is specialized for <code class="highlight"><c- n>bulk_t</c-></code>
+      <ins>, <code class="highlight"><c- n>bulk_chunked_t</c-></code> or <code class="highlight"><c- n>bulk_unchunked_t</c-></code></ins>
+       as follows:
      </p>
 <pre class="highlight"><c- k>namespace</c-> <c- nn>std</c-><c- o>::</c-><c- nn>execution</c-> <c- p>{</c->
   <c- k>template</c-><c- o>&lt;></c->
-  <c- k>struct</c-> <i><c- nc>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><i><c- n>B</c-></i></ins><c- o>></c-> <c- o>:</c-> <i><c- k>default</c-><c- o>-</c-><c- n>impls</c-></i> <c- p>{</c->
+  <c- k>struct</c-> <i><c- nc>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><i><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></i></ins><c- o>></c-> <c- o>:</c-> <i><c- k>default</c-><c- o>-</c-><c- n>impls</c-></i> <c- p>{</c->
     <c- k>static</c-> <c- k>constexpr</c-> <c- k>auto</c-> <c- n>complete</c-> <c- o>=</c-> <i><c- n>see</c-> <c- n>below</c-></i><c- p>;</c->
   <c- p>};</c->
 <c- p>}</c->
 </pre>
      <ol>
       <li data-md>
-       <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><i><c- n>B</c-></i></ins><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
+       <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><c- n>bulk_unchunked_t</c-></ins><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
 <pre class="highlight"><c- p>[]</c-><c- o>&lt;</c-><c- k>class</c-> <c- nc>Index</c-><c- p>,</c-> <c- k>class</c-> <c- nc>State</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Rcvr</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Tag</c-><c- p>,</c-> <c- k>class</c-><c- p>...</c-> <c- n>Args</c-><c- o>></c->
-  <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c-> <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
+  <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c->
+  <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
     <c- k>if</c-> <c- k>constexpr</c-> <c- p>(</c-><c- n>same_as</c-><c- o>&lt;</c-><c- n>Tag</c-><c- p>,</c-> <c- n>set_value_t</c-><c- o>></c-><c- p>)</c-> <c- p>{</c->
       <del><c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c-></del>
       <ins><c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c-></ins>
@@ -2595,30 +2594,41 @@ Thus, we can peak arbitrary exception to throw</p>
          <p>The expression in the <em>requires-clause</em> of the lambda above is <code class="highlight">true</code> if and only if <code class="highlight"><c- n>Tag</c-></code> denotes a type other than <code class="highlight"><c- n>set_value_t</c-></code> or if the expression <code class="highlight"><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...)</c-></code> is well-formed.</p>
        </ol>
      </ol>
-   </ol>
-   <div class="block-insert">
-    <ol start="5">
-     <li data-md>
-      <p>The exposition-only class template <i><code class="highlight"><c- n>impls</c-><c- o>-</c-><c- k>for</c-></code></i> ([exec.snd.general]) is specialized for <code class="highlight"><c- n>bulk_t</c-></code> as follows:</p>
-<pre class="highlight"><c- k>namespace</c-> <c- nn>std</c-><c- o>::</c-><c- nn>execution</c-> <c- p>{</c->
-  <c- k>template</c-><c- o>&lt;></c->
-  <c- k>struct</c-> <i><c- nc>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_t</c-><c- o>></c-> <c- o>:</c-> <i><c- k>default</c-><c- o>-</c-><c- n>impls</c-></i> <c- p>{</c->
-    <c- k>static</c-> <c- k>constexpr</c-> <c- k>auto</c-> <c- n>complete</c-> <c- o>=</c-> <i><c- n>see</c-> <c- n>below</c-></i><c- p>;</c->
-  <c- p>};</c->
-<c- p>}</c->
-</pre>
-      <ol>
+     <div class="block-insert">
+      <ol start="2">
        <li data-md>
-        <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_t</c-><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
+        <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><i><c- n>bulk_chunked_t</c-></i><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
 <pre class="highlight"><c- p>[]</c-><c- o>&lt;</c-><c- k>class</c-> <c- nc>Index</c-><c- p>,</c-> <c- k>class</c-> <c- nc>State</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Rcvr</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Tag</c-><c- p>,</c-> <c- k>class</c-><c- p>...</c-> <c- n>Args</c-><c- o>></c->
-  <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c-> <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
+  <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c->
+  <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
+    <c- k>if</c-> <c- k>constexpr</c-> <c- p>(</c-><c- n>same_as</c-><c- o>&lt;</c-><c- n>Tag</c-><c- p>,</c-> <c- n>set_value_t</c-><c- o>></c-><c- p>)</c-> <c- p>{</c->
+      <c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c->
+      <c- k>constexpr</c-> <c- b>bool</c-> <c- n>nothrow</c-> <c- o>=</c-> <c- k>noexcept</c-><c- p>(</c-><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...));</c->
+      <i><c- n>TRY</c-><c- o>-</c-><c- n>EVAL</c-></i><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- p>[</c-><c- o>&amp;</c-><c- p>]()</c-> <c- k>noexcept</c-><c- p>(</c-><c- n>nothrow</c-><c- p>)</c-> <c- p>{</c->
+        <c- n>f</c-><c- p>(</c-><c- mi>0</c-><c- p>,</c-> <c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...);</c->
+        <c- n>Tag</c-><c- p>()(</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>rcvr</c-><c- p>),</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><c- o>&lt;</c-><c- n>Args</c-><c- o>></c-><c- p>(</c-><c- n>args</c-><c- p>)...);</c->
+      <c- p>}());</c->
+    <c- p>}</c-> <c- k>else</c-> <c- p>{</c->
+      <c- n>Tag</c-><c- p>()(</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>rcvr</c-><c- p>),</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><c- o>&lt;</c-><c- n>Args</c-><c- o>></c-><c- p>(</c-><c- n>args</c-><c- p>)...);</c->
+    <c- p>}</c->
+  <c- p>}</c->
+</pre>
+        <ol>
+         <li data-md>
+          <p>The expression in the <em>requires-clause</em> of the lambda above is <code class="highlight">true</code> if and only if <code class="highlight"><c- n>Tag</c-></code> denotes a type other than <code class="highlight"><c- n>set_value_t</c-></code> or if the expression <code class="highlight"><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...)</c-></code> is well-formed.</p>
+        </ol>
+       <li data-md>
+        <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><i><c- n>bulk_t</c-></i><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
+<pre class="highlight"><c- p>[]</c-><c- o>&lt;</c-><c- k>class</c-> <c- nc>Index</c-><c- p>,</c-> <c- k>class</c-> <c- nc>State</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Rcvr</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Tag</c-><c- p>,</c-> <c- k>class</c-><c- p>...</c-> <c- n>Args</c-><c- o>></c->
+  <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c->
+  <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
     <c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c->
     <c- k>constexpr</c-> <c- b>bool</c-> <c- n>nothrow</c-> <c- o>=</c-> <c- k>noexcept</c-><c- p>(</c-><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...));</c->
     <c- k>auto</c-> <c- n>new_f</c-> <c- o>=</c-> <c- p>[</c-><c- n>func</c-><c- o>=</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>f</c-><c- p>)]</c-><typename... vs><c- p>(</c-><c- n>Size</c-> <c- n>begin</c-><c- p>,</c-> <c- n>Size</c-> <c- n>end</c-><c- p>,</c-> <c- n>Vs</c-><c- o>&amp;</c-><c- p>...</c-> <c- n>vs</c-><c- p>)</c->
         <c- k>noexcept</c-><c- p>(</c-><c- n>nothrow</c-><c- p>)</c-> <c- p>{</c->
       <c- k>while</c-> <c- p>(</c-><c- n>begin</c-> <c- o>!=</c-> <c- n>end</c-><c- p>)</c-> <c- n>f</c-><c- p>(</c-><c- n>begin</c-><c- o>++</c-><c- p>,</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><vs><c- p>(</c-><c- n>vs</c-><c- p>)...);</c->
     <c- p>}</c->
-    <c- n>std</c-><c- o>::</c-><c- n>invoke</c-><c- p>(</c-><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_chunked_t</c-><c- o>>::</c-><c- n>complete</c-><c- p>,</c-> <c- n>Index</c-><c- p>()</c->
+    <i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_chunked_t</c-><c- o>>::</c-><c- n>complete</c-><c- p>(</c-><c- n>Index</c-><c- p>(),</c->
       <i><c- n>product</c-><c- o>-</c-><c- n>type</c-></i><c- p>{</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>new_f</c-><c- p>)},</c->
       <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>(),</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><c- o>&lt;</c-><c- n>Args</c-><c- o>></c-><c- p>(</c-><c- n>args</c-><c- p>)...);</c->
   <c- p>}</c->
@@ -2628,9 +2638,7 @@ Thus, we can peak arbitrary exception to throw</p>
           <p>The expression in the <em>requires-clause</em> of the lambda above is <code class="highlight">true</code> if and only if <code class="highlight"><c- n>Tag</c-></code> denotes a type other than <code class="highlight"><c- n>set_value_t</c-></code> or if the expression <code class="highlight"><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...)</c-></code> is well-formed.</p>
         </ol>
       </ol>
-    </ol>
-   </div>
-   <ol start="6">
+     </div>
     <li data-md>
      <ins>If <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_chunked</c-></code>, <code class="highlight"><c- n>bulk_unchunked</c-></code>, or <code class="highlight"><c- n>bulk</c-></code>, let</ins>
      <del>Let</del>
@@ -2653,10 +2661,10 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
      <ins>
       <ul>
        <li data-md>
-        <ins>if <code class="highlight"><c- n>sndr</c-></code> completes with <code class="highlight"><c- n>set_value</c-><c- p>(</c-><c- n>args</c-><c- p>...)</c-></code>, where <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of <code class="highlight"><c- n>snd</c-></code>, then:</ins>
+        <p>if <code class="highlight"><c- n>sndr</c-></code> has a scuccessful completion, where <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of <code class="highlight"><c- n>sndr</c-></code>, then:</p>
         <ul>
          <li data-md>
-          <p>if <code class="highlight"><c- n>out_sndr</c-></code> also completes with value, then:</p>
+          <p>if <code class="highlight"><c- n>out_sndr</c-></code> also completes successfully, then:</p>
           <ul>
            <li data-md>
             <p>if <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk</c-></code> or <code class="highlight"><c- n>bulk_unchunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>;</p>
@@ -2681,8 +2689,8 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
       </ul>
      </ins>
    </ol>
-   <ins>
-    <ol start="7">
+   <div class="block-insert">
+    <ol start="6">
      <li data-md>
       <p>If <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_chunked</c-></code>, <code class="highlight"><c- n>bulk_unchunked</c-></code>, or <code class="highlight"><c- n>bulk</c-></code>, then the asyncrhonous operation corresponding to <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is allowed (but not required) to:</p>
       <ul>
@@ -2694,59 +2702,59 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
         <p>make decaying copies of the values produced by the predecessor sender, if the values are copyable.</p>
       </ul>
     </ol>
-    <h2 class="heading settled" data-level="6" id="polls"><span class="secno">6. </span><span class="content">Polls</span><a class="self-link" href="#polls"></a></h2>
-    <h3 class="heading settled" data-level="6.1" id="sg1.poland.2024"><span class="secno">6.1. </span><span class="content">SG1, Wrocław, Poland, 2024</span><a class="self-link" href="#sg1.poland.2024"></a></h3>
-    <p><a data-link-type="biblio" href="#biblio-p3481r0" title="Summarizing std::execution::bulk() issues">[P3481R0]</a> was presented at the SG1 meeting in November 2024 in Wrocław, Poland.
+   </div>
+   <h2 class="heading settled" data-level="6" id="polls"><span class="secno">6. </span><span class="content">Polls</span><a class="self-link" href="#polls"></a></h2>
+   <h3 class="heading settled" data-level="6.1" id="sg1.poland.2024"><span class="secno">6.1. </span><span class="content">SG1, Wrocław, Poland, 2024</span><a class="self-link" href="#sg1.poland.2024"></a></h3>
+   <p><a data-link-type="biblio" href="#biblio-p3481r0" title="Summarizing std::execution::bulk() issues">[P3481R0]</a> was presented at the SG1 meeting in November 2024 in Wrocław, Poland.
 SG1 provided the following feedback in the form of polls:</p>
-    <ol>
-     <li data-md>
-      <p>If we have chunking, we need to expose a control on the chunk size.</p>
+   <ol>
+    <li data-md>
+     <p>If we have chunking, we need to expose a control on the chunk size.</p>
 <pre class="highlight"><c- o>|</c-> <c- n>SF</c-> <c- o>|</c-> <c- n>F</c-> <c- o>|</c-> <c- n>N</c-> <c- o>|</c-> <c- n>A</c-> <c- o>|</c-> <c- n>SA</c-> <c- o>|</c->
 <c- o>|</c-> <c- mi>1</c->  <c- o>|</c-> <c- mi>2</c-> <c- o>|</c-> <c- mi>3</c-> <c- o>|</c-> <c- mi>1</c-> <c- o>|</c-> <c- mi>1</c->  <c- o>|</c->
 </pre>
-      <p>No consensus</p>
-     <li data-md>
-      <p>We need a version of the <code class="highlight"><c- n>bulk</c-></code> API that presents the chunk to the callable in order to implement the parallel algorithms</p>
+     <p>No consensus</p>
+    <li data-md>
+     <p>We need a version of the <code class="highlight"><c- n>bulk</c-></code> API that presents the chunk to the callable in order to implement the parallel algorithms</p>
 <pre class="highlight"><c- o>|</c-> <c- n>SF</c-> <c- o>|</c-> <c- n>F</c-> <c- o>|</c-> <c- n>N</c-> <c- o>|</c-> <c- n>A</c-> <c- o>|</c-> <c- n>SA</c-> <c- o>|</c->
 <c- o>|</c-> <c- mi>4</c->  <c- o>|</c-> <c- mi>2</c-> <c- o>|</c-> <c- mi>1</c-> <c- o>|</c-> <c- mi>0</c-> <c- o>|</c-> <c- mi>1</c->  <c- o>|</c->
 </pre>
-      <p>Consensus in favor</p>
-     <li data-md>
-      <p>We need a version of the bulk API that creates an execution agent per iteration.</p>
+     <p>Consensus in favor</p>
+    <li data-md>
+     <p>We need a version of the bulk API that creates an execution agent per iteration.</p>
 <pre class="highlight"><c- o>|</c-> <c- n>SF</c-> <c- o>|</c-> <c- n>F</c-> <c- o>|</c-> <c- n>N</c-> <c- o>|</c-> <c- n>A</c-> <c- o>|</c-> <c- n>SA</c-> <c- o>|</c->
 <c- o>|</c-> <c- mi>2</c->  <c- o>|</c-> <c- mi>3</c-> <c- o>|</c-> <c- mi>3</c-> <c- o>|</c-> <c- mi>0</c-> <c- o>|</c-> <c- mi>0</c->  <c- o>|</c->
 </pre>
-      <p>Unanimous consent</p>
-     <li data-md>
-      <p>We believe / desire:</p>
-      <ol>
-       <li data-md>
-        <p>Bulk needs an execution policy to describe the callable, IF the scheduler also has an execution
+     <p>Unanimous consent</p>
+    <li data-md>
+     <p>We believe / desire:</p>
+     <ol>
+      <li data-md>
+       <p>Bulk needs an execution policy to describe the callable, IF the scheduler also has an execution
 policy (for debugging for example) then a conservative choice should be used (<code class="highlight"><c- n>seq</c-></code> is more
 conservative than <code class="highlight"><c- n>par</c-></code>)</p>
-       <li data-md>
-        <p>No SG1 concerns with the proposed exception handling</p>
-       <li data-md>
-        <p>No change to status quo on default implementation of bulk being serial</p>
-       <li data-md>
-        <p>No change to status quo on bulk having a predecessor</p>
-       <li data-md>
-        <p>Forms of bulk needed:</p>
-        <ul>
-         <li data-md>
-          <p><code class="highlight"><c- n>bulk</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>)</c-></code> -> <code class="highlight"><c- n>bulk_chunked</c-></code></p>
-         <li data-md>
-          <p><code class="highlight"><c- n>bulk_chunked</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code></p>
-         <li data-md>
-          <p><code class="highlight"><c- n>bulk_unchunked</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>)</c-></code> "execution agent per iteration"</p>
-        </ul>
-      </ol>
+      <li data-md>
+       <p>No SG1 concerns with the proposed exception handling</p>
+      <li data-md>
+       <p>No change to status quo on default implementation of bulk being serial</p>
+      <li data-md>
+       <p>No change to status quo on bulk having a predecessor</p>
+      <li data-md>
+       <p>Forms of bulk needed:</p>
+       <ul>
+        <li data-md>
+         <p><code class="highlight"><c- n>bulk</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>)</c-></code> -> <code class="highlight"><c- n>bulk_chunked</c-></code></p>
+        <li data-md>
+         <p><code class="highlight"><c- n>bulk_chunked</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code></p>
+        <li data-md>
+         <p><code class="highlight"><c- n>bulk_unchunked</c-></code> -> <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>)</c-></code> "execution agent per iteration"</p>
+       </ul>
+     </ol>
 <pre class="highlight"><c- o>|</c-> <c- n>SF</c-> <c- o>|</c-> <c- n>F</c-> <c- o>|</c-> <c- n>N</c-> <c- o>|</c-> <c- n>A</c-> <c- o>|</c-> <c- n>SA</c-> <c- o>|</c->
 <c- o>|</c-> <c- mi>5</c->  <c- o>|</c-> <c- mi>2</c-> <c- o>|</c-> <c- mi>1</c-> <c- o>|</c-> <c- mi>0</c-> <c- o>|</c-> <c- mi>0</c->  <c- o>|</c->
 </pre>
-      <p>Unanimous consent</p>
-    </ol>
-   </ins>
+     <p>Unanimous consent</p>
+   </ol>
   </main>
 <script>
 (function() {
@@ -2884,6 +2892,8 @@ conservative than <code class="highlight"><c- n>par</c-></code>)</p>
    <dd>ISO WG21. <a href="https://eel.is/c++draft/alg.foreach"><cite>Working Draft: Programming Languages — C++ -- For each</cite></a>. URL: <a href="https://eel.is/c++draft/alg.foreach">https://eel.is/c++draft/alg.foreach</a>
    <dt id="biblio-execbulk">[EXEC.BULK]
    <dd>ISO WG21. <a href="https://eel.is/c++draft/exec.bulk"><cite>Working Draft: Programming Languages — C++ -- `execution::bulk`</cite></a>. URL: <a href="https://eel.is/c++draft/exec.bulk">https://eel.is/c++draft/exec.bulk</a>
+   <dt id="biblio-p0333r0">[P0333R0]
+   <dd>Bryce Lelbach. <a href="https://wg21.link/p0333r0"><cite>Improving Parallel Algorithm Exception Handling</cite></a>. 15 May 2016. URL: <a href="https://wg21.link/p0333r0">https://wg21.link/p0333r0</a>
    <dt id="biblio-p2300r10">[P2300R10]
    <dd>Eric Niebler, Michał Dominiak, Georgy Evtushenko, Lewis Baker, Lucian Radu Teodorescu, Lee Howes, Kirk Shoop, Michael Garland, Bryce Adelstein Lelbach. <a href="https://wg21.link/p2300r10"><cite>`std::execution`</cite></a>. 28 June 2024. URL: <a href="https://wg21.link/p2300r10">https://wg21.link/p2300r10</a>
    <dt id="biblio-p2500r2">[P2500R2]

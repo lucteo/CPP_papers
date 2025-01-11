@@ -262,6 +262,7 @@ For GPUs is important to have a version of `bulk` that ensures one execution age
 Defining `bulk` in terms of `bulk_chunked` would not be efficient for GPUs.
 
 Moreover, for composability reasons, we need a way to specify which version of `bulk` will not do any chunking.
+For example, an algorithm tailored for GPUs that depends on `bulk` would not want to have chunking, and, without controlling the specialization for `bulk`, it must not accidentally call a chunked version of `bulk`.
 
 For this reasons, we need to have a version of `bulk` that doesn't do any chunking.
 
@@ -328,15 +329,16 @@ We might choose different strategies (not all of them are mutually exclusive):
 - Give a compile-time error right away for any pair of conflicting policies.
 
 Anyway, exploration of this problem is out of scope of this paper.
+For the purpose of this paper, we need to ensure that the way the given function is called is compatible with the execution policy passed to `bulk`.
 
 ## Expectations on customizations ## {#design.expectations}
 
 The current specification of `bulk` in [[exec.bulk]] doesn't define any constraints/expectations for the customization of the algorithm.
 The default implementation (a serial version of `bulk`) is expected to be very different that its customizations.
 
-Having customizations in mind, we need to define the minimal expectations.
+Having customizations in mind, we need to define the minimal expectations for calling `bulk`.
 We propose the following:
-- Rely on `f` to be copy-constructible. That means, that `bulk` API shall have a constrain for `f`.
+- Mandate `f` to be copy-constructible.
 - Allow `f` to be invoked according to the specified execution policy (and don't assume it's going to be called serially).
 - Allow the values produced by the previous sender to be decay copied (if the values produced are copyable).
 - Allow the algorithm to handle cancellation requests, but don't mandate it.
@@ -364,7 +366,7 @@ As `bulk`, `bulk_chunked`, and `bulk_unchunked` are customization points, we nee
 While there are multiple solutions to specify which errors can be thrown by `bulk`, the most sensible ones seem to be:
 1. pick an arbitrary exception thrown by one of the invocations of `f` (maybe using a atomic operations to select the first thrown exception),
 
-2. reduce the exceptions to another exception that can carry one or more of the thrown exceptions using a user-defined reduction operation,
+2. reduce the exceptions to another exception that can carry one or more of the thrown exceptions using a user-defined reduction operation (similar to using `exception_list` as discussed by [[P0333R0]]),
 
 3. allow implementations to produce a new exception type (e.g., to represent failures outside of `f`, or to represent failure to transmit the original exception to the receiver)
 
@@ -415,7 +417,7 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
     The expression <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is ill-formed if any of the following is true:
 
       - `decltype((sndr))` does not satisfy `sender`,
-      - `std::is_execution_policy_v<std::remove_cvref_t<Policy>>` is `false`,
+      - <ins>`std::is_execution_policy_v<std::remove_cvref_t<Policy>>` is `false`,</ins>
       - `Shape` does not satisfy `integral`,
       - `decltype((f))` does not model the `copy_constructible` concept.</ins>
 
@@ -439,22 +441,23 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
 
     except that `sndr` is evaluated only once.
 
-4. The exposition-only class template <i>`impls-for`</i> ([exec.snd.general]) is specialized for <del>`bulk_t`</del><ins><i>`B`</i>, where <ins><i>`B`</i> is either `bulk_chunked_t` or `bulk_unchunked_t`,</ins> as follows:
+4. The exposition-only class template <i>`impls-for`</i> ([exec.snd.general]) is specialized for `bulk_t`<ins>, `bulk_chunked_t` or `bulk_unchunked_t`</ins> as follows:
 
         <pre highlight="c++">
         namespace std::execution {
           template&lt;>
-          struct <i>impls-for</i>&lt;<del>bulk_t</del><ins><i>B</i></ins>> : <i>default-impls</i> {
+          struct <i>impls-for</i>&lt;<del>bulk_t</del><ins><i>bulk-algo</i></ins>> : <i>default-impls</i> {
             static constexpr auto complete = <i>see below</i>;
           };
         }
         </pre>
 
-    1. The member <code><i>impls-for</i>&lt;<del>bulk_t</del><ins><i>B</i></ins>>::complete</code> is initialized with a callable object equivalent to the following lambda:
+    1. The member <code><i>impls-for</i>&lt;<del>bulk_t</del><ins>bulk_unchunked_t</ins>>::complete</code> is initialized with a callable object equivalent to the following lambda:
 
           <pre highlight="c++">
           []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
-            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept -> void requires <i>see below</i> {
+            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept
+            -> void requires <i>see below</i> {
               if constexpr (same_as&lt;Tag, set_value_t>) {
                 <del>auto& [shape, f] = state;</del>
                 <ins>auto& [policy, shape, f] = state;</ins>
@@ -473,30 +476,41 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
 
           1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), args...)` is well-formed.
 
-<div class="block-insert">
-5. The exposition-only class template <i>`impls-for`</i> ([exec.snd.general]) is specialized for `bulk_t` as follows:
-
-        <pre highlight="c++">
-        namespace std::execution {
-          template&lt;>
-          struct <i>impls-for</i>&lt;bulk_t> : <i>default-impls</i> {
-            static constexpr auto complete = <i>see below</i>;
-          };
-        }
-        </pre>
-
-    1. The member <code><i>impls-for</i>&lt;bulk_t>::complete</code> is initialized with a callable object equivalent to the following lambda:
+    <div class="block-insert">
+    2. The member <code><i>impls-for</i>&lt;<i>bulk_chunked_t</i>>::complete</code> is initialized with a callable object equivalent to the following lambda:
 
           <pre highlight="c++">
           []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
-            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept -> void requires <i>see below</i> {
+            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept
+            -> void requires <i>see below</i> {
+              if constexpr (same_as&lt;Tag, set_value_t>) {
+                auto& [policy, shape, f] = state;
+                constexpr bool nothrow = noexcept(f(auto(shape), auto(shape), args...));
+                <i>TRY-EVAL</i>(rcvr, [&]() noexcept(nothrow) {
+                  f(0, auto(shape), args...);
+                  Tag()(std::move(rcvr), std::forward&lt;Args>(args)...);
+                }());
+              } else {
+                Tag()(std::move(rcvr), std::forward&lt;Args>(args)...);
+              }
+            }
+          </pre>
+
+          1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), auto(shape), args...)` is well-formed.
+
+    3. The member <code><i>impls-for</i>&lt;<i>bulk_t</i>>::complete</code> is initialized with a callable object equivalent to the following lambda:
+
+          <pre highlight="c++">
+          []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
+            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept
+            -> void requires <i>see below</i> {
               auto& [policy, shape, f] = state;
               constexpr bool nothrow = noexcept(f(auto(shape), args...));
               auto new_f = [func=std::move(f)]<typename... Vs>(Size begin, Size end, Vs&... vs)
                   noexcept(nothrow) {
                 while (begin != end) f(begin++, std::forward<Vs>(vs)...);
               }
-              std::invoke(<i>impls-for</i>&lt;bulk_chunked_t>::complete, Index()
+              <i>impls-for</i>&lt;bulk_chunked_t>::complete(Index(),
                 <i>product-type</i>{policy, shape, std::move(new_f)},
                 rcvr, Tag(), std::forward&lt;Args>(args)...);
             }
@@ -504,9 +518,9 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
 
           1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), args...)` is well-formed.
 
-</div>
+    </div>
 
-6. <ins>If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, let</ins> <del>Let</del> the subexpression `out_sndr` denote the result of the invocation <del>`bulk`</del><ins><i>`bulk-algo`</i></ins>`(sndr, `<ins>`policy,`</ins>` shape, f)` or an object equal to such, and let the subexpression `rcvr` denote a receiver such that the expression `connect(out_sndr, rcvr)` is well-formed.
+5. <ins>If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, let</ins> <del>Let</del> the subexpression `out_sndr` denote the result of the invocation <del>`bulk`</del><ins><i>`bulk-algo`</i></ins>`(sndr, `<ins>`policy,`</ins>` shape, f)` or an object equal to such, and let the subexpression `rcvr` denote a receiver such that the expression `connect(out_sndr, rcvr)` is well-formed.
     The expression `connect(out_sndr, rcvr)` has undefined behavior unless it creates an asynchronous operation ([async.ops]) that, when started:
 
       - <del>on a value completion operation, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of the input sender, and</del>
@@ -514,13 +528,13 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
       - <del>propagates all completion operations sent by `sndr`.<del>
 
       <ins>
-      - <ins>if `sndr` completes with `set_value(args...)`, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `snd`, then:</ins>
+      - if `sndr` has a scuccessful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, then:
 
-        - if `out_sndr` also completes with value, then:
+        - if `out_sndr` also completes successfully, then:
 
             - if <i>`bulk-algo`</i> is `bulk` or `bulk_unchunked`, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`;
 
-            - if <i>`bulk-algo`</i> is `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range [`0`, `shape`], such as for every `i` of type `Shape` from `0` to `shape`, there is an invocation with a pair `b` and `e`, such as `b <= i < e`;</ins>
+            - if <i>`bulk-algo`</i> is `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range [`0`, `shape`], such as for every `i` of type `Shape` from `0` to `shape`, there is an invocation with a pair `b` and `e`, such as `b <= i < e`;
 
         - if `out_sndr` completes with `set_error(rcvr, e)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal, and `e` is either:
 
@@ -529,19 +543,21 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
             - an exception derived from `std::runtime_error`;
 
         - if `out_sndr` completes with `set_stopped(rcvr)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal;
-            </ins>
 
       - if `sndr` does not complete with `set_value(...)`, the completion signal is forwarded to `recv`
 
-      - the function `f` is invoked in a way that is compatible with the execution policy `policy`.</ins>
+      - the function `f` is invoked in a way that is compatible with the execution policy `policy`.
+            </ins>
 
-<ins>
-7. If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, then the asyncrhonous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is allowed (but not required) to:
+<div class="block-insert">
+6. If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, then the asyncrhonous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is allowed (but not required) to:
 
     - complete with `set_stopped()` if cancellation is requested (through the connected receiver);
     - ignore cancellation requests;
     - make decaying copies of the values produced by the predecessor sender, if the values are copyable.
-        </ins>
+
+</div>
+
 
 # Polls # {#polls}
 
