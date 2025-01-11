@@ -1564,7 +1564,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version ac5ea272d, updated Fri Dec 6 15:45:15 2024 -0800" name="generator">
   <link href="http://wg21.link/P3481R1" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="8de4c943aef2506be5dded6149ddad233901d700" name="revision">
+  <meta content="220cb90f032e8dedc3d515c63841138319a9308a" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2520,7 +2520,7 @@ Thus, we can peak arbitrary exception to throw</p>
        For subexpressions <code class="highlight"><c- n>sndr</c-></code>, 
       <ins><code class="highlight"><c- n>policy</c-></code>,</ins>
        <code class="highlight"><c- n>shape</c-></code>, and <code class="highlight"><c- n>f</c-></code>, let 
-      <ins><code class="highlight"><c- n>Policy</c-></code> be <code class="highlight"><c- k>decltype</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>policy</c-><c- p>))</c-></code> and</ins>
+      <ins><code class="highlight"><c- n>Policy</c-></code> be <code class="highlight"><c- n>decay_t</c-><c- o>&lt;</c-><c- k>decltype</c-><c- p>(</c-><c- n>policy</c-><c- p>)</c-><c- o>></c-></code> and</ins>
        <code class="highlight"><c- n>Shape</c-></code> be <code class="highlight"><c- k>decltype</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>))</c-></code>.
       <del> If <code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>sndr</c-><c- p>))</c-></code> does not satisfy <code class="highlight"><c- n>sender</c-></code>, or if <code class="highlight"><c- n>Shape</c-></code> does not satisfy <code class="highlight"><c- n>integral</c-></code>, or if <code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>f</c-><c- p>))</c-></code> does not satisfy <i><code class="highlight"><c- n>movable</c-><c- o>-</c-><c- n>value</c-></code></i>, <code class="highlight"><c- n>bulk</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is ill-formed.</del>
       <ins> The expression <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is ill-formed if any of the following is true:</ins>
