@@ -412,12 +412,12 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
 
 2. The <del>name</del><ins>names</ins> `bulk`<ins>, `bulk_chunked`, and `bulk_unchunked`</ins> <del>denotes a</del><ins>denote</ins> pipeable sender adaptor <del>object</del><ins>objects</ins>.<ins>
     Let <i>`bulk-algo`</i> be either `bulk`, `bulk_chunked` or `bulk_unchunked`.</ins>
-    For subexpressions `sndr`, <ins>`policy`,</ins> `shape`, and `f`, let <ins>`Policy` be `decay_t<decltype(policy)>` and</ins> `Shape` be `decltype(auto(shape))`.<del>
+    For subexpressions `sndr`, <ins>`policy`,</ins> `shape`, and `f`, let <ins>`Policy` be `remove_cvref_t<decltype(policy)>` and</ins> `Shape` be `decltype(auto(shape))`.<del>
     If `decltype((sndr))` does not satisfy `sender`, or if `Shape` does not satisfy `integral`, or if `decltype((f))` does not satisfy <i>`movable-value`</i>, `bulk(sndr, shape, f)` is ill-formed.</del><ins>
     The expression <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is ill-formed if any of the following is true:
 
       - `decltype((sndr))` does not satisfy `sender`,
-      - <ins>`std::is_execution_policy_v<std::remove_cvref_t<Policy>>` is `false`,</ins>
+      - <ins>`is_execution_policy_v<remove_cvref_t<Policy>>` is `false`,</ins>
       - `Shape` does not satisfy `integral`,
       - `decltype((f))` does not model the `copy_constructible` concept.</ins>
 
@@ -540,7 +540,7 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
 
             - an exception thrown by an invocation of `f`, or
 
-            - an exception derived from `std::runtime_error`;
+            - an exception derived from `runtime_error`;
 
         - if `out_sndr` completes with `set_stopped(rcvr)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal;
 
