@@ -543,29 +543,29 @@ to be protected (timers, I/O)<span></span></a></li>
 }
 </style>
 <h1 class="unnumbered unlisted" id="abstract">Abstract<a href="#abstract" class="self-link"></a></h1>
-<p>This paper aims at debating the advantages and disadvantages of
-making the
+<p>This paper aims to debate the advantages and disadvantages of making
+the
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
-coroutine proposed in <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> have scheduler affinity. In
+coroutine, as proposed in <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span>, retain scheduler affinity. In
 other words, should the default implementation of
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
-return back to the original scheduler after each
-<code class="sourceCode cpp"><span class="kw">co_await</span></code>?</p>
+return to the original scheduler after each
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>?”</p>
 <h1 data-number="1" id="motivation"><span class="header-section-number">1</span> Motivation<a href="#motivation" class="self-link"></a></h1>
-<p>After <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> was published, there was a long
-debate on an internal forum dedicated to <code class="sourceCode cpp">std<span class="op">::</span>execution</code>
-authors related the advantages and disadvantages of making
+<p>After <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> was published, there was an
+extended debate on an internal forum dedicated to <code class="sourceCode cpp">std<span class="op">::</span>execution</code>
+authors regarding the advantages and disadvantages of giving
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
-have scheduler affinity.</p>
+scheduler affinity.</p>
 <p><span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> proposes scheduler affinity,
-with the main motivation that
+primarily motivated by the fact that both
 <code class="sourceCode cpp">unifex<span class="op">::</span>task</code>
 and <code class="sourceCode cpp">stdexec<span class="op">::</span>task</code>,
-both precursors of
+predecessors of
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code>,
-support scheduler affinity. But there is no clearly explained reasons
-for that decision. Some of the authors of these previous attempts
-invoked “removing a whole class of bugs”, but no in depth analysis was
+support scheduler affinity. However, there are no clearly explained
+reasons for this decision. Some authors of these previous attempts cited
+“removing a whole class of bugs,” but no in-depth analysis was
 provided.</p>
 <h2 data-number="1.1" id="problem_description"><span class="header-section-number">1.1</span> Problem description<a href="#problem_description" class="self-link"></a></h2>
 <p>Let us assume that <code class="sourceCode cpp">sched1</code>,
@@ -599,23 +599,23 @@ coroutine was started.</p>
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code> is
 not scheduler affine, then we expect:</p>
 <ul>
-<li><code class="sourceCode cpp">f1<span class="op">()</span></code>
-will be executed on a thread belonging to
+<li><code class="sourceCode cpp">f1<span class="op">()</span></code> to
+execute on a thread belonging to
 <code class="sourceCode cpp">sched1</code>;</li>
-<li><code class="sourceCode cpp">f2<span class="op">()</span></code>
-will be executed on a thread belonging to
+<li><code class="sourceCode cpp">f2<span class="op">()</span></code> to
+execute on a thread belonging to
 <code class="sourceCode cpp">sched2</code>;</li>
-<li><code class="sourceCode cpp">f3<span class="op">()</span></code>
-will be executed on a thread belonging to
+<li><code class="sourceCode cpp">f3<span class="op">()</span></code> to
+execute on a thread belonging to
 <code class="sourceCode cpp">sched3</code>;</li>
 </ul>
-<p>In other words, we allow a
+<p>In this case, each
 <code class="sourceCode cpp"><span class="kw">co_await</span></code>
-expression to dictate where the followup code will execute.</p>
-<p>The main debate was around whether
+expression dictates where the subsequent code executes.</p>
+<p>The main debate revolved around whether
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
-should be scheduler affine <strong>by default</strong> or not, and took
-into account the following aspects:</p>
+should be scheduler-affine <strong>by default</strong>. The discussion
+considered the following factors:</p>
 <ul>
 <li>complexity</li>
 <li>correctness: making it easier to avoid certain classes of bugs</li>
