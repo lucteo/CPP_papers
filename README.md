@@ -2,7 +2,8 @@
 Source file for C++ standard papers
 
 ## Papers in this repo
-- P3481. Rendered: [latest published](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/P3481.html), [R1-in progress](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3481_R1/P3481.html)
+- P3481. Rendered: [latest published](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/P3481.html)
+- P3609. Rendered: [R1-in progress](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3609R0/generated/P3609.html)
 
 
 ## Other papers
