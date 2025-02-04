@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-02-02" />
+  <meta name="dcterms.date" content="2025-02-04" />
   <title>On scheduler affinity in `std::lazy`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ code.sourceCode > span { display: inline; }
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-02-02</td>
+    <td>2025-02-04</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -741,8 +741,8 @@ safer”</li>
 <li>we say that
 “<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
 makes sender more approachable”</li>
-<li>with scheduler affinity we are telling users “we limit asynchrony,
-because people find it hard to use it”</li>
+<li>with scheduler affinity we are telling users “we limit asynchrony by
+default, because people find it hard to use it”</li>
 </ul>
 <p>The above three points cannot be put together without some
 contradiction.</p>
@@ -778,6 +778,20 @@ started (the same scheduler where
 executed).</p>
 <p>Affinity provides isolation. Isolation improves locality of
 reasoning.</p>
+<p>For example a program using async features might have dedicated
+thread pools for:</p>
+<ul>
+<li>request acceptance,</li>
+<li>request handling,</li>
+<li>disk IO,</li>
+<li>logging,</li>
+<li>cron-like scheduled periodic tasks,</li>
+<li>etc.</li>
+</ul>
+<p>These are modeled as schedulers, and affinity / isolation means that
+a piece of code doesn’t hop from resource to resource in a (locally)
+unpredictable way. Instead, it runs where it’s put, unless explicit,
+visible code switches the thread of execution.</p>
 <h2 data-number="2.4" id="con-reasoning"><span class="header-section-number">2.4</span> Con: To some point, affinity
 degrades local reasoning<a href="#con-reasoning" class="self-link"></a></h2>
 <p>The same example can be read differently: scheduler affinity degrades
