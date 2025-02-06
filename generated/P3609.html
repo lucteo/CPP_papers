@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-02-04" />
+  <meta name="dcterms.date" content="2025-02-06" />
   <title>On scheduler affinity in `std::lazy`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ code.sourceCode > span { display: inline; }
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-02-04</td>
+    <td>2025-02-06</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -637,9 +637,9 @@ at the end of each
 expression:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> example_coro<span class="op">()</span> <span class="op">{</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  f1<span class="op">();</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd1 <span class="op">|</span> continues_on<span class="op">(</span>sched1<span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> <span class="op">(</span>snd1 <span class="op">|</span> continues_on<span class="op">(</span>sched1<span class="op">));</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  f2<span class="op">();</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd2 <span class="op">|</span> continues_on<span class="op">(</span>sched1<span class="op">);</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> <span class="op">(</span>snd2 <span class="op">|</span> continues_on<span class="op">(</span>sched1<span class="op">));</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  f3<span class="op">();</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>The user manually controls what would be the schedulers on which
@@ -724,10 +724,15 @@ doesn’t imply landing on the same thread.</p>
 <code class="sourceCode cpp"><span class="kw">co_await</span></code>-ed
 expressions work differently than senders (in subtle ways), and will
 make the body of the coroutine behave differently than a synchronous
-function.</p>
+function. That is, <code class="sourceCode cpp"><span class="kw">co_await</span> snd; some_code<span class="op">()</span></code>
+will behave differently than <code class="sourceCode cpp">snd <span class="op">|</span> then<span class="op">(</span>some_code<span class="op">)</span></code></p>
 <p>In the spirit of the argument, users will get confused by this
 behavior, not fully understand how things are working, and this will
 eventually lead to bugs.</p>
+<p><em>Counter-argument</em>: coroutines do not need to try to be
+equivalent to sender pipe composition, as there are other differences as
+well (e.g., coroutines have lexical scope, exceptions in coroutines work
+“as usual”, etc.)</p>
 <h2 data-number="2.2" id="teachability"><span class="header-section-number">2.2</span> Con: Teachability on main uses
 of
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code><a href="#teachability" class="self-link"></a></h2>
@@ -792,6 +797,11 @@ thread pools for:</p>
 a piece of code doesn’t hop from resource to resource in a (locally)
 unpredictable way. Instead, it runs where it’s put, unless explicit,
 visible code switches the thread of execution.</p>
+<p>In such an application, programming must follow two rules: - all
+coroutines should do work on the scheduler it was started from; - all
+changes of execution context are explicit. This offers a reduction of
+complexity, as we can have a global policy on how schedulers are used to
+execute the code in coroutines.</p>
 <h2 data-number="2.4" id="con-reasoning"><span class="header-section-number">2.4</span> Con: To some point, affinity
 degrades local reasoning<a href="#con-reasoning" class="self-link"></a></h2>
 <p>The same example can be read differently: scheduler affinity degrades
@@ -982,8 +992,10 @@ translate (and slightly adapt) one example given in <span class="citation" data-
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> bytes <span class="op">=</span> serialize_response<span class="op">(</span>response<span class="op">);</span></span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> starts_on<span class="op">(</span>io_sched<span class="op">,</span> write_response<span class="op">(</span>bytes<span class="op">));</span></span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p>In this case, if we would have scheduler affinity, then we would
-execute heavy CPU processing on the I/O thread, which is undesired.</p>
+<p>Moreover, let us assume that this code is started on the I/O
+scheduler (we just accepted a new connection). In this case, if we would
+have scheduler affinity, then we would execute heavy CPU processing on
+the I/O thread, which is undesired.</p>
 <p>One might argue that we should also add
 <code class="sourceCode cpp"><span class="kw">co_await</span></code>s to
 the two functions that we should be using the CPU scheduler (<code class="sourceCode cpp">process_request<span class="op">()</span></code>
@@ -1209,50 +1221,6 @@ We will do an extra jump that is not needed.</p>
 <p>The paper discusses some pros and cons of using scheduler affinity
 for
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.</p>
-<p>Just looking at the counts of items, ignoring their practical
-importance, we can drive to these statistics:</p>
-<table>
-<thead>
-<tr class="header">
-<th style="text-align: left;"><div style="text-align:center">
-<strong>Category</strong>
-</div></th>
-<th style="text-align: left;"><div style="text-align:center">
-<strong># pro</strong>
-</div></th>
-<th style="text-align: left;"><div style="text-align:center">
-<strong># con</strong>
-</div></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">complexity</td>
-<td style="text-align: left;">1</td>
-<td style="text-align: left;">5</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">correctness</td>
-<td style="text-align: left;">3</td>
-<td style="text-align: left;">1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">known issues</td>
-<td style="text-align: left;">2</td>
-<td style="text-align: left;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">performance</td>
-<td style="text-align: left;">0</td>
-<td style="text-align: left;">3</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;"><strong>Total</strong></td>
-<td style="text-align: left;">6</td>
-<td style="text-align: left;">10</td>
-</tr>
-</tbody>
-</table>
 <p>To have a good decision on whether scheduler affinity should be the
 default or not for
 <code class="sourceCode cpp">std<span class="op">::</span>lazy</code> we
