@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-02-06" />
+  <meta name="dcterms.date" content="2025-02-07" />
   <title>On scheduler affinity in `std::lazy`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ code.sourceCode > span { display: inline; }
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-02-06</td>
+    <td>2025-02-07</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -515,7 +515,9 @@ ideas<span></span></a>
 <ul>
 <li><a href="#make-scheduler-affinity-opt-in-from-the-body-of-the-coroutine" id="toc-make-scheduler-affinity-opt-in-from-the-body-of-the-coroutine"><span class="toc-section-number">7.1</span> Make scheduler affinity opt-in
 from the body of the coroutine<span></span></a></li>
-<li><a href="#hide-the-schedulers-for-resources-to-be-protected-timers-io" id="toc-hide-the-schedulers-for-resources-to-be-protected-timers-io"><span class="toc-section-number">7.2</span> Hide the schedulers for resources
+<li><a href="#check-by-default" id="toc-check-by-default"><span class="toc-section-number">7.2</span> Check for scheduler affinity,
+instead of enforcing it<span></span></a></li>
+<li><a href="#hide-the-schedulers-for-resources-to-be-protected-timers-io" id="toc-hide-the-schedulers-for-resources-to-be-protected-timers-io"><span class="toc-section-number">7.3</span> Hide the schedulers for resources
 to be protected (timers, I/O)<span></span></a></li>
 </ul></li>
 <li><a href="#bibliography" id="toc-bibliography"><span class="toc-section-number">8</span> References<span></span></a></li>
@@ -1235,7 +1237,7 @@ compromises. This section lists some ideas that might help</p>
 from the body of the coroutine<a href="#make-scheduler-affinity-opt-in-from-the-body-of-the-coroutine" class="self-link"></a></h2>
 <p>Here is an example how this might work:</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> encapsulated_scheduler_affinity<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> set_scheduler_affinity<span class="op">(</span>sched0<span class="op">);</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> lazy_set_scheduler_affinity<span class="op">(</span>sched0<span class="op">);</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  f1<span class="op">();</span>          <span class="co">// executed  on `sched0`</span></span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd1<span class="op">;</span> <span class="co">// completes on `sched2`</span></span>
@@ -1265,24 +1267,138 @@ don’t need to execute anything in the coroutine</a></li>
 <li><a href="#con-perf-jump-to-same">Con: Extra cost for jumping to the
 same scheduler</a></li>
 </ul>
-<h2 data-number="7.2" id="hide-the-schedulers-for-resources-to-be-protected-timers-io"><span class="header-section-number">7.2</span> Hide the schedulers for
+<h2 data-number="7.2" id="check-by-default"><span class="header-section-number">7.2</span> Check for scheduler affinity,
+instead of enforcing it<a href="#check-by-default" class="self-link"></a></h2>
+<p>One of the problems with both scheduler affinity or the lack of
+scheduler affinity is the fact that it mandates a default behavior when
+the intent of the user is ambiguous. Maybe another approach is to force
+the user to specify the intent.</p>
+<p>The coroutine can be set up in four different modes:</p>
+<ol type="1">
+<li>check that
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>s
+don’t change the scheduler (default option);</li>
+<li>check that if
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+completes on a scheduler, that scheduler is equal to a given scheduler
+(check for scheduler affinity);</li>
+<li>apply scheduler affinity for a specified scheduler for every
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+call;</li>
+<li>disable scheduler affinity, and allow
+<code class="sourceCode cpp">co_awaits</code> to change the scheduler
+for the rest of the body of the coroutine.</li>
+</ol>
+<p>Except the first option, all the other options require user explicit
+specification of the intent. The intent is specified in the body of the
+coroutine, as opposed that as a template parameter to
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>;
+this will make the implementation details not leak in the coroutine
+signature.</p>
+<p>Except the third option, all the other options will treat an
+expression like
+<code class="sourceCode cpp"><span class="kw">co_await</span> snd</code>
+as not having scheduler affinity, if
+<code class="sourceCode cpp">snd</code> does not advertizes a completion
+scheduler.</p>
+<p>In all options,
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>ing
+on a sender produced by <code class="sourceCode cpp">execution<span class="op">::</span>on<span class="op">()</span></code>
+will just asynchronously execute that sender without further
+transferring control to any scheduler.</p>
+<p>In the first option, for a
+<code class="sourceCode cpp"><span class="kw">co_await</span> snd</code>
+expression, if <code class="sourceCode cpp">snd</code> advertize a
+completion scheduler, then issue a compilation error informing the user
+that, by default, schedulers should not be changed without explicit
+control. Otherwise, execute the async computation indicated by
+<code class="sourceCode cpp">snd</code>, without transferring control to
+any scheduler.</p>
+<p>That second option will be selected if <code class="sourceCode cpp"><span class="kw">co_await</span> lazy_check_completion_scheduler<span class="op">(</span>sched0<span class="op">)</span></code>
+expression is found in the body of the coroutine. This will tell
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+that all
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+expressions that try to change the scheduler must complete on
+<code class="sourceCode cpp">sched0</code>. If a
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>ed
+sender advertizes a completion scheduler different than
+<code class="sourceCode cpp">sched0</code>, a compilation error is
+expected.</p>
+<p>The third option will be selected if <code class="sourceCode cpp"><span class="kw">co_await</span> lazy_set_scheduler_affinity<span class="op">(</span>sched0<span class="op">)</span></code>
+expression is found in the body of the coroutine. In this case, after
+each
+<code class="sourceCode cpp"><span class="kw">co_await</span> snd</code>,
+a re-posting to <code class="sourceCode cpp">sched0</code> will happen,
+regardless of whether <code class="sourceCode cpp">snd</code> advertizes
+its affinity or not, regardless on which scheduler
+<code class="sourceCode cpp">snd</code> completes.</p>
+<p>The third option will be selected if <code class="sourceCode cpp"><span class="kw">co_await</span> lazy_set_no_scheduler_affinity<span class="op">()</span></code>
+expression is found in the body of the coroutine. In this case, no
+scheduler affinity is checked or enforced, and all
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>s
+are allowed to change the scheduler for the following code to be
+executed.</p>
+<p>The four modes can be combined in the same coroutine.</p>
+<p>Here is an example of a coroutine with all the modes, showcasing
+interaction with sender produced by common algorithms:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> coro_with_all_modes<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Mode 1</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> just<span class="op">()</span> <span class="co">// ok</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched1<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched1<span class="op">)</span> <span class="co">// error: explicit scheduler switch handling is needed</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Mode 2</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> lazy_check_completion_scheduler<span class="op">(</span>sched1<span class="op">);</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> just<span class="op">()</span> <span class="co">// ok</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched1<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched2<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched1<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched2<span class="op">)</span> <span class="co">// error: unexpected completion scheduler</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Mode 3</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> lazy_set_scheduler_affinity<span class="op">(</span>sched1<span class="op">);</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> just<span class="op">()</span> <span class="co">// ok</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched1<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched2<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched1<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched2<span class="op">)</span> <span class="co">// ok; transfer back to sched1</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Mode 4</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> lazy_set_scheduler_affinity<span class="op">(</span>sched1<span class="op">);</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> just<span class="op">()</span> <span class="co">// ok</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched1<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched2<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched1<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched2<span class="op">)</span> <span class="co">// ok; transfer back to sched1</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>  f<span class="op">()</span> <span class="co">// execution will continue on `sched2`</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This approach fixes most of the downsides with both scheduler
+affinity and the lack of scheduler affinity. Whenever there is a case in
+which the presence or absence of scheduler affinity can affect the
+correctness of the code, and the behavior is not explicitly indicated by
+the user, a compilation error is produced. The coroutines that do not
+change schedulers will work just fine without user intervention. The
+coroutines that change the schedulers will require the user to
+explicitly specify the desired behavior.</p>
+<h2 data-number="7.3" id="hide-the-schedulers-for-resources-to-be-protected-timers-io"><span class="header-section-number">7.3</span> Hide the schedulers for
 resources to be protected (timers, I/O)<a href="#hide-the-schedulers-for-resources-to-be-protected-timers-io" class="self-link"></a></h2>
 <p>One problem with the example from <a href="#pro-timer-thread">Pro:
 Accidentally blocking timer thread</a> is that the user can directly
 access the scheduler for the timer. Instead, an abstraction shall be
 provided that always take a scheduler.</p>
 <p>With that idea in mind, the problematic example would become:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> work_on_timer<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on_timer<span class="op">(</span>sched1<span class="op">,</span> do_work_after_timer_was_fired<span class="op">());</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> on_timer<span class="op">(</span>scheduler <span class="kw">auto</span> sched<span class="op">,</span> sender <span class="kw">auto</span> snd<span class="op">)</span> <span class="op">{</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> protected_timer_sender</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>       <span class="op">|</span> continues_on<span class="op">(</span>sched<span class="op">)</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>       <span class="op">|</span> let_value<span class="op">([]()</span> <span class="op">{</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">std::</span>move<span class="op">(</span>snd<span class="op">);</span></span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>       <span class="op">})</span></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> work_on_timer<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on_timer<span class="op">(</span>sched1<span class="op">,</span> do_work_after_timer_was_fired<span class="op">());</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> on_timer<span class="op">(</span>scheduler <span class="kw">auto</span> sched<span class="op">,</span> sender <span class="kw">auto</span> snd<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> protected_timer_sender</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>       <span class="op">|</span> continues_on<span class="op">(</span>sched<span class="op">)</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>       <span class="op">|</span> let_value<span class="op">([]()</span> <span class="op">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">std::</span>move<span class="op">(</span>snd<span class="op">);</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>       <span class="op">})</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>The main idea here is that we protect the time scheduler/sender.
 Users cannot access to it directly. Instead, they need to go through a
 <code class="sourceCode cpp">on_timer</code> abstraction that ensures
