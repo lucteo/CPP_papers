@@ -1,14 +1,15 @@
 <pre class='metadata'>
 Title: `std::execution::bulk()` issues
 Shortname: P3481
-Level: 1
+Level: 2
 Status: P
 Group: wg21
 Editor: Lucian Radu Teodorescu, Garmin, lucteo@lucteo.ro
         Lewis Baker, lewissbaker@gmail.com
         Ruslan Arutyunyan, Intel, ruslan.arutyunyan@intel.com
-Audience: SG1, LEWG
-URL: http://wg21.link/P3481R1
+        Mark Hoemmen, NVIDIA, mhoemmen@nvidia.com
+Audience: LEWG
+URL: http://wg21.link/P3481R2
 Abstract: This paper explores the issues with `std::execution::bulk` algorithm and proposes a way to address them,
           making the API better for the users.
 Markup Shorthands: markdown yes
@@ -58,6 +59,12 @@ div.block-insert pre.highlight {
 </style>
 
 # Changes history # {#history}
+
+## R2 ## {#r2}
+- Incorporate to the feedback from SG1 review, Austria, 2025.
+    - Incorporate the changes from [[P3564R0]]: Make calling un-customized `bulk_unchunked` ill-formed on a scheduler with concurrent forward progress.
+    - Remove `bulk_unchunked`'s execution policy parameter.
+    - Specify an error for the "lack of resources" case.
 
 ## R1 ## {#r1}
 
@@ -185,14 +192,12 @@ execution::sender auto bulk_chunked(Predecessor pred,
 
 // NEW: algorithm to ensure one execution agent per iteration
 template<execution::sender Predecessor,
-         typename ExecutionPolicy,
          std::integral Size,
          std::invocable<Size, values-sent-by(Predecessor)...> Func
 >
 execution::sender auto bulk_unchunked(Predecessor pred,
-                                    ExecutionPolicy&& pol,
-                                    Size size,
-                                    Func f);
+                                      Size size,
+                                      Func f);
 
 template<execution::sender Predecessor,
          typename ExecutionPolicy,
@@ -218,26 +223,6 @@ execution::sender auto bulk(Predecessor pred,
 }
 ```
 
-The `bulk_chunked` algorithm is a customization point returning a sender that describes a work with following properties:
-- Let `args...` be the values sent by the predecessor.
-- In the absence of any errors, call `f(b, e, args...)` zero or multiple times, such as, for every `i` in range [0, `size`), there is exactly one call to `f(b, e, args...)` with i ∈ [`b`, `e`).
-    All the calls to `f` strongly happen before any call to `set_value`.
-
-- If any call to `f` throws, then the sender completes on receiver `rcvr` with `set_error(std::move(rcvr), e)`, where `e` is one of the exceptions thrown, or is an exception derived from `std::runtime_error`.
-    Before calling `set_error`, the operation may call `f(b, e, args...)` zero or multiple times, such as, for every `i` in range [0, `size`), there is maximum one call to `f(b, e, args...)` with `i` ∈ [`b`, `e`).
-
-The `bulk_unchunked` algorithm is a customization point returning a sender that describes a work with following properties:
-- Let `args...` be the values sent by the predecessor.
-- In the absence of any errors, call `f(i, args...)` zero or multiple times, such as, for every `i` in range [0, `size`), there is exactly one call to `f(i, args...)`.
-    All the calls to `f` strongly happen before any call to `set_value`.
-
-- If any call to `f` throws, then the sender completes on receiver `rcvr` with `set_error(std::move(rcvr), e)`, where `e` is one of the exceptions thrown, or is an exception derived from `std::runtime_error`.
-    Before calling `set_error`, the operation may call `f(i, args...)` zero or multiple times, such as, for every `i` in range [0, `size`), there is maximum one call to `f(i, args...)`.
-
-The `bulk` algorithm is a customization point.
-The default implementation calls `bulk_chunked` as shown above.
-
-
 
 # Design discussions # {#design}
 
@@ -258,22 +243,24 @@ An implementation of `bulk` can be easily built on top of `bulk_chunked` without
 
 ## Also define an unchunked version ## {#design.unchunked}
 
-For GPUs is important to have a version of `bulk` that ensures one execution agent per iteration.
-Defining `bulk` in terms of `bulk_chunked` would not be efficient for GPUs.
+[[P3564R0]] explains the necessity
+of having a version of `bulk` that executes each loop iteration
+on a distinct execution agent:
 
-Moreover, for composability reasons, we need a way to specify which version of `bulk` will not do any chunking.
-For example, an algorithm tailored for GPUs that depends on `bulk` would not want to have chunking, and, without controlling the specialization for `bulk`, it must not accidentally call a chunked version of `bulk`.
+1. For schedulers that promise concurrent forward progress, users need a way to take advantage of concurrent forward
+     progress. Since `bulk` execution can do chunking, it cannot promise anything stronger than parallel forward progress.
+1. Even for schedulers with a weaker forward progress guarantee, users sometimes have performance reasons
+     to control the distribution of loop iterations to execution agents.
 
-For this reasons, we need to have a version of `bulk` that doesn't do any chunking.
-
+We incorporated this design suggestion from [[P3564R0]] into this paper and name this API `bulk_unchunked`.
 
 ## Using execution policies ## {#design.policies}
 
 As discussed in the [[#motivation]] section, not having the possibility to specify execution policies for the `bulk` algorithm is a downside.
-The only reasonable default execution policy choice is `seq` because defaulting to anything else might lead to deadlocks.
-On contrary, it does not make sense because the use cases, `bulk` (and `bulk_chunked`/`bulk_unchunked`) is aimed for would
-expect parallelism, that is using `unseq`, `par` or `par_unseq` policies. Thus, `bulk` has to have an execution policy
-parameter.
+On the one hand, defaulting to any policy other than `seq` might lead to deadlocks.
+On the other hand, defaulting to `seq` would not match users' expectations
+that `bulk` would take advantage of parallel execution resources.
+Thus, `bulk` has to have an execution policy parameter.
 
 One criticism of this solution is that each invocation of `bulk` needs to contain an extra parameter that is typically verbose to type.
 
@@ -291,11 +278,6 @@ auto bulk_chunked_seq(auto prev, auto size, auto f);
 auto bulk_chunked_unseq(auto prev, auto size, auto f);
 auto bulk_chunked_par(auto prev, auto size, auto f);
 auto bulk_chunked_par_unseq(auto prev, auto size, auto f);
-
-auto bulk_unchunked_seq(auto prev, auto size, auto f);
-auto bulk_unchunked_unseq(auto prev, auto size, auto f);
-auto bulk_unchunked_par(auto prev, auto size, auto f);
-auto bulk_unchunked_par_unseq(auto prev, auto size, auto f);
 ```
 
 We dropped this idea, as this isn't scalable.
@@ -345,7 +327,7 @@ We propose the following:
 
 
 We want to require that the given functor be copy-constructible so that `bulk` requires the same type of function as a `for_each` with an execution policy.
-Adding an execution policy to `bulk`/`bulk_chunked`/`bulk_unchunked` would also align them with `for_each`.
+Adding an execution policy to `bulk`/`bulk_chunked` would also align them with `for_each`.
 
 If `f` is allowed to be invoked concurrently, then implementations may want to copy the arguments passed to it.
 
@@ -421,6 +403,8 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
       - `Shape` does not satisfy `integral`,
       - `decltype((f))` does not model the `copy_constructible` concept.</ins>
 
+    NOTE: `bulk_unchunked` doesn't have an execution policy parameter. This should be applied to the entire wording.
+
 3. Otherwise, the expression <del>`bulk(sndr, shape, f)`</del><ins><i>`bulk-algo`</i>`(sndr, policy, shape, f)`</ins> is expression-equivalent to:
 
         <div class="del">
@@ -459,8 +443,15 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
             (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept
             -> void requires <i>see below</i> {
               if constexpr (same_as&lt;Tag, set_value_t>) {
-                <del>auto& [shape, f] = state;</del>
-                <ins>auto& [policy, shape, f] = state;</ins>
+                <ins>constexpr bool scheduler_available = requires {
+                  get_completion_scheduler&lt;set_value_t>(get_env(rcvr));
+                };
+                if constexpr(scheduler_available) {
+                  constexpr auto guarantee = get_forward_progress_guarantee(
+                    decltype(get_completion_scheduler&lt;set_value_t>(get_env(rcvr))));
+                  static_assert(guarantee != forward_progress_guarantee::concurrent);
+                }</ins>
+                auto& [shape, f] = state;
                 constexpr bool nothrow = noexcept(f(auto(shape), args...));
                 <i>TRY-EVAL</i>(rcvr, [&]() noexcept(nothrow) {
                   for (decltype(auto(shape)) i = 0; i < shape; ++i) {
@@ -506,9 +497,9 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
             -> void requires <i>see below</i> {
               auto& [policy, shape, f] = state;
               constexpr bool nothrow = noexcept(f(auto(shape), args...));
-              auto new_f = [func=std::move(f)]<typename... Vs>(Size begin, Size end, Vs&... vs)
+              auto new_f = [func=std::move(f)]&lt;typename... Vs>(Size begin, Size end, Vs&... vs)
                   noexcept(nothrow) {
-                while (begin != end) f(begin++, std::forward<Vs>(vs)...);
+                while (begin != end) f(begin++, std::forward&lt;Vs>(vs)...);
               }
               <i>impls-for</i>&lt;bulk_chunked_t>::complete(Index(),
                 <i>product-type</i>{policy, shape, std::move(new_f)},
@@ -528,17 +519,22 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
       - <del>propagates all completion operations sent by `sndr`.<del>
 
       <ins>
-      - if `sndr` has a scuccessful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, then:
+      - if `sndr` has a successful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, then:
 
         - if `out_sndr` also completes successfully, then:
 
-            - if <i>`bulk-algo`</i> is `bulk` or `bulk_unchunked`, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`;
+            - if <i>`bulk-algo`</i> is `bulk`, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`;
+
+            - if <i>`bulk-algo`</i> is `bulk_unchunked`, invokes `f(i, args...)` on a distinct execution agent for every `i` of type `Shape` from `0` to `shape`;
 
             - if <i>`bulk-algo`</i> is `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range [`0`, `shape`], such as for every `i` of type `Shape` from `0` to `shape`, there is an invocation with a pair `b` and `e`, such as `b <= i < e`;
+
 
         - if `out_sndr` completes with `set_error(rcvr, e)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal, and `e` is either:
 
             - an exception thrown by an invocation of `f`, or
+
+            - an `bad_alloc` exception if the implementation fails to allocate required resources, or
 
             - an exception derived from `runtime_error`;
 
@@ -550,7 +546,7 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
             </ins>
 
 <div class="block-insert">
-6. If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, then the asyncrhonous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is allowed (but not required) to:
+6. If <i>`bulk-algo`</i> is `bulk_chunked`, `bulk_unchunked`, or `bulk`, then the asynchronous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` is allowed (but not required) to:
 
     - complete with `set_stopped()` if cancellation is requested (through the connected receiver);
     - ignore cancellation requests;
@@ -560,6 +556,20 @@ inline constexpr bulk_unchunked_t bulk_unchunked{};
 
 
 # Polls # {#polls}
+
+## SG1, Hagenberg, Austria, 2025 ## {#sg1.austria.2025}
+
+Summary: Forward P3481R1 with the following notes:
+
+    - `bulk_unchunked` should not have an execution policy
+    - Calling an un-customized `bulk_unchunked` is ill-formed on a concurrent scheduler
+    - The next revision of this paper (before LWG) needs wording for its error model
+
+    ```
+    | SF | F | N | A | SA |
+    | 8  | 2 | 2 | 0 | 0  |
+    ```
+    Consensus
 
 ## SG1, Wrocław, Poland, 2024 ## {#sg1.poland.2024}
 
