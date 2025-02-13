@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="mpark/wg21" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="dcterms.date" content="2025-02-07" />
+  <title>On scheduler affinity in `std::lazy`</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+      div.csl-block{margin-left: 1.5em;}
+      ul.task-list{list-style: none;}
+      pre > code.sourceCode { white-space: pre; position: relative; }
+      pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+      pre > code.sourceCode > span:empty { height: 1.2em; }
+      .sourceCode { overflow: visible; }
+      code.sourceCode > span { color: inherit; text-decoration: inherit; }
+      div.sourceCode { margin: 1em 0; }
+      pre.sourceCode { margin: 0; }
+      @media screen {
+      div.sourceCode { overflow: auto; }
+      }
+      @media print {
+      pre > code.sourceCode { white-space: pre-wrap; }
+      pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+      }
+      pre.numberSource code
+        { counter-reset: source-line 0; }
+      pre.numberSource code > span
+        { position: relative; left: -4em; counter-increment: source-line; }
+      pre.numberSource code > span > a:first-child::before
+        { content: counter(source-line);
+          position: relative; left: -1em; text-align: right; vertical-align: baseline;
+          border: none; display: inline-block;
+          -webkit-touch-callout: none; -webkit-user-select: none;
+          -khtml-user-select: none; -moz-user-select: none;
+          -ms-user-select: none; user-select: none;
+          padding: 0 4px; width: 4em;
+          color: #aaaaaa;
+        }
+      pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+      div.sourceCode
+        {  background-color: #f6f8fa; }
+      @media screen {
+      pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+      }
+      code span { } /* Normal */
+      code span.al { color: #ff0000; } /* Alert */
+      code span.an { } /* Annotation */
+      code span.at { } /* Attribute */
+      code span.bn { color: #9f6807; } /* BaseN */
+      code span.bu { color: #9f6807; } /* BuiltIn */
+      code span.cf { color: #00607c; } /* ControlFlow */
+      code span.ch { color: #9f6807; } /* Char */
+      code span.cn { } /* Constant */
+      code span.co { color: #008000; font-style: italic; } /* Comment */
+      code span.cv { color: #008000; font-style: italic; } /* CommentVar */
+      code span.do { color: #008000; } /* Documentation */
+      code span.dt { color: #00607c; } /* DataType */
+      code span.dv { color: #9f6807; } /* DecVal */
+      code span.er { color: #ff0000; font-weight: bold; } /* Error */
+      code span.ex { } /* Extension */
+      code span.fl { color: #9f6807; } /* Float */
+      code span.fu { } /* Function */
+      code span.im { } /* Import */
+      code span.in { color: #008000; } /* Information */
+      code span.kw { color: #00607c; } /* Keyword */
+      code span.op { color: #af1915; } /* Operator */
+      code span.ot { } /* Other */
+      code span.pp { color: #6f4e37; } /* Preprocessor */
+      code span.re { } /* RegionMarker */
+      code span.sc { color: #9f6807; } /* SpecialChar */
+      code span.ss { color: #9f6807; } /* SpecialString */
+      code span.st { color: #9f6807; } /* String */
+      code span.va { } /* Variable */
+      code span.vs { color: #9f6807; } /* VerbatimString */
+      code span.wa { color: #008000; font-weight: bold; } /* Warning */
+      code.diff {color: #898887}
+      code.diff span.va {color: #006e28}
+      code.diff span.st {color: #bf0303}
+  </style>
+  <style type="text/css">
+body {
+margin: 5em;
+font-family: serif;
+
+hyphens: auto;
+line-height: 1.35;
+text-align: justify;
+}
+@media screen and (max-width: 30em) {
+body {
+margin: 1.5em;
+}
+}
+div.wrapper {
+max-width: 60em;
+margin: auto;
+}
+ul {
+list-style-type: none;
+padding-left: 2em;
+margin-top: -0.2em;
+margin-bottom: -0.2em;
+}
+a {
+text-decoration: none;
+color: #4183C4;
+}
+a.hidden_link {
+text-decoration: none;
+color: inherit;
+}
+li {
+margin-top: 0.6em;
+margin-bottom: 0.6em;
+}
+h1, h2, h3, h4 {
+position: relative;
+line-height: 1;
+}
+a.self-link {
+position: absolute;
+top: 0;
+left: calc(-1 * (3.5rem - 26px));
+width: calc(3.5rem - 26px);
+height: 2em;
+text-align: center;
+border: none;
+transition: opacity .2s;
+opacity: .5;
+font-family: sans-serif;
+font-weight: normal;
+font-size: 83%;
+}
+a.self-link:hover { opacity: 1; }
+a.self-link::before { content: "§"; }
+ul > li:before {
+content: "\2014";
+position: absolute;
+margin-left: -1.5em;
+}
+:target { background-color: #C9FBC9; }
+:target .codeblock { background-color: #C9FBC9; }
+:target ul { background-color: #C9FBC9; }
+.abbr_ref { float: right; }
+.folded_abbr_ref { float: right; }
+:target .folded_abbr_ref { display: none; }
+:target .unfolded_abbr_ref { float: right; display: inherit; }
+.unfolded_abbr_ref { display: none; }
+.secnum { display: inline-block; min-width: 35pt; }
+.header-section-number { display: inline-block; min-width: 35pt; }
+.annexnum { display: block; }
+div.sourceLinkParent {
+float: right;
+}
+a.sourceLink {
+position: absolute;
+opacity: 0;
+margin-left: 10pt;
+}
+a.sourceLink:hover {
+opacity: 1;
+}
+a.itemDeclLink {
+position: absolute;
+font-size: 75%;
+text-align: right;
+width: 5em;
+opacity: 0;
+}
+a.itemDeclLink:hover { opacity: 1; }
+span.marginalizedparent {
+position: relative;
+left: -5em;
+}
+li span.marginalizedparent { left: -7em; }
+li ul > li span.marginalizedparent { left: -9em; }
+li ul > li ul > li span.marginalizedparent { left: -11em; }
+li ul > li ul > li ul > li span.marginalizedparent { left: -13em; }
+div.footnoteNumberParent {
+position: relative;
+left: -4.7em;
+}
+a.marginalized {
+position: absolute;
+font-size: 75%;
+text-align: right;
+width: 5em;
+}
+a.enumerated_item_num {
+position: relative;
+left: -3.5em;
+display: inline-block;
+margin-right: -3em;
+text-align: right;
+width: 3em;
+}
+div.para { margin-bottom: 0.6em; margin-top: 0.6em; text-align: justify; }
+div.section { text-align: justify; }
+div.sentence { display: inline; }
+span.indexparent {
+display: inline;
+position: relative;
+float: right;
+right: -1em;
+}
+a.index {
+position: absolute;
+display: none;
+}
+a.index:before { content: "⟵"; }
+
+a.index:target {
+display: inline;
+}
+.indexitems {
+margin-left: 2em;
+text-indent: -2em;
+}
+div.itemdescr {
+margin-left: 3em;
+}
+.bnf {
+font-family: serif;
+margin-left: 40pt;
+margin-top: 0.5em;
+margin-bottom: 0.5em;
+}
+.ncbnf {
+font-family: serif;
+margin-top: 0.5em;
+margin-bottom: 0.5em;
+margin-left: 40pt;
+}
+.ncsimplebnf {
+font-family: serif;
+font-style: italic;
+margin-top: 0.5em;
+margin-bottom: 0.5em;
+margin-left: 40pt;
+background: inherit; 
+}
+span.textnormal {
+font-style: normal;
+font-family: serif;
+white-space: normal;
+display: inline-block;
+}
+span.rlap {
+display: inline-block;
+width: 0px;
+}
+span.descr { font-style: normal; font-family: serif; }
+span.grammarterm { font-style: italic; }
+span.term { font-style: italic; }
+span.terminal { font-family: monospace; font-style: normal; }
+span.nonterminal { font-style: italic; }
+span.tcode { font-family: monospace; font-style: normal; }
+span.textbf { font-weight: bold; }
+span.textsc { font-variant: small-caps; }
+a.nontermdef { font-style: italic; font-family: serif; }
+span.emph { font-style: italic; }
+span.techterm { font-style: italic; }
+span.mathit { font-style: italic; }
+span.mathsf { font-family: sans-serif; }
+span.mathrm { font-family: serif; font-style: normal; }
+span.textrm { font-family: serif; }
+span.textsl { font-style: italic; }
+span.mathtt { font-family: monospace; font-style: normal; }
+span.mbox { font-family: serif; font-style: normal; }
+span.ungap { display: inline-block; width: 2pt; }
+span.textit { font-style: italic; }
+span.texttt { font-family: monospace; }
+span.tcode_in_codeblock { font-family: monospace; font-style: normal; }
+span.phantom { color: white; }
+
+span.math { font-style: normal; }
+span.mathblock {
+display: block;
+margin-left: auto;
+margin-right: auto;
+margin-top: 1.2em;
+margin-bottom: 1.2em;
+text-align: center;
+}
+span.mathalpha {
+font-style: italic;
+}
+span.synopsis {
+font-weight: bold;
+margin-top: 0.5em;
+display: block;
+}
+span.definition {
+font-weight: bold;
+display: block;
+}
+.codeblock {
+margin-left: 1.2em;
+line-height: 127%;
+}
+.outputblock {
+margin-left: 1.2em;
+line-height: 127%;
+}
+div.itemdecl {
+margin-top: 2ex;
+}
+code.itemdeclcode {
+white-space: pre;
+display: block;
+}
+span.textsuperscript {
+vertical-align: super;
+font-size: smaller;
+line-height: 0;
+}
+.footnotenum { vertical-align: super; font-size: smaller; line-height: 0; }
+.footnote {
+font-size: small;
+margin-left: 2em;
+margin-right: 2em;
+margin-top: 0.6em;
+margin-bottom: 0.6em;
+}
+div.minipage {
+display: inline-block;
+margin-right: 3em;
+}
+div.numberedTable {
+text-align: center;
+margin: 2em;
+}
+div.figure {
+text-align: center;
+margin: 2em;
+}
+table {
+border: 1px solid black;
+border-collapse: collapse;
+margin-left: auto;
+margin-right: auto;
+margin-top: 0.8em;
+text-align: left;
+hyphens: none; 
+}
+td, th {
+padding-left: 1em;
+padding-right: 1em;
+vertical-align: top;
+}
+td.empty {
+padding: 0px;
+padding-left: 1px;
+}
+td.left {
+text-align: left;
+}
+td.right {
+text-align: right;
+}
+td.center {
+text-align: center;
+}
+td.justify {
+text-align: justify;
+}
+td.border {
+border-left: 1px solid black;
+}
+tr.rowsep, td.cline {
+border-top: 1px solid black;
+}
+tr.even, tr.odd {
+border-bottom: 1px solid black;
+}
+tr.capsep {
+border-top: 3px solid black;
+border-top-style: double;
+}
+tr.header {
+border-bottom: 3px solid black;
+border-bottom-style: double;
+}
+th {
+border-bottom: 1px solid black;
+}
+span.centry {
+font-weight: bold;
+}
+div.table {
+display: block;
+margin-left: auto;
+margin-right: auto;
+text-align: center;
+width: 90%;
+}
+span.indented {
+display: block;
+margin-left: 2em;
+margin-bottom: 1em;
+margin-top: 1em;
+}
+ol.enumeratea { list-style-type: none; background: inherit; }
+ol.enumerate { list-style-type: none; background: inherit; }
+
+code.sourceCode > span { display: inline; }
+</style>
+  <link href="data:image/x-icon;base64,AAABAAIAEBAAAAEAIABoBAAAJgAAACAgAAABACAAqBAAAI4EAAAoAAAAEAAAACAAAAABACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AIJEAACCRAAAgkQAAIJEAACCRAAAgkQAVoJEAN6CRADegkQAWIJEAACCRAAAgkQAAIJEAACCRAAA////AP///wCCRAAAgkQAAIJEAACCRAAsgkQAvoJEAP+CRAD/gkQA/4JEAP+CRADAgkQALoJEAACCRAAAgkQAAP///wD///8AgkQAAIJEABSCRACSgkQA/IJEAP99PQD/dzMA/3czAP99PQD/gkQA/4JEAPyCRACUgkQAFIJEAAD///8A////AHw+AFiBQwDqgkQA/4BBAP9/PxP/uZd6/9rJtf/bybX/upd7/39AFP+AQQD/gkQA/4FDAOqAQgBc////AP///wDKklv4jlEa/3o7AP+PWC//8+3o///////////////////////z7un/kFox/35AAP+GRwD/mVYA+v///wD///8A0Zpk+NmibP+0d0T/8evj///////+/fv/1sKz/9bCs//9/fr//////+/m2/+NRwL/nloA/5xYAPj///8A////ANKaZPjRmGH/5cKh////////////k149/3UwAP91MQD/lmQ//86rhv+USg3/m1YA/5hSAP+bVgD4////AP///wDSmmT4zpJY/+/bx///////8+TV/8mLT/+TVx//gkIA/5lVAP+VTAD/x6B//7aEVv/JpH7/s39J+P///wD///8A0ppk+M6SWP/u2sf///////Pj1f/Nj1T/2KFs/8mOUv+eWhD/lEsA/8aee/+0glT/x6F7/7J8Rvj///8A////ANKaZPjRmGH/48Cf///////+/v7/2qt//82PVP/OkFX/37KJ/86siv+USg7/mVQA/5hRAP+bVgD4////AP///wDSmmT40ppk/9CVXP/69O////////7+/v/x4M//8d/P//7+/f//////9u7n/6tnJf+XUgD/nFgA+P///wD///8A0ppk+NKaZP/RmWL/1qNy//r07///////////////////////+vXw/9akdP/Wnmn/y5FY/6JfFvj///8A////ANKaZFTSmmTo0ppk/9GYYv/Ql1//5cWm//Hg0P/x4ND/5cWm/9GXYP/RmGH/0ppk/9KaZOjVnmpY////AP///wDSmmQA0ppkEtKaZI7SmmT60ppk/9CWX//OkVb/zpFW/9CWX//SmmT/0ppk/NKaZJDSmmQS0ppkAP///wD///8A0ppkANKaZADSmmQA0ppkKtKaZLrSmmT/0ppk/9KaZP/SmmT/0ppkvNKaZCrSmmQA0ppkANKaZAD///8A////ANKaZADSmmQA0ppkANKaZADSmmQA0ppkUtKaZNzSmmTc0ppkVNKaZADSmmQA0ppkANKaZADSmmQA////AP5/AAD4HwAA4AcAAMADAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAMADAADgBwAA+B8AAP5/AAAoAAAAIAAAAEAAAAABACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AP///wCCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAAyCRACMgkQA6oJEAOqCRACQgkQAEIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAA////AP///wD///8A////AIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRABigkQA5oJEAP+CRAD/gkQA/4JEAP+CRADqgkQAZoJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAAD///8A////AP///wD///8AgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAA4gkQAwoJEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQAxIJEADyCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAP///wD///8A////AP///wCCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAWgkQAmIJEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAJyCRAAYgkQAAIJEAACCRAAAgkQAAIJEAACCRAAA////AP///wD///8A////AIJEAACCRAAAgkQAAIJEAACCRAAAgkQAdIJEAPCCRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAPSCRAB4gkQAAIJEAACCRAAAgkQAAIJEAAD///8A////AP///wD///8AgkQAAIJEAACCRAAAgkQASoJEANKCRAD/gkQA/4JEAP+CRAD/g0YA/39AAP9zLgD/bSQA/2shAP9rIQD/bSQA/3MuAP9/PwD/g0YA/4JEAP+CRAD/gkQA/4JEAP+CRADUgkQAToJEAACCRAAAgkQAAP///wD///8A////AP///wB+PwAAgkUAIoJEAKiCRAD/gkQA/4JEAP+CRAD/hEcA/4BBAP9sIwD/dTAA/5RfKv+viF7/vp56/76ee/+wiF7/lWAr/3YxAP9sIwD/f0AA/4RHAP+CRAD/gkQA/4JEAP+CRAD/gkQArIJEACaBQwAA////AP///wD///8A////AIBCAEBzNAD6f0EA/4NFAP+CRAD/gkQA/4VIAP92MwD/bSUA/6N1Tv/ezsL/////////////////////////////////38/D/6V3Uv9uJgD/dTEA/4VJAP+CRAD/gkQA/4JEAP+BQwD/fUAA/4FDAEj///8A////AP///wD///8AzJRd5qBlKf91NgD/dDUA/4JEAP+FSQD/cy4A/3YyAP/PuKP//////////////////////////////////////////////////////9K7qP94NQD/ciwA/4VJAP+CRAD/fkEA/35BAP+LSwD/mlYA6v///wD///8A////AP///wDdpnL/4qx3/8KJUv+PUhf/cTMA/3AsAP90LgD/4dK+/////////////////////////////////////////////////////////////////+TYxf91MAD/dTIA/31CAP+GRwD/llQA/6FcAP+gWwD8////AP///wD///8A////ANGZY/LSm2X/4ap3/92mcP+wdT3/byQA/8mwj////////////////////////////////////////////////////////////////////////////+LYxv9zLgP/jUoA/59bAP+hXAD/nFgA/5xYAPL///8A////AP///wD///8A0ppk8tKaZP/RmWL/1p9q/9ubXv/XqXj////////////////////////////7+fD/vZyG/6BxS/+gcUr/vJuE//r37f//////////////////////3MOr/5dQBf+dVQD/nVkA/5xYAP+cWAD/nFgA8v///wD///8A////AP///wDSmmTy0ppk/9KaZP/SmWP/yohJ//jo2P//////////////////////4NTG/4JDFf9lGAD/bSQA/20kAP9kGAD/fz8S/+Xb0f//////5NG9/6txN/+LOgD/m1QA/51aAP+cWAD/m1cA/5xYAP+cWADy////AP///wD///8A////ANKaZPLSmmT/0ppk/8+TWf/Unmv//v37//////////////////////+TWRr/VwsA/35AAP+ERgD/g0UA/4JGAP9lHgD/kFga/8KXX/+TRwD/jT4A/49CAP+VTQD/n10A/5xYAP+OQQD/lk4A/55cAPL///8A////AP///wD///8A0ppk8tKaZP/SmmT/y4tO/92yiP//////////////////////8NnE/8eCQP+rcTT/ez0A/3IyAP98PgD/gEMA/5FSAP+USwD/jj8A/5lUAP+JNwD/yqV2/694Mf+HNQD/jkAA/82rf/+laBj/jT4A8v///wD///8A////AP///wDSmmTy0ppk/9KaZP/LiUr/4byY///////////////////////gupX/0I5P/+Wuev/Lklz/l1sj/308AP+QSwD/ol0A/59aAP+aVQD/k0oA/8yoh///////+fXv/6pwO//Lp3v///////Pr4f+oay7y////AP///wD///8A////ANKaZPLSmmT/0ppk/8uJSv/hvJj//////////////////////+G7l//Jhkb/0ppk/96nc//fqXX/x4xO/6dkFP+QSQD/llEA/5xXAP+USgD/yaOA///////38uv/qG05/8ijdv//////8efb/6ZpLPL///8A////AP///wD///8A0ppk8tKaZP/SmmT/zIxO/9yxh///////////////////////7dbA/8iEQf/Sm2X/0Zlj/9ScZv/eqHf/2KJv/7yAQf+XTgD/iToA/5lSAP+JNgD/yKFv/611LP+HNQD/jT8A/8qmeP+kZRT/jT4A8v///wD///8A////AP///wDSmmTy0ppk/9KaZP/Pk1n/1J5q//78+//////////////////+/fv/1aFv/8iEQv/Tm2b/0ppl/9GZY//Wn2z/1pZc/9eldf/Bl2b/kUcA/4w9AP+OQAD/lUwA/59eAP+cWQD/jT8A/5ZOAP+eXADy////AP///wD///8A////ANKaZPLSmmT/0ppk/9KZY//KiEn/8d/P///////////////////////47+f/05tm/8iCP//KiEj/yohJ/8eCP//RmGH//vfy///////n1sP/rXQ7/4k4AP+TTAD/nVoA/5xYAP+cVwD/nFgA/5xYAPL///8A////AP///wD///8A0ppk8tKaZP/SmmT/0ptl/8uLTf/aq37////////////////////////////+/fz/6c2y/961jv/etY7/6Myx//78+v//////////////////////3MWv/5xXD/+ORAD/mFQA/51ZAP+cWAD/nFgA8v///wD///8A////AP///wDSmmTy0ppk/9KaZP/SmmT/0ppk/8mFRP/s1b//////////////////////////////////////////////////////////////////////////////+PD/0JFU/7NzMv+WUQD/kUsA/5tXAP+dWQDy////AP///wD///8A////ANKaZP/SmmT/0ppk/9KaZP/Sm2X/z5NZ/8yMT//z5NX/////////////////////////////////////////////////////////////////9Ofa/8yNUP/UmGH/36p5/8yTWv+qaSD/kksA/5ROAPz///8A////AP///wD///8A0ppk5NKaZP/SmmT/0ppk/9KaZP/TnGf/zY9T/82OUv/t1sD//////////////////////////////////////////////////////+7Yw//OkFX/zI5R/9OcZ//SmmP/26V0/9ymdf/BhUf/ol8R6P///wD///8A////AP///wDSmmQ80ppk9tKaZP/SmmT/0ppk/9KaZP/TnGj/zpFW/8qJSv/dson/8uHS//////////////////////////////////Lj0//etIv/y4lL/86QVf/TnGj/0ppk/9KaZP/RmWP/05xn/9ymdfjUnWdC////AP///wD///8A////ANKaZADSmmQc0ppkotKaZP/SmmT/0ppk/9KaZP/Tm2b/0Zli/8qJSf/NjlH/16Z3/+G8mP/myKr/5siq/+G8mP/Xp3f/zY5S/8qISf/RmGH/05tm/9KaZP/SmmT/0ppk/9KaZP/SmmSm0pljINWdaQD///8A////AP///wD///8A0ppkANKaZADSmmQA0ppkQtKaZMrSmmT/0ppk/9KaZP/SmmT/0ptl/9GYYf/Nj1P/y4lL/8qISP/KiEj/y4lK/82PU//RmGH/0ptl/9KaZP/SmmT/0ppk/9KaZP/SmmTO0ppkRtKaZADSmmQA0ppkAP///wD///8A////AP///wDSmmQA0ppkANKaZADSmmQA0ppkANKaZGzSmmTu0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmTw0ppkcNKaZADSmmQA0ppkANKaZADSmmQA////AP///wD///8A////ANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZBLSmmSQ0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppklNKaZBTSmmQA0ppkANKaZADSmmQA0ppkANKaZAD///8A////AP///wD///8A0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQy0ppkutKaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppkvtKaZDbSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkAP///wD///8A////AP///wDSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkXNKaZODSmmT/0ppk/9KaZP/SmmT/0ppk5NKaZGDSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA////AP///wD///8A////ANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkBtKaZIbSmmTo0ppk6tKaZIrSmmQK0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZAD///8A////AP/8P///+B///+AH//+AAf//AAD//AAAP/AAAA/gAAAHwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA+AAAAfwAAAP/AAAP/8AAP//gAH//+AH///4H////D//" rel="icon" />
+  
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="wrapper">
+<header id="title-block-header">
+<h1 class="title" style="text-align:center">On scheduler affinity in
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code></h1>
+<table style="border:none;float:right">
+  <tr>
+    <td>Document #:</td>
+    <td>P3609R0</td>
+  </tr>
+  <tr>
+    <td>Date:</td>
+    <td>2025-02-07</td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top">Project:</td>
+    <td>Programming Language C++</td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top">Audience:</td>
+    <td>
+      LEWG<br>
+    </td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top">Reply-to:</td>
+    <td>
+      Lucian Radu Teodorescu (Garmin)<br>&lt;<a href="mailto:lucteo@lucteo.ro" class="email">lucteo@lucteo.ro</a>&gt;<br>
+    </td>
+  </tr>
+</table>
+</header>
+<div style="clear:both">
+<div id="TOC" role="doc-toc">
+<h1 id="toctitle">Contents</h1>
+<ul>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">1</span> Motivation<span></span></a>
+<ul>
+<li><a href="#problem_description" id="toc-problem_description"><span class="toc-section-number">1.1</span> Problem
+description<span></span></a></li>
+<li><a href="#not_a_problem" id="toc-not_a_problem"><span class="toc-section-number">1.2</span> Not a
+problem<span></span></a></li>
+</ul></li>
+<li><a href="#complexity" id="toc-complexity"><span class="toc-section-number">2</span> Complexity
+arguments<span></span></a>
+<ul>
+<li><a href="#conceptual-model" id="toc-conceptual-model"><span class="toc-section-number">2.1</span> Con: Teachability and aligning
+with a simple conceptual model<span></span></a></li>
+<li><a href="#teachability" id="toc-teachability"><span class="toc-section-number">2.2</span> Con: Teachability on main uses of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code><span></span></a></li>
+<li><a href="#pro-reasoning" id="toc-pro-reasoning"><span class="toc-section-number">2.3</span> Pro: To some point, affinity
+improves reasoning<span></span></a></li>
+<li><a href="#con-reasoning" id="toc-con-reasoning"><span class="toc-section-number">2.4</span> Con: To some point, affinity
+degrades local reasoning<span></span></a></li>
+<li><a href="#con-inner-complexity" id="toc-con-inner-complexity"><span class="toc-section-number">2.5</span> Con: Complexity of the scheduler
+affinity and customization mechanisms<span></span></a></li>
+<li><a href="#con-leaking" id="toc-con-leaking"><span class="toc-section-number">2.6</span> Con: Implementation details may be
+leaking out<span></span></a></li>
+</ul></li>
+<li><a href="#correctness" id="toc-correctness"><span class="toc-section-number">3</span> Correctness
+arguments<span></span></a>
+<ul>
+<li><a href="#pro-ex-serialization" id="toc-pro-ex-serialization"><span class="toc-section-number">3.1</span> Pro: Relying on serialization of
+execution to avoid data-races<span></span></a></li>
+<li><a href="#pro-ex-io-thread" id="toc-pro-ex-io-thread"><span class="toc-section-number">3.2</span> Pro: Avoid accidentally blocking
+the I/O thread<span></span></a></li>
+<li><a href="#con-ex-io-thread" id="toc-con-ex-io-thread"><span class="toc-section-number">3.3</span> Con: Scheduler affinity may lead
+to blocking the I/O thread<span></span></a></li>
+<li><a href="#neutral-gui" id="toc-neutral-gui"><span class="toc-section-number">3.4</span> Neutral: For GUI threads, the
+corresponding schedulers may not be influenced by scheduler
+affinity<span></span></a></li>
+<li><a href="#pro-timer-thread" id="toc-pro-timer-thread"><span class="toc-section-number">3.5</span> Pro: Accidentally blocking timer
+thread<span></span></a></li>
+</ul></li>
+<li><a href="#arguments-based-on-known-issues" id="toc-arguments-based-on-known-issues"><span class="toc-section-number">4</span> Arguments based on known
+issues<span></span></a>
+<ul>
+<li><a href="#pro-deadlock" id="toc-pro-deadlock"><span class="toc-section-number">4.1</span> Pro: Deadlock without scheduler
+affinity<span></span></a></li>
+<li><a href="#pro-stack-overflow" id="toc-pro-stack-overflow"><span class="toc-section-number">4.2</span> Pro: Stack
+overflow<span></span></a></li>
+<li><a href="#con-cannot-use" id="toc-con-cannot-use"><span class="toc-section-number">4.3</span> Con:
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+cannot be used in all places<span></span></a></li>
+</ul></li>
+<li><a href="#performance" id="toc-performance"><span class="toc-section-number">5</span> Performance
+arguments<span></span></a>
+<ul>
+<li><a href="#con-perf-coro-nothing" id="toc-con-perf-coro-nothing"><span class="toc-section-number">5.1</span> Con: Extra cost for jumping when
+we don’t need to execute anything in the coroutine<span></span></a></li>
+<li><a href="#con-perf-jump-to-same" id="toc-con-perf-jump-to-same"><span class="toc-section-number">5.2</span> Con: Extra cost for jumping to the
+same scheduler<span></span></a></li>
+</ul></li>
+<li><a href="#bottom-line" id="toc-bottom-line"><span class="toc-section-number">6</span> Bottom line<span></span></a></li>
+<li><a href="#appendix-other-ideas" id="toc-appendix-other-ideas"><span class="toc-section-number">7</span> Appendix: Other
+ideas<span></span></a>
+<ul>
+<li><a href="#make-scheduler-affinity-opt-in-from-the-body-of-the-coroutine" id="toc-make-scheduler-affinity-opt-in-from-the-body-of-the-coroutine"><span class="toc-section-number">7.1</span> Make scheduler affinity opt-in
+from the body of the coroutine<span></span></a></li>
+<li><a href="#check-by-default" id="toc-check-by-default"><span class="toc-section-number">7.2</span> Check for scheduler affinity,
+instead of enforcing it<span></span></a></li>
+<li><a href="#hide-the-schedulers-for-resources-to-be-protected-timers-io" id="toc-hide-the-schedulers-for-resources-to-be-protected-timers-io"><span class="toc-section-number">7.3</span> Hide the schedulers for resources
+to be protected (timers, I/O)<span></span></a></li>
+</ul></li>
+<li><a href="#bibliography" id="toc-bibliography"><span class="toc-section-number">8</span> References<span></span></a></li>
+</ul>
+</div>
+<style>
+@media screen {
+    #TOC {
+        position: fixed;
+        width: min(25%, 30em);
+        height: 100%;
+        left: 0;
+        top: 0;
+        overflow-y: scroll;
+        padding-left: 1em;
+        padding-right: 1em;
+        text-align: left;
+        a {
+            font-size: 100%;
+        }
+    }
+    body {
+        padding-left: min(26%, 32em);
+    }
+}
+</style>
+<h1 class="unnumbered unlisted" id="abstract">Abstract<a href="#abstract" class="self-link"></a></h1>
+<p>This paper aims to debate the advantages and disadvantages of making
+the
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+coroutine, as proposed in <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span>, retain scheduler affinity. In
+other words, should the default implementation of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+return to the original scheduler after each
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>?”</p>
+<h1 data-number="1" id="motivation"><span class="header-section-number">1</span> Motivation<a href="#motivation" class="self-link"></a></h1>
+<p>After <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> was published, there was an
+extended debate on an internal forum dedicated to <code class="sourceCode cpp">std<span class="op">::</span>execution</code>
+authors regarding the advantages and disadvantages of giving
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+scheduler affinity.</p>
+<p><span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> proposes scheduler affinity,
+primarily motivated by the fact that both
+<code class="sourceCode cpp">unifex<span class="op">::</span>task</code>
+and <code class="sourceCode cpp">stdexec<span class="op">::</span>task</code>,
+predecessors of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>,
+support scheduler affinity. However, there are no clearly explained
+reasons for this decision. Some authors of these previous attempts cited
+“removing a whole class of bugs,” but no in-depth analysis was
+provided.</p>
+<h2 data-number="1.1" id="problem_description"><span class="header-section-number">1.1</span> Problem description<a href="#problem_description" class="self-link"></a></h2>
+<p>Let us assume that <code class="sourceCode cpp">sched1</code>,
+<code class="sourceCode cpp">sched2</code> and
+<code class="sourceCode cpp">sched3</code> are objects of types that
+model the <code class="sourceCode cpp">execution<span class="op">::</span>scheduler</code>
+concept, and that <code class="sourceCode cpp">snd1</code> and
+<code class="sourceCode cpp">snd2</code> are sender expressions. Let us
+also assume the following coroutine:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// called on `sched1`</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> example_coro<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  f1<span class="op">();</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd1<span class="op">;</span> <span class="co">// completes on `sched2`</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  f2<span class="op">();</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd2<span class="op">;</span> <span class="co">// completes on `sched3`</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  f3<span class="op">();</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If we make
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+<em>scheduler affine</em>, we expect
+<code class="sourceCode cpp">f1<span class="op">()</span></code>,
+<code class="sourceCode cpp">f2<span class="op">()</span></code> and
+<code class="sourceCode cpp">f3<span class="op">()</span></code> to be
+called on threads belonging the
+<code class="sourceCode cpp">sched1</code>. In other words, after a
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+expression, we always transition back to
+<code class="sourceCode cpp">sched1</code>, the scheduler on which the
+coroutine was started.</p>
+<p>On the other hand, if
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code> is
+not scheduler affine, then we expect:</p>
+<ul>
+<li><code class="sourceCode cpp">f1<span class="op">()</span></code> to
+execute on a thread belonging to
+<code class="sourceCode cpp">sched1</code>;</li>
+<li><code class="sourceCode cpp">f2<span class="op">()</span></code> to
+execute on a thread belonging to
+<code class="sourceCode cpp">sched2</code>;</li>
+<li><code class="sourceCode cpp">f3<span class="op">()</span></code> to
+execute on a thread belonging to
+<code class="sourceCode cpp">sched3</code>;</li>
+</ul>
+<p>In this case, each
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+expression dictates where the subsequent code executes.</p>
+<p>The main debate revolved around whether
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+should be scheduler-affine <strong>by default</strong>. The discussion
+considered the following factors:</p>
+<ul>
+<li>complexity</li>
+<li>correctness: making it easier to avoid certain classes of bugs</li>
+<li>known issues</li>
+</ul>
+<p>Performance was also mentioned as a criterion, but the entire group
+agreed that this is a lower-importance criterion.</p>
+<h2 data-number="1.2" id="not_a_problem"><span class="header-section-number">1.2</span> Not a problem<a href="#not_a_problem" class="self-link"></a></h2>
+<p>A quick read through this document may lead to the wrong conclusion
+that picking one side (scheduler affine or non-scheduler affine
+coroutine) will prevent code that wants the opposite choice to be
+written. To dispel this, we provide a quick overview on how one can go
+from one side to the other, and the other way around.</p>
+<p>First, if we assume that the coroutine from the above example is
+non-scheduler affine (the easier case), then, to ensure that we get the
+behavior of the scheduler affine version, the user needs to add <code class="sourceCode cpp"><span class="op">|</span> continues_on<span class="op">(</span>sched1<span class="op">)</span></code>
+at the end of each
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+expression:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> example_coro<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  f1<span class="op">();</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> <span class="op">(</span>snd1 <span class="op">|</span> continues_on<span class="op">(</span>sched1<span class="op">));</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  f2<span class="op">();</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> <span class="op">(</span>snd2 <span class="op">|</span> continues_on<span class="op">(</span>sched1<span class="op">));</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  f3<span class="op">();</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The user manually controls what would be the schedulers on which
+<code class="sourceCode cpp">f2<span class="op">()</span></code> and
+<code class="sourceCode cpp">f3<span class="op">()</span></code> would
+run.</p>
+<hr />
+<p>To go from a scheduler affine coroutine to one that does not jump
+back to the original scheduler, the authors of <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> propose two alternatives. The
+first one, is to pass an
+<code class="sourceCode cpp">inline_scheduler</code> inside a
+<em>context</em> template type used to construct instances of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.
+This <code class="sourceCode cpp">inline_scheduler</code> will never
+switch threads and will continue the execution on the current
+thread.</p>
+<p>The other alternative to allow
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+switch sechduler is to make it recognize certain expressions passed to
+it. The paper cites the mechanism used by
+<code class="sourceCode cpp">unifex</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> previous <span class="op">=</span> <span class="cf">co_await</span> co_continue_on<span class="op">(</span>new_scheduler<span class="op">);</span></span></code></pre></div>
+<p>This fragment will allow the user to explicitly jump to a new
+scheduler, using the
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+construct.</p>
+<h1 data-number="2" id="complexity"><span class="header-section-number">2</span> Complexity arguments<a href="#complexity" class="self-link"></a></h1>
+<h2 data-number="2.1" id="conceptual-model"><span class="header-section-number">2.1</span> Con: Teachability and aligning
+with a simple conceptual model<a href="#conceptual-model" class="self-link"></a></h2>
+<p>With the introduction of <code class="sourceCode cpp">std<span class="op">::</span>execution</code>
+(<span class="citation" data-cites="P2300R10">[<a href="https://wg21.link/p2300r10" role="doc-biblioref">P2300R10</a>]</span>) we can divide the execution
+of an expression in two modes: <strong>sync</strong> and
+<strong>async</strong>. Conceptually we can distinguish between the two
+modes by looking at the two aspects related to the completion of of the
+corresponding work: the <strong>time</strong> and the
+<strong>place</strong> of the completion. Thus, we have the
+following:</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;"><div style="text-align:center">
+<strong>execution mode</strong>
+</div></th>
+<th style="text-align: left;"><div style="text-align:center">
+<strong>completion time</strong>
+</div></th>
+<th style="text-align: left;"><div style="text-align:center">
+<strong>completion place</strong>
+</div></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>sync</strong></td>
+<td style="text-align: left;">immediate</td>
+<td style="text-align: left;">same thread</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>async</strong></td>
+<td style="text-align: left;">delayed</td>
+<td style="text-align: left;">possible different thread (and
+scheduler)</td>
+</tr>
+</tbody>
+</table>
+<p>If we manage to properly teach the C++ users these two modes, then
+all the other things in <code class="sourceCode cpp">std<span class="op">::</span>execution</code> and
+related facilities are easy to understand.</p>
+<p>Insofar as the argument goes, everything that deviates from this
+model is adding more complexity to C++, will confuse users and will lead
+to incorrect use.</p>
+<p>A scheduler affine
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+would make the
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>-ed
+expressions something that is half-sync, half-async. The completion time
+is delayed (<em>async</em>), but the completion place is on the same
+scheduler, making it <em>sync</em>. The matter is even more complex, as
+the place is not fully <em>sync</em>, as landing on the same scheduler
+doesn’t imply landing on the same thread.</p>
+<p>In other words, a scheduler affine coroutine will make the
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>-ed
+expressions work differently than senders (in subtle ways), and will
+make the body of the coroutine behave differently than a synchronous
+function. That is, <code class="sourceCode cpp"><span class="kw">co_await</span> snd; some_code<span class="op">()</span></code>
+will behave differently than <code class="sourceCode cpp">snd <span class="op">|</span> then<span class="op">(</span>some_code<span class="op">)</span></code></p>
+<p>In the spirit of the argument, users will get confused by this
+behavior, not fully understand how things are working, and this will
+eventually lead to bugs.</p>
+<p><em>Counter-argument</em>: coroutines do not need to try to be
+equivalent to sender pipe composition, as there are other differences as
+well (e.g., coroutines have lexical scope, exceptions in coroutines work
+“as usual”, etc.)</p>
+<h2 data-number="2.2" id="teachability"><span class="header-section-number">2.2</span> Con: Teachability on main uses
+of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code><a href="#teachability" class="self-link"></a></h2>
+<p>Moreover, considering that one of the purposes of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code> is
+to make senders more approachable, the argument also exposes the
+following teachability problem:</p>
+<ul>
+<li>we teach people “senders are good for asynchrony, making asynchrony
+safer”</li>
+<li>we say that
+“<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+makes sender more approachable”</li>
+<li>with scheduler affinity we are telling users “we limit asynchrony by
+default, because people find it hard to use it”</li>
+</ul>
+<p>The above three points cannot be put together without some
+contradiction.</p>
+<p>Having a teachability problem, we will make the adoption of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+and <code class="sourceCode cpp">std<span class="op">::</span>execution</code>
+harder, will confuse the users, and, eventually, this will lead to more
+bugs.</p>
+<p><em>Counter-argument</em>: Ensuring scheduler affinity of
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+statements is not making it less async. It establishes an invariance for
+the coroutine function body.</p>
+<h2 data-number="2.3" id="pro-reasoning"><span class="header-section-number">2.3</span> Pro: To some point, affinity
+improves reasoning<a href="#pro-reasoning" class="self-link"></a></h2>
+<p>Let us revisit the above example:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> example_coro<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  f1<span class="op">();</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd1<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  f2<span class="op">();</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd2<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  f3<span class="op">();</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Looking at the above code, one doesn’t need to understand
+<code class="sourceCode cpp">snd1</code> or
+<code class="sourceCode cpp">snd2</code> (they may be coroutine
+functions with a lot of nested complexity), and still can reason the
+scheduler in which
+<code class="sourceCode cpp">f2<span class="op">()</span></code> and
+<code class="sourceCode cpp">f3<span class="op">()</span></code> are
+called: they will be called on the scheduler on which the coroutine was
+started (the same scheduler where
+<code class="sourceCode cpp">f1<span class="op">()</span></code> will be
+executed).</p>
+<p>Affinity provides isolation. Isolation improves locality of
+reasoning.</p>
+<p>For example a program using async features might have dedicated
+thread pools for:</p>
+<ul>
+<li>request acceptance,</li>
+<li>request handling,</li>
+<li>disk IO,</li>
+<li>logging,</li>
+<li>cron-like scheduled periodic tasks,</li>
+<li>etc.</li>
+</ul>
+<p>These are modeled as schedulers, and affinity / isolation means that
+a piece of code doesn’t hop from resource to resource in a (locally)
+unpredictable way. Instead, it runs where it’s put, unless explicit,
+visible code switches the thread of execution.</p>
+<p>In such an application, programming must follow two rules: - all
+coroutines should do work on the scheduler it was started from; - all
+changes of execution context are explicit. This offers a reduction of
+complexity, as we can have a global policy on how schedulers are used to
+execute the code in coroutines.</p>
+<h2 data-number="2.4" id="con-reasoning"><span class="header-section-number">2.4</span> Con: To some point, affinity
+degrades local reasoning<a href="#con-reasoning" class="self-link"></a></h2>
+<p>The same example can be read differently: scheduler affinity degrades
+local reasoning.</p>
+<p>Just by looking at <code class="sourceCode cpp">example_coro<span class="op">()</span></code> in
+isolation we cannot tell where
+<code class="sourceCode cpp">f1<span class="op">()</span></code> will be
+called; depending on the callers, it may be executed on different
+schedulers. However, if we don’t have scheduler affinity, we can fully
+reason about where
+<code class="sourceCode cpp">f2<span class="op">()</span></code> and
+<code class="sourceCode cpp">f3<span class="op">()</span></code> will be
+executed; we know what <code class="sourceCode cpp">snd1</code> and
+<code class="sourceCode cpp">snd2</code> do, and we know on which
+scheduler they complete. If the caller is unsure the completion
+scheduler of the two senders, we can always add a <code class="sourceCode cpp"><span class="op">|</span> continues_on<span class="op">(</span>sched1<span class="op">)</span></code>
+at the end of each
+<code class="sourceCode cpp"><span class="kw">co_await</span></code> to
+force the execution to be on the desired scheduler</p>
+<p>If we do have scheduler affinity, we lose the ability. Just by
+looking at the <code class="sourceCode cpp">example_coro<span class="op">()</span></code>
+body, without knowing who will call it, we cannot tell where
+<code class="sourceCode cpp">f2<span class="op">()</span></code> and
+<code class="sourceCode cpp">f3<span class="op">()</span></code> will be
+executed.</p>
+<p>The more callers such a coroutine has, the more the problem
+increases.</p>
+<h2 data-number="2.5" id="con-inner-complexity"><span class="header-section-number">2.5</span> Con: Complexity of the
+scheduler affinity and customization mechanisms<a href="#con-inner-complexity" class="self-link"></a></h2>
+<p>Adding scheduler affinity increases the complexity of the proposed
+coroutine type in 3 areas:</p>
+<ul>
+<li>when specifying the effect of
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>;</li>
+<li>when specifying what the scheduler associated with the coroutine
+is;</li>
+<li>when specifying ways to allow the continuation to execute on the
+scheduler in which the
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>-ed
+operation completes.</li>
+</ul>
+<p>Instead of describing <code class="sourceCode cpp"><span class="kw">co_await</span> snd1</code> as
+“it asynchronously executes <code class="sourceCode cpp">snd1</code> and
+yields its completion value”, we have to describe it as “it
+asynchronously executes <code class="sourceCode cpp">snd1</code> and
+yields its completion value <strong>and transfer the execution back to
+the original scheduler</strong>”. This is an extra complexity we are
+adding to this coroutine type.</p>
+<p>Specifying the scheduler associated with the coroutine is also
+non-trivial. <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> has a discussion on this topic;
+this touches several aspects:</p>
+<ul>
+<li>getting a scheduler from the environment of the receiver used for
+starting the coroutine;</li>
+<li>getting the scheduler from a context specified as a template
+parameter to
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>;</li>
+<li>defaulting to <code class="sourceCode cpp">any_scheduler</code> if
+no scheduler is specified (at this point
+<code class="sourceCode cpp">any_scheduler</code> is not proposed).</li>
+</ul>
+<p>Finally, there is complexity for allowing users to avoid scheduler
+affinity or continue execution on specified schedulers. As <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> notes, scheduler affinity has
+performance costs, so users shall be able to avoid it. Among the
+solutions explored in the paper there are:</p>
+<ul>
+<li>using <code class="sourceCode cpp">inline_scheduler</code> as a
+parameter for the coroutine type;</li>
+<li>specializing the coroutine type to a have a different effects when
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>-ing
+expressions like <code class="sourceCode cpp">co_continue_on<span class="op">(</span>new_scheduler<span class="op">)</span></code>;</li>
+<li>detecting when a
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>-ed
+expression completes synchronously (to avoid performance penalty of an
+extra scheduling)</li>
+<li>detecting when there is no need to re-schedule the work if the
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>-ed
+expression completes on the same scheduler.</li>
+</ul>
+<h2 data-number="2.6" id="con-leaking"><span class="header-section-number">2.6</span> Con: Implementation details may
+be leaking out<a href="#con-leaking" class="self-link"></a></h2>
+<p>Let us assume that one writes a coroutine returning <code class="sourceCode cpp">std<span class="op">::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span></code>
+(with no extra template parameters). According to the proposal, this
+will use scheduler affinity. Let us assume that the initial
+implementation will work just fine in production for some time.</p>
+<p>Then, after some time, a performance measurement yields that the
+coroutine can be optimized. In particular, dropping scheduler affinity
+may be a good option. One suggestion made by <span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> is to specify
+<code class="sourceCode cpp">inline_scheduler</code> in the context of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.
+But, adding <code class="sourceCode cpp">inline_scheduler</code>
+actually changes the interface of coroutine.</p>
+<p>Implementation details are leaking out; this is a direct effect of
+using scheduler affinity.</p>
+<p>This is not a problem only with
+<code class="sourceCode cpp">inline_scheduler</code>. Each time we want
+to change the default scheduler in which the coroutine “regular” code
+would be executed, we have to change the coroutine type. This breaks
+encapsulation.</p>
+<p>This problem can be solved by allowing
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code> to
+change its default scheduler from inside of the coroutine.</p>
+<h1 data-number="3" id="correctness"><span class="header-section-number">3</span> Correctness arguments<a href="#correctness" class="self-link"></a></h1>
+<p>The correctness arguments in this section are all based on the idea
+that people might have certain expectations on how the system behave,
+and, if these expectations are not met, bugs appear. Therefore, we
+describe here different examples possibly showcasing different
+expectations.</p>
+<h2 data-number="3.1" id="pro-ex-serialization"><span class="header-section-number">3.1</span> Pro: Relying on serialization
+of execution to avoid data-races<a href="#pro-ex-serialization" class="self-link"></a></h2>
+<p>Because coroutines look like regular functions, users might expect to
+behave the same. That is, people might use
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code> on
+a single-threaded scheduler for mutual-exclusion, and relying on that
+serialization of execution to avoid data-races.</p>
+<p>For example:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> implicit_serialization_coro<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  unprotected_access_to_resource_A_work1<span class="op">();</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd1<span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  unprotected_access_to_resource_A_work2<span class="op">();</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">// at the same time, added on the same scheduler:</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>unprotected_access_to_resource_A_work3<span class="op">();</span></span></code></pre></div>
+<p>In this example, if we rely that access to resource <em>A</em>
+happens on the same thread, and we can use unprotected access, then
+having no scheduler affinity might lead to problems. The
+<code class="sourceCode cpp"><span class="kw">co_await</span></code> in
+the middle might change the scheduler, and suddenly the second work item
+will be executed on a different thread, and may lead to data-races when
+accessing resource <em>A</em>.</p>
+<p>The problem here is that the original scheduler may have other work
+to be executed (in this example, <code class="sourceCode cpp">unprotected_access_to_resource_A_work3<span class="op">()</span></code>).
+Without scheduler affinity <code class="sourceCode cpp">unprotected_access_to_resource_A_work2<span class="op">()</span></code>
+may be used on a different thread, so the serialization of work items is
+lost.</p>
+<p><em>Counter-argument</em>: This is an anti-pattern regardless of
+scheduler affinity for
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.
+Even with scheduler affinity, slightly tweaking the example, one can
+easily lead to data races. We should teach users why this is a foot-gun,
+and should be avoided. There are two main reasons for this:</p>
+<ul>
+<li>In a modern async world, one should not rely on thread-based
+serialization of work items; instead, the dependencies between work
+items should be made explicit.</li>
+<li>When combining old code with asynchronous code, one should properly
+isolate between the two worlds; in particular, one shall not rely on
+manual synchronization that is present both in synchronous and
+asynchronous code.</li>
+</ul>
+<h2 data-number="3.2" id="pro-ex-io-thread"><span class="header-section-number">3.2</span> Pro: Avoid accidentally
+blocking the I/O thread<a href="#pro-ex-io-thread" class="self-link"></a></h2>
+<p>Let us look at the following coroutine, that will always be called
+from a scheduler that is not the I/O scheduler:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> mixed_io_work<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> data <span class="op">=</span> <span class="cf">co_await</span> io_read_data<span class="op">();</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  process_data<span class="op">(</span>data<span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In this example, we
+<code class="sourceCode cpp"><span class="kw">co_await</span></code> a
+sender that represents some I/O work. This produces some data that needs
+to be further processed.</p>
+<p>The way that the code is set up, with scheduler affinity, the
+processing of the data happens of the scheduler in which the work was
+started, which presumably is not the I/O scheduler. The code should work
+as expected.</p>
+<p>If we do not have scheduler affinity, the processing of the data
+happens on the I/O scheduler, which may be surprising to users. In this
+case, the processing of the data may accidentally block the I/O
+thread.</p>
+<p>The frequency of these cases is proportional with the number of
+coroutines that do I/O + CPU and are started on a non-I/O scheduler.</p>
+<h2 data-number="3.3" id="con-ex-io-thread"><span class="header-section-number">3.3</span> Con: Scheduler affinity may
+lead to blocking the I/O thread<a href="#con-ex-io-thread" class="self-link"></a></h2>
+<p>The example from the previous section, can easily be turned in its
+head, and act as a counter-argument to scheduler affinity. The above
+example only works when the coroutine is started on a scheduler that is
+not the I/O scheduler; this is not something that can be seen just by
+looking at the definition of the coroutine (see also <a href="#con-reasoning">Con: To some point, affinity degrades local
+reasoning</a>).</p>
+<p>To better counter-balance the example from the previous section, we
+translate (and slightly adapt) one example given in <span class="citation" data-cites="P2300R10">[<a href="https://wg21.link/p2300r10" role="doc-biblioref">P2300R10</a>]</span> to use
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> process_request<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> request <span class="op">=</span> <span class="cf">co_await</span> starts_on<span class="op">(</span>io_sched<span class="op">,</span> read_request<span class="op">());</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> validated_request <span class="op">=</span> <span class="cf">co_await</span> starts_on<span class="op">(</span>cpu_sched<span class="op">,</span> validate_request<span class="op">(</span>request<span class="op">));</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> response <span class="op">=</span> handle_request<span class="op">(</span>validated_request<span class="op">);</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> bytes <span class="op">=</span> serialize_response<span class="op">(</span>response<span class="op">);</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> starts_on<span class="op">(</span>io_sched<span class="op">,</span> write_response<span class="op">(</span>bytes<span class="op">));</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Moreover, let us assume that this code is started on the I/O
+scheduler (we just accepted a new connection). In this case, if we would
+have scheduler affinity, then we would execute heavy CPU processing on
+the I/O thread, which is undesired.</p>
+<p>One might argue that we should also add
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>s to
+the two functions that we should be using the CPU scheduler (<code class="sourceCode cpp">process_request<span class="op">()</span></code>
+and <code class="sourceCode cpp">serialize_response<span class="op">()</span></code>).
+To make this example more realistic, we can assume that <code class="sourceCode cpp">process_request<span class="op">()</span></code>
+and <code class="sourceCode cpp">serialize_response<span class="op">()</span></code>
+are regular functions and cannot be directly
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>-ed.
+That would make it more probable for the users to not add
+<code class="sourceCode cpp"><span class="kw">co_await</span></code> for
+these calls.</p>
+<p>Actually, taking this to the extreme, if we want to ensure that each
+chain of computation executes on the desired scheduler, one would have
+to add
+<code class="sourceCode cpp"><span class="kw">co_await</span></code> to
+each call in a coroutine; that would reduce the usability of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.</p>
+<p>The frequency of these cases is proportional with the number of
+coroutines that do I/O + CPU and are started on a I/O scheduler. The
+main thread is frequently being used as I/O thread, or at least, a more
+constrained execution agent. But, it’s more often that the main thread
+schedules something on another scheduler than another scheduler spawning
+work to be executed on the main thread; after all, the entire program is
+started on the main thread. With that in mind, it seems that the example
+in this section may be more frequent than the the one in the previous
+section.</p>
+<h2 data-number="3.4" id="neutral-gui"><span class="header-section-number">3.4</span> Neutral: For GUI threads, the
+corresponding schedulers may not be influenced by scheduler affinity<a href="#neutral-gui" class="self-link"></a></h2>
+<p>One particularly interesting feedback came from people working on QT.
+According to this feedback, all the coroutines will run everything on
+their scheduler anyway, so, in most cases, there is no switch of any
+kind. Everything in a coroutine tends to be executed by one scheduler
+anyway.</p>
+<p>In this case, having scheduler affinity does not help but also does
+not hurt.</p>
+<h2 data-number="3.5" id="pro-timer-thread"><span class="header-section-number">3.5</span> Pro: Accidentally blocking
+timer thread<a href="#pro-timer-thread" class="self-link"></a></h2>
+<p>Another case in which scheduler affinity might help avoid bugs is
+when executing various work on timers. Here is a code snippet showcasing
+a basic setup:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> work_on_timer<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> timer_fired<span class="op">();</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  do_work_after_timer_was_fired<span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In this case, the user awaits the timer to be triggered and continues
+with some (possibly heavy) work. With scheduler affinity, the processing
+will happen on the scheduler on which the coroutine was called; this is
+typically not the timer scheduler. On the other hand, having no
+scheduler affinity will lead to executing the work on the timer thread.
+This is typically not desired, and may lead to problems with other
+timers not triggering.</p>
+<p>While one can devise a counter example that reverses the problem, the
+frequency of that example seems to be lower than of the example
+presented here.</p>
+<p>Issues of this type appeared multiple times at Meta, leading to
+serious problems in production.</p>
+<h1 data-number="4" id="arguments-based-on-known-issues"><span class="header-section-number">4</span> Arguments based on known issues<a href="#arguments-based-on-known-issues" class="self-link"></a></h1>
+<h2 data-number="4.1" id="pro-deadlock"><span class="header-section-number">4.1</span> Pro: Deadlock without scheduler
+affinity<a href="#pro-deadlock" class="self-link"></a></h2>
+<p>The example at <a href="https://github.com/dietmarkuehl/P3552-task/blob/main/demo-async-lock.cpp">https://github.com/dietmarkuehl/P3552-task/blob/main/demo-async-lock.cpp</a>
+exemplifies a case in which scheduler affinity of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+avoids a deadlock that would be present if no scheduler affinity was
+present.</p>
+<p>Assuming that <code class="sourceCode cpp">queue</code> acts like a
+scheduler with one thread, the simplified example looks like:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> deadlock_case<span class="op">(</span>queue<span class="op">&amp;</span> q<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> result <span class="op">=</span> <span class="cf">co_await</span> request<span class="op">(</span><span class="dv">17</span><span class="op">,</span> q<span class="op">);</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  sync_wait<span class="op">(</span>request<span class="op">(</span><span class="dv">0</span><span class="op">,</span> q<span class="op">));</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+would not have scheduler affinity, the
+<code class="sourceCode cpp">sync_wait</code> call would have been made
+from the completion scheduler of the
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>-ed
+expression. In this case, that would the scheduler corresponding to
+<code class="sourceCode cpp">q</code>. But that means that we are
+waiting on the thread running <code class="sourceCode cpp">q</code> for
+some action on the same thread to be completed. That leads to a
+deadlock.</p>
+<p>With scheduler affinity, the
+<code class="sourceCode cpp">sync_wait</code> will be called on a thread
+belonging to the scheduler on which the coroutine was started. Assuming
+that the coroutine was not started on the thread used by
+<code class="sourceCode cpp">q</code>, no deadlock would occur.</p>
+<p><em>Counter-argument</em>: The example is somehow contrived, and the
+effect of scheduler affinity is marginal here. Some problems with this
+example:</p>
+<ul>
+<li>the deadlock comes from the misuse of
+<code class="sourceCode cpp">sync_wait</code>, which can be reproduced
+easily without the use of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>;</li>
+<li>trying to <code class="sourceCode cpp">sync_wait</code> inside of a
+chain of asynchronous work is typically an anti-pattern;</li>
+<li>it’s easy to twist the example to have deadlocks even in the
+presence of scheduler affinity; for example, starting the coroutine on
+the scheduler associated with
+<code class="sourceCode cpp">q</code>.</li>
+</ul>
+<h2 data-number="4.2" id="pro-stack-overflow"><span class="header-section-number">4.2</span> Pro: Stack overflow<a href="#pro-stack-overflow" class="self-link"></a></h2>
+<p><span class="citation" data-cites="P3552R0">[<a href="https://wg21.link/p3552r0" role="doc-biblioref">P3552R0</a>]</span> provides an example in which
+one can get into a situation of stack overflow without using scheduler
+affinity. Here is a reproduction of the example:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> stack_overflow_coro<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i<span class="op">{};</span> i <span class="op">&lt;</span> <span class="dv">1000000</span><span class="op">;</span> <span class="op">++</span>i<span class="op">)</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">co_await</span> just<span class="op">(</span>i<span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This problem is generated in cases in which we resume the work
+immediately after suspending. Adding a jump to a different thread will
+delay the resumption of the work, avoiding the accumulation of stack
+usage. The thread unwinds its stack until it reaches its own scheduling
+and picks up the next entity to execute.</p>
+<h2 data-number="4.3" id="con-cannot-use"><span class="header-section-number">4.3</span> Con:
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+cannot be used in all places<a href="#con-cannot-use" class="self-link"></a></h2>
+<p>Let us assume that we have a simple coroutine:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> some_async_work<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> starts_on<span class="op">(</span>sched1<span class="op">,</span> work1<span class="op">);</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> starts_on<span class="op">(</span>sched2<span class="op">,</span> work2<span class="op">);</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> starts_on<span class="op">(</span>sched3<span class="op">,</span> work3<span class="op">);</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This coroutine will execute three work items, on the appropriate
+schedulers. We do not have actual code to be executed between the
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>s,
+thus we do not need a default scheduler. It is reasonable to expect the
+users to not want to add a context to
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.</p>
+<p>This code can be used in some places successfully, either inside
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+expressions or in regular sender expressions. After a time, we might
+have a need to use this through a
+<code class="sourceCode cpp">counting_scope</code> (<span class="citation" data-cites="P3149R8">[<a href="https://wg21.link/p3149r8" role="doc-biblioref">P3149R8</a>]</span>), like in the following
+example:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>counting_scope scope<span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>spawn<span class="op">(</span>some_async_work<span class="op">(),</span> scope<span class="op">.</span>get_token<span class="op">());</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<p>The usage of <code class="sourceCode cpp">counting_scope</code> is
+not expected to be marginal. People will want to use it in context in
+which they want to migrate from unstructured to structured concurrency,
+or when they need to have a dynamic number of work items to be executed
+dynamically (without having a clear way to place them in a work
+graph).</p>
+<p>The problem is that, the above code does not compile.
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+requires a default scheduler, and
+<code class="sourceCode cpp">counting_scope</code> cannot provide it.
+There is also no scheduler specified as a template parameter to
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.
+The reader should notice that we don’t even need a default scheduler in
+this example, as the body of the coroutine always specifies the
+scheduler in which the work needs to run.</p>
+<p>As the use frequency of
+<code class="sourceCode cpp">counting_scope</code> is not expected to be
+negligible, this seems like a major drawback of the scheduler affinity
+requirements.</p>
+<h1 data-number="5" id="performance"><span class="header-section-number">5</span> Performance arguments<a href="#performance" class="self-link"></a></h1>
+<h2 data-number="5.1" id="con-perf-coro-nothing"><span class="header-section-number">5.1</span> Con: Extra cost for jumping
+when we don’t need to execute anything in the coroutine<a href="#con-perf-coro-nothing" class="self-link"></a></h2>
+<p>Let’s assume we have the following example:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> useless_jump_to_original_scheduler<span class="op">(</span>my_data data<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> r1 <span class="op">=</span> <span class="cf">co_await</span> starts_on<span class="op">(</span>sched1<span class="op">,</span> work1<span class="op">(</span>data<span class="op">));</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> r2 <span class="op">=</span> <span class="cf">co_await</span> starts_on<span class="op">(</span>sched2<span class="op">,</span> work2<span class="op">(</span>r1<span class="op">));</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> r3 <span class="op">=</span> <span class="cf">co_await</span> starts_on<span class="op">(</span>sched3<span class="op">,</span> work2<span class="op">(</span>r2<span class="op">));</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> starts_on<span class="op">(</span>sched4<span class="op">,</span> work2<span class="op">(</span>r3<span class="op">));</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Here, the coroutine processes the given data in a pipeline fashion,
+with four different stages. For each stage of the pipeline we have a
+dedicated scheduler to perform the work. The entirety of work is divided
+between these four schedulers, and there is no work that needs to be
+scheduled outside of these schedulers.</p>
+<p>Let us also assume that the coroutine was started on scheduler
+<code class="sourceCode cpp">sched0</code>. That means that, with
+scheduler affinity, after each
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+call we transition back to <code class="sourceCode cpp">sched0</code>,
+just to transition to the next scheduler. The extra transitions to
+<code class="sourceCode cpp">sched0</code> are not helping at all, but
+the do incur a performance penalty.</p>
+<p>This example is somehow atypical as the entire body of the coroutine
+is a series of
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>s.
+We can easily adapt the example to add some more processing on the
+coroutine, like the following:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> useless_jump_to_original_scheduler<span class="op">(</span>my_data data<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> r1 <span class="op">=</span> <span class="cf">co_await</span> starts_on<span class="op">(</span>sched1<span class="op">,</span> work1<span class="op">(</span>data<span class="op">));</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  validate1<span class="op">(</span>r1<span class="op">);</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> r2 <span class="op">=</span> <span class="cf">co_await</span> starts_on<span class="op">(</span>sched2<span class="op">,</span> work2<span class="op">(</span>r1<span class="op">));</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  validate2<span class="op">(</span>r2<span class="op">);</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> r3 <span class="op">=</span> <span class="cf">co_await</span> starts_on<span class="op">(</span>sched3<span class="op">,</span> work2<span class="op">(</span>r2<span class="op">));</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  validate3<span class="op">(</span>r3<span class="op">);</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> starts_on<span class="op">(</span>sched4<span class="op">,</span> work2<span class="op">(</span>r3<span class="op">));</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We assume that the the work done by
+<code class="sourceCode cpp">validate1</code>,
+<code class="sourceCode cpp">validate2</code> and
+<code class="sourceCode cpp">validate3</code> is small enough that it
+does not matter on which scheduler is executed. Even in this case, if
+there are no constraints on where the extra work needs to be executed,
+switching back to <code class="sourceCode cpp">sched0</code> to execute
+the <code class="sourceCode cpp">validateN</code> functions is a
+performance cost that should be avoided.</p>
+<h2 data-number="5.2" id="con-perf-jump-to-same"><span class="header-section-number">5.2</span> Con: Extra cost for jumping to
+the same scheduler<a href="#con-perf-jump-to-same" class="self-link"></a></h2>
+<p>Let us assume we have the following coroutine:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// started on `sched0`</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> jumping_coro<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> work<span class="op">()</span> <span class="co">// completes on `sched1`</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  other_work<span class="op">();</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Here, with scheduler affinity, we will execute
+<code class="sourceCode cpp">other_work<span class="op">()</span></code>
+on <code class="sourceCode cpp">sched0</code>, i.e., the scheduler on
+which the coroutine was started. If
+<code class="sourceCode cpp">work<span class="op">()</span></code>
+completes on <code class="sourceCode cpp">sched1</code>, we need a jump
+to <code class="sourceCode cpp">sched0</code>.</p>
+<p>But, what happens if <code class="sourceCode cpp">sched0 <span class="op">==</span> sched1</code>?
+We will do an extra jump that is not needed.</p>
+<h1 data-number="6" id="bottom-line"><span class="header-section-number">6</span> Bottom line<a href="#bottom-line" class="self-link"></a></h1>
+<p>The paper discusses some pros and cons of using scheduler affinity
+for
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.</p>
+<p>To have a good decision on whether scheduler affinity should be the
+default or not for
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code> we
+need to better balance the different tradeoffs. For example, are the
+examples in which scheduler affinity helps more important than the
+growth in complexity?</p>
+<h1 data-number="7" id="appendix-other-ideas"><span class="header-section-number">7</span> Appendix: Other ideas<a href="#appendix-other-ideas" class="self-link"></a></h1>
+<p>Because both the presence and absence of scheduler affinity have
+downside, maybe other ideas should be explored to hopefully find some
+compromises. This section lists some ideas that might help</p>
+<h2 data-number="7.1" id="make-scheduler-affinity-opt-in-from-the-body-of-the-coroutine"><span class="header-section-number">7.1</span> Make scheduler affinity opt-in
+from the body of the coroutine<a href="#make-scheduler-affinity-opt-in-from-the-body-of-the-coroutine" class="self-link"></a></h2>
+<p>Here is an example how this might work:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> encapsulated_scheduler_affinity<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> lazy_set_scheduler_affinity<span class="op">(</span>sched0<span class="op">);</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  f1<span class="op">();</span>          <span class="co">// executed  on `sched0`</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd1<span class="op">;</span> <span class="co">// completes on `sched2`</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  f2<span class="op">();</span>          <span class="co">// executed  on `sched0`</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> snd2<span class="op">;</span> <span class="co">// completes on `sched3`</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  f3<span class="op">();</span>          <span class="co">// executed  on `sched0`</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>There are two points here that are noteworthy: - scheduler affinity
+is a local concern; abstraction does not leak outside; - scheduler
+affinity is opt-in; user always has control when scheduler affinity
+needs to be turned on, and which scheduler should be used.</p>
+<p>This idea would help in the following points:</p>
+<ul>
+<li><a href="#conceptual-model">Con: Teachability and aligning with a
+simple conceptual model</a></li>
+<li><a href="#teachability">Con: Teachability on main uses of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code></a></li>
+<li><a href="#con-reasoning">Con: To some point, affinity degrades local
+reasoning</a></li>
+<li><a href="#con-leaking">Con: Implementation details may be leaking
+out</a></li>
+<li><a href="#con-cannot-use">Con:
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+cannot be used in all places</a></li>
+<li><a href="#con-perf-coro-nothing">Con: Extra cost for jumping when we
+don’t need to execute anything in the coroutine</a></li>
+<li><a href="#con-perf-jump-to-same">Con: Extra cost for jumping to the
+same scheduler</a></li>
+</ul>
+<h2 data-number="7.2" id="check-by-default"><span class="header-section-number">7.2</span> Check for scheduler affinity,
+instead of enforcing it<a href="#check-by-default" class="self-link"></a></h2>
+<p>One of the problems with both scheduler affinity or the lack of
+scheduler affinity is the fact that it mandates a default behavior when
+the intent of the user is ambiguous. Maybe another approach is to force
+the user to specify the intent.</p>
+<p>The coroutine can be set up in four different modes:</p>
+<ol type="1">
+<li>check that
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>s
+don’t change the scheduler (default option);</li>
+<li>check that if
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+completes on a scheduler, that scheduler is equal to a given scheduler
+(check for scheduler affinity);</li>
+<li>apply scheduler affinity for a specified scheduler for every
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+call;</li>
+<li>disable scheduler affinity, and allow
+<code class="sourceCode cpp">co_awaits</code> to change the scheduler
+for the rest of the body of the coroutine.</li>
+</ol>
+<p>Except the first option, all the other options require user explicit
+specification of the intent. The intent is specified in the body of the
+coroutine, as opposed that as a template parameter to
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>;
+this will make the implementation details not leak in the coroutine
+signature.</p>
+<p>Except the third option, all the other options will treat an
+expression like
+<code class="sourceCode cpp"><span class="kw">co_await</span> snd</code>
+as not having scheduler affinity, if
+<code class="sourceCode cpp">snd</code> does not advertizes a completion
+scheduler.</p>
+<p>In all options,
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>ing
+on a sender produced by <code class="sourceCode cpp">execution<span class="op">::</span>on<span class="op">()</span></code>
+will just asynchronously execute that sender without further
+transferring control to any scheduler.</p>
+<p>In the first option, for a
+<code class="sourceCode cpp"><span class="kw">co_await</span> snd</code>
+expression, if <code class="sourceCode cpp">snd</code> advertize a
+completion scheduler, then issue a compilation error informing the user
+that, by default, schedulers should not be changed without explicit
+control. Otherwise, execute the async computation indicated by
+<code class="sourceCode cpp">snd</code>, without transferring control to
+any scheduler.</p>
+<p>That second option will be selected if <code class="sourceCode cpp"><span class="kw">co_await</span> lazy_check_completion_scheduler<span class="op">(</span>sched0<span class="op">)</span></code>
+expression is found in the body of the coroutine. This will tell
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>
+that all
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>
+expressions that try to change the scheduler must complete on
+<code class="sourceCode cpp">sched0</code>. If a
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>ed
+sender advertizes a completion scheduler different than
+<code class="sourceCode cpp">sched0</code>, a compilation error is
+expected.</p>
+<p>The third option will be selected if <code class="sourceCode cpp"><span class="kw">co_await</span> lazy_set_scheduler_affinity<span class="op">(</span>sched0<span class="op">)</span></code>
+expression is found in the body of the coroutine. In this case, after
+each
+<code class="sourceCode cpp"><span class="kw">co_await</span> snd</code>,
+a re-posting to <code class="sourceCode cpp">sched0</code> will happen,
+regardless of whether <code class="sourceCode cpp">snd</code> advertizes
+its affinity or not, regardless on which scheduler
+<code class="sourceCode cpp">snd</code> completes.</p>
+<p>The third option will be selected if <code class="sourceCode cpp"><span class="kw">co_await</span> lazy_set_no_scheduler_affinity<span class="op">()</span></code>
+expression is found in the body of the coroutine. In this case, no
+scheduler affinity is checked or enforced, and all
+<code class="sourceCode cpp"><span class="kw">co_await</span></code>s
+are allowed to change the scheduler for the following code to be
+executed.</p>
+<p>The four modes can be combined in the same coroutine.</p>
+<p>Here is an example of a coroutine with all the modes, showcasing
+interaction with sender produced by common algorithms:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> coro_with_all_modes<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Mode 1</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> just<span class="op">()</span> <span class="co">// ok</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched1<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched1<span class="op">)</span> <span class="co">// error: explicit scheduler switch handling is needed</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Mode 2</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> lazy_check_completion_scheduler<span class="op">(</span>sched1<span class="op">);</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> just<span class="op">()</span> <span class="co">// ok</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched1<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched2<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched1<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched2<span class="op">)</span> <span class="co">// error: unexpected completion scheduler</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Mode 3</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> lazy_set_scheduler_affinity<span class="op">(</span>sched1<span class="op">);</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> just<span class="op">()</span> <span class="co">// ok</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched1<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched2<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched1<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched2<span class="op">)</span> <span class="co">// ok; transfer back to sched1</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Mode 4</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> lazy_set_scheduler_affinity<span class="op">(</span>sched1<span class="op">);</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> just<span class="op">()</span> <span class="co">// ok</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched1<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on<span class="op">(</span>sched2<span class="op">,</span> snd<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched1<span class="op">)</span> <span class="co">// ok</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> schedule<span class="op">(</span>sched2<span class="op">)</span> <span class="co">// ok; transfer back to sched1</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>  f<span class="op">()</span> <span class="co">// execution will continue on `sched2`</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This approach fixes most of the downsides with both scheduler
+affinity and the lack of scheduler affinity. Whenever there is a case in
+which the presence or absence of scheduler affinity can affect the
+correctness of the code, and the behavior is not explicitly indicated by
+the user, a compilation error is produced. The coroutines that do not
+change schedulers will work just fine without user intervention. The
+coroutines that change the schedulers will require the user to
+explicitly specify the desired behavior.</p>
+<h2 data-number="7.3" id="hide-the-schedulers-for-resources-to-be-protected-timers-io"><span class="header-section-number">7.3</span> Hide the schedulers for
+resources to be protected (timers, I/O)<a href="#hide-the-schedulers-for-resources-to-be-protected-timers-io" class="self-link"></a></h2>
+<p>One problem with the example from <a href="#pro-timer-thread">Pro:
+Accidentally blocking timer thread</a> is that the user can directly
+access the scheduler for the timer. Instead, an abstraction shall be
+provided that always take a scheduler.</p>
+<p>With that idea in mind, the problematic example would become:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>lazy<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span> work_on_timer<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">co_await</span> on_timer<span class="op">(</span>sched1<span class="op">,</span> do_work_after_timer_was_fired<span class="op">());</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> on_timer<span class="op">(</span>scheduler <span class="kw">auto</span> sched<span class="op">,</span> sender <span class="kw">auto</span> snd<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> protected_timer_sender</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>       <span class="op">|</span> continues_on<span class="op">(</span>sched<span class="op">)</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>       <span class="op">|</span> let_value<span class="op">([]()</span> <span class="op">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">std::</span>move<span class="op">(</span>snd<span class="op">);</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>       <span class="op">})</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The main idea here is that we protect the time scheduler/sender.
+Users cannot access to it directly. Instead, they need to go through a
+<code class="sourceCode cpp">on_timer</code> abstraction that ensures
+that the given work is executed on the appropriate scheduler, and not on
+the timer scheduler.</p>
+<p>Please note that this is a solution outside of
+<code class="sourceCode cpp">std<span class="op">::</span>lazy</code>.</p>
+<p>This idea might help on <a href="#pro-timer-thread">Pro: Accidentally
+blocking timer thread</a>, but it can be also employed for <a href="#pro-ex-io-thread">Pro: Avoid accidentally blocking the I/O
+thread</a>.</p>
+<h1 data-number="8" id="bibliography"><span class="header-section-number">8</span> References<a href="#bibliography" class="self-link"></a></h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="1" role="doc-bibliography">
+<div id="ref-P2300R10" class="csl-entry" role="doc-biblioentry">
+[P2300R10] Eric Niebler, Michał Dominiak, Georgy Evtushenko, Lewis
+Baker, Lucian Radu Teodorescu, Lee Howes, Kirk Shoop, Michael Garland,
+Bryce Adelstein Lelbach. 2024-06-28. `std::execution`. <a href="https://wg21.link/p2300r10"><div class="csl-block">https://wg21.link/p2300r10</div></a>
+</div>
+<div id="ref-P3149R8" class="csl-entry" role="doc-biblioentry">
+[P3149R8] Ian Petersen, Jessica Wong; Dietmar Kühl; Ján Ondrušek; Kirk
+Shoop; Lee Howes; Lucian Radu Teodorescu; Ruslan Arutyunyan; 2024-11-22.
+async_scope — Creating scopes for non-sequential concurrency. <a href="https://wg21.link/p3149r8"><div class="csl-block">https://wg21.link/p3149r8</div></a>
+</div>
+<div id="ref-P3552R0" class="csl-entry" role="doc-biblioentry">
+[P3552R0] Dietmar Kühl, Maikel Nadolski. 2025-01-13. Add a Coroutine
+Lazy Type. <a href="https://wg21.link/p3552r0"><div class="csl-block">https://wg21.link/p3552r0</div></a>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
