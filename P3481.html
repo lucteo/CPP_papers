@@ -1561,10 +1561,10 @@ Possible extra rowspan handling
     blockquote c-[vi] { color: inherit; } /* Name.Variable.Instance */
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
-  <meta content="Bikeshed version 60c422380, updated Thu Feb 20 19:11:22 2025 -0800" name="generator">
+  <meta content="Bikeshed version b25686b9f, updated Fri Mar 14 14:15:20 2025 -0700" name="generator">
   <link href="http://wg21.link/P3481R3" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="5481d9a93fcba7b7c02c86f86fe918902e63d3cf" name="revision">
+  <meta content="9bf476639b15b2d2361dc6e88446e7d5e096f0ec" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2131,7 +2131,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">P3481R3<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-03-05">2025-03-05</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-03-19">2025-03-19</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2539,7 +2539,7 @@ If
       <li data-md>
        <p><code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>sndr</c-><c- p>))</c-></code> does not satisfy <code class="highlight"><c- n>sender</c-></code>, or</p>
       <li data-md>
-       <ins><code class="highlight"><c- n>is_execution_policy_v</c-><c- o>&lt;</c-><c- n>remove_cvref_t</c-><c- o>&lt;</c-><c- n>Policy</c-><c- o>>></c-></code> is <code class="highlight">false</code>, or</ins>
+       <ins><code class="highlight"><c- n>is_execution_policy_v</c-><c- o>&lt;</c-><c- n>Policy</c-><c- o>></c-></code> is <code class="highlight">false</code>, or</ins>
       <li data-md>
        <p><code class="highlight"><c- n>Shape</c-></code> does not satisfy <code class="highlight"><c- n>integral</c-></code>, or</p>
       <li data-md>
@@ -2564,7 +2564,11 @@ If
   <i><c- n>get</c-><c- o>-</c-><c- n>domain</c-><c- o>-</c-><c- n>early</c-></i><c- p>(</c-><c- n>sndr</c-><c- p>),</c->
   <i><c- n>make</c-><c- o>-</c-><c- n>sender</c-></i><c- p>(</c-><del><c- n>bulk</c-></del><ins><i><c- n>bulk</c-><c- o>-</c-><c- n>with</c-><c- o>-</c-><c- n>policy</c-></i></ins><c- p>,</c-> <i><c- n>product</c-><c- o>-</c-><c- n>type</c-></i><c- p>{</c-><ins><c- n>policy</c-><c- p>,</c-> </ins><c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>},</c-> <c- n>sndr</c-><c- p>))</c->
 </pre>
-     <p>except that <code class="highlight"><c- n>sndr</c-></code> is evaluated only once.</p>
+     <p>
+      except that <code class="highlight"><c- n>sndr</c-></code> is evaluated only once
+      <ins>, and <code class="highlight"><c- n>policy</c-></code> is stored in <i><code class="highlight"><c- n>product</c-><c- o>-</c-><c- n>type</c-></code></i> object as a const l-value reference if its type is not copyable</ins>
+      .
+     </p>
    </ol>
    <div class="block-insert">
     <ol start="4">
@@ -2600,13 +2604,13 @@ If</p>
 <pre class="highlight"><c- k>namespace</c-> <c- nn>std</c-><c- o>::</c-><c- nn>execution</c-> <c- p>{</c->
   <c- k>template</c-><c- o>&lt;></c->
   <c- k>struct</c-> <i><c- nc>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><i><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-><c- o>-</c-><c- n>t</c-></i></ins><c- o>></c-> <c- o>:</c-> <i><c- k>default</c-><c- o>-</c-><c- n>impls</c-></i> <c- p>{</c->
-    <c- k>static</c-> <c- k>constexpr</c-> <c- k>auto</c-> <c- n>complete</c-> <c- o>=</c-> <i><c- n>see</c-> <c- n>below</c-></i><c- p>;</c->
+    <c- k>static</c-> <c- k>constexpr</c-> <c- k>auto</c-> <i><c- n>complete</c-></i> <c- o>=</c-> <i><c- n>see</c-> <c- n>below</c-></i><c- p>;</c->
   <c- p>};</c->
 <c- p>}</c->
 </pre>
      <ol>
       <li data-md>
-       <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><c- n>bulk_unchunked_t</c-></ins><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
+       <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><del><c- n>bulk_t</c-></del><ins><c- n>bulk_unchunked_t</c-></ins><c- o>>::</c-><i><c- n>complete</c-></i></code> is initialized with a callable object equivalent to the following lambda:</p>
 <pre class="highlight"><c- p>[]</c-><c- o>&lt;</c-><c- k>class</c-> <c- nc>Index</c-><c- p>,</c-> <c- k>class</c-> <c- nc>State</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Rcvr</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Tag</c-><c- p>,</c-> <c- k>class</c-><c- p>...</c-> <c- n>Args</c-><c- o>></c->
   <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c->
   <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
@@ -2616,7 +2620,7 @@ If</p>
       <c- p>};</c->
       <c- k>if</c-> <c- k>constexpr</c-><c- p>(</c-><c- n>scheduler_available</c-><c- p>)</c-> <c- p>{</c->
         <c- k>constexpr</c-> <c- k>auto</c-> <c- n>guarantee</c-> <c- o>=</c-> <c- n>get_forward_progress_guarantee</c-><c- p>(</c->
-          <c- k>decltype</c-><c- p>(</c-><c- n>get_completion_scheduler</c-><c- o>&lt;</c-><c- n>set_value_t</c-><c- o>></c-><c- p>(</c-><c- n>get_env</c-><c- p>(</c-><c- n>rcvr</c-><c- p>))));</c->
+          <c- n>get_completion_scheduler</c-><c- o>&lt;</c-><c- n>set_value_t</c-><c- o>></c-><c- p>(</c-><c- n>get_env</c-><c- p>(</c-><c- n>rcvr</c-><c- p>)));</c->
         <c- k>static_assert</c-><c- p>(</c-><c- n>guarantee</c-> <c- o>!=</c-> <c- n>forward_progress_guarantee</c-><c- o>::</c-><c- n>concurrent</c-><c- p>);</c->
       <c- p>}</c-></ins>
       <c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c->
@@ -2640,7 +2644,7 @@ If</p>
      <div class="block-insert">
       <ol start="2">
        <li data-md>
-        <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><i><c- n>bulk_chunked_t</c-></i><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
+        <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_chunked_t</c-><c- o>>::</c-><i><c- n>complete</c-></i></code> is initialized with a callable object equivalent to the following lambda:</p>
 <pre class="highlight"><c- p>[]</c-><c- o>&lt;</c-><c- k>class</c-> <c- nc>Index</c-><c- p>,</c-> <c- k>class</c-> <c- nc>State</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Rcvr</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Tag</c-><c- p>,</c-> <c- k>class</c-><c- p>...</c-> <c- n>Args</c-><c- o>></c->
   <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c->
   <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
@@ -2661,17 +2665,17 @@ If</p>
           <p>The expression in the <em>requires-clause</em> of the lambda above is <code class="highlight">true</code> if and only if <code class="highlight"><c- n>Tag</c-></code> denotes a type other than <code class="highlight"><c- n>set_value_t</c-></code> or if the expression <code class="highlight"><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...)</c-></code> is well-formed.</p>
         </ol>
        <li data-md>
-        <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><i><c- n>bulk_t</c-></i><c- o>>::</c-><c- n>complete</c-></code> is initialized with a callable object equivalent to the following lambda:</p>
+        <p>The member <code class="highlight"><i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><i><c- n>bulk_t</c-></i><c- o>>::</c-><i><c- n>complete</c-></i></code> is initialized with a callable object equivalent to the following lambda:</p>
 <pre class="highlight"><c- p>[]</c-><c- o>&lt;</c-><c- k>class</c-> <c- nc>Index</c-><c- p>,</c-> <c- k>class</c-> <c- nc>State</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Rcvr</c-><c- p>,</c-> <c- k>class</c-> <c- nc>Tag</c-><c- p>,</c-> <c- k>class</c-><c- p>...</c-> <c- n>Args</c-><c- o>></c->
   <c- p>(</c-><c- n>Index</c-><c- p>,</c-> <c- n>State</c-><c- o>&amp;</c-> <c- n>state</c-><c- p>,</c-> <c- n>Rcvr</c-><c- o>&amp;</c-> <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>,</c-> <c- n>Args</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>args</c-><c- p>)</c-> <c- k>noexcept</c->
   <c- o>-></c-> <c- b>void</c-> <c- k>requires</c-> <i><c- n>see</c-> <c- n>below</c-></i> <c- p>{</c->
     <c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>state</c-><c- p>;</c->
     <c- k>constexpr</c-> <c- b>bool</c-> <c- n>nothrow</c-> <c- o>=</c-> <c- k>noexcept</c-><c- p>(</c-><c- n>f</c-><c- p>(</c-><c- k>auto</c-><c- p>(</c-><c- n>shape</c-><c- p>),</c-> <c- n>args</c-><c- p>...));</c->
-    <c- k>auto</c-> <c- n>new_f</c-> <c- o>=</c-> <c- p>[</c-><c- n>func</c-><c- o>=</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>f</c-><c- p>)]</c-><c- o>&lt;</c-><c- k>typename</c-><c- p>...</c-> <c- n>Vs</c-><c- o>></c-><c- p>(</c-><c- n>Size</c-> <c- n>begin</c-><c- p>,</c-> <c- n>Size</c-> <c- n>end</c-><c- p>,</c-> <c- n>Vs</c-><c- o>&amp;</c-><c- p>...</c-> <c- n>vs</c-><c- p>)</c->
+    <c- k>auto</c-> <c- n>new_f</c-> <c- o>=</c-> <c- p>[</c-><c- n>func</c-><c- o>=</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>f</c-><c- p>)](</c-><c- n>Size</c-> <c- n>begin</c-><c- p>,</c-> <c- n>Size</c-> <c- n>end</c-><c- p>,</c-> <c- k>auto</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>vs</c-><c- p>)</c->
         <c- k>noexcept</c-><c- p>(</c-><c- n>nothrow</c-><c- p>)</c-> <c- p>{</c->
-      <c- k>while</c-> <c- p>(</c-><c- n>begin</c-> <c- o>!=</c-> <c- n>end</c-><c- p>)</c-> <c- n>func</c-><c- p>(</c-><c- n>begin</c-><c- o>++</c-><c- p>,</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><c- o>&lt;</c-><c- n>Vs</c-><c- o>></c-><c- p>(</c-><c- n>vs</c-><c- p>)...);</c->
+      <c- k>while</c-> <c- p>(</c-><c- n>begin</c-> <c- o>!=</c-> <c- n>end</c-><c- p>)</c-> <c- n>func</c-><c- p>(</c-><c- n>begin</c-><c- o>++</c-><c- p>,</c-> <c- n>vs</c-><c- p>...);</c->
     <c- p>}</c->
-    <i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_chunked_t</c-><c- o>>::</c-><c- n>complete</c-><c- p>(</c-><c- n>Index</c-><c- p>(),</c->
+    <i><c- n>impls</c-><c- o>-</c-><c- k>for</c-></i><c- o>&lt;</c-><c- n>bulk_chunked_t</c-><c- o>>::</c-><i><c- n>complete</c-></i><c- p>(</c-><c- n>Index</c-><c- p>(),</c->
       <i><c- n>product</c-><c- o>-</c-><c- n>type</c-></i><c- p>{</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>new_f</c-><c- p>)},</c->
       <c- n>rcvr</c-><c- p>,</c-> <c- n>Tag</c-><c- p>(),</c-> <c- n>std</c-><c- o>::</c-><c- n>forward</c-><c- o>&lt;</c-><c- n>Args</c-><c- o>></c-><c- p>(</c-><c- n>args</c-><c- p>)...);</c->
   <c- p>}</c->
@@ -2683,15 +2687,17 @@ If</p>
       </ol>
      </div>
     <li data-md>
-     <ins>If <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_chunked</c-></code>, <code class="highlight"><c- n>bulk_unchunked</c-></code>, or <code class="highlight"><c- n>bulk</c-></code>, let</ins>
-     <del>Let</del>
-      the subexpression <code class="highlight"><c- n>out_sndr</c-></code> denote the result of the invocation 
-     <del><code class="highlight"><c- n>bulk</c-></code></del>
-     <ins><i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i></ins>
-     <code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> </code>
-     <ins><code class="highlight"><c- n>policy</c-><c- p>,</c-></code></ins>
-     <code class="highlight"> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> or an object equal to such, and let the subexpression <code class="highlight"><c- n>rcvr</c-></code> denote a receiver such that the expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_sndr</c-><c- p>,</c-> <c- n>rcvr</c-><c- p>)</c-></code> is well-formed.
-The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_sndr</c-><c- p>,</c-> <c- n>rcvr</c-><c- p>)</c-></code> has undefined behavior unless it creates an asynchronous operation ([async.ops]) that, when started: 
+     <p>
+      Let the subexpression <code class="highlight"><c- n>out_sndr</c-></code> denote the result of the invocation 
+      <del><code class="highlight"><c- n>bulk</c-></code></del>
+      <ins><i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>with</c-><c- o>-</c-><c- n>policy</c-></code></i></ins>
+      <code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> </code>
+      <ins><code class="highlight"><c- n>policy</c-><c- p>,</c-></code></ins>
+      <code class="highlight"> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code>
+      <ins>, or <code class="highlight"><c- n>bulk_unchunked</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code>,</ins>
+       or an object equal to such, and let the subexpression <code class="highlight"><c- n>rcvr</c-></code> denote a receiver such that the expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_sndr</c-><c- p>,</c-> <c- n>rcvr</c-><c- p>)</c-></code> is well-formed.
+The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_sndr</c-><c- p>,</c-> <c- n>rcvr</c-><c- p>)</c-></code> has undefined behavior unless it creates an asynchronous operation ([async.ops]) that, when started:
+     </p>
      <ul>
       <li data-md>
        <del>on a value completion operation, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>, where <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of the input sender, and</del>
@@ -2704,49 +2710,49 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
      <ins>
       <ul>
        <li data-md>
-        <p>if <code class="highlight"><c- n>sndr</c-></code> has a successful completion, where <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of <code class="highlight"><c- n>sndr</c-></code>, then:</p>
+        <p>If <code class="highlight"><c- n>sndr</c-></code> has a successful completion, where <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of <code class="highlight"><c- n>sndr</c-></code>, then:</p>
         <ul>
          <li data-md>
-          <p>if <code class="highlight"><c- n>out_sndr</c-></code> also completes successfully, then:</p>
+          <p>If <code class="highlight"><c- n>out_sndr</c-></code> also completes successfully, then:</p>
           <ul>
            <li data-md>
-            <p>if <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>;</p>
+            <p>for <code class="highlight"><c- n>bulk</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>;</p>
            <li data-md>
-            <p>if <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_unchunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> on a distinct execution agent for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>;</p>
+            <p>for <code class="highlight"><c- n>bulk_unchunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> on a distinct execution agent for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>;</p>
            <li data-md>
-            <p>if <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_chunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times with pairs of <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> in range [<code class="highlight"><c- mi>0</c-></code>, <code class="highlight"><c- n>shape</c-></code>], such as for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>, there is an invocation with a pair <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code>, such as <code class="highlight"><c- n>b</c-> <c- o>&lt;=</c-> <c- n>i</c-> <c- o>&lt;</c-> <c- n>e</c-></code>;</p>
+            <p>for <code class="highlight"><c- n>bulk_chunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times with pairs of <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> in range <code class="highlight"><c- p>[</c-><c- mi>0</c-><c- p>,</c-> <c- n>shape</c-><c- p>)</c-></code>, such as for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>, there is an invocation with a pair <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code>, such as <code class="highlight"><c- n>b</c-> <c- o>&lt;=</c-> <c- n>i</c-> <c- o>&lt;</c-> <c- n>e</c-></code>.</p>
           </ul>
          <li data-md>
-          <p>if <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_error</c-><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code>, the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> as described above before the completion signal, and <code class="highlight"><c- n>e</c-></code> is either:</p>
+          <p>If <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_error</c-><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code>, the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> as described above before the completion signal, and <code class="highlight"><c- n>e</c-></code> is either:</p>
           <ul>
            <li data-md>
             <p>an exception thrown by an invocation of <code class="highlight"><c- n>f</c-></code>, or</p>
            <li data-md>
             <p>an <code class="highlight"><c- n>bad_alloc</c-></code> exception if the implementation fails to allocate required resources, or</p>
            <li data-md>
-            <p>an exception derived from <code class="highlight"><c- n>runtime_error</c-></code>;</p>
+            <p>an exception derived from <code class="highlight"><c- n>runtime_error</c-></code>.</p>
           </ul>
          <li data-md>
-          <p>if <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_stopped</c-><c- p>(</c-><c- n>rcvr</c-><c- p>)</c-></code>, the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> as described above before the completion signal;</p>
+          <p>If <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_stopped</c-><c- p>(</c-><c- n>rcvr</c-><c- p>)</c-></code>, the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> as described above before the completion signal.</p>
         </ul>
        <li data-md>
-        <p>if <code class="highlight"><c- n>sndr</c-></code> does not complete with <code class="highlight"><c- n>set_value</c-><c- p>(...)</c-></code>, the completion signal is forwarded to <code class="highlight"><c- n>recv</c-></code></p>
+        <p>If <code class="highlight"><c- n>sndr</c-></code> does not complete with <code class="highlight"><c- n>set_value</c-><c- p>(...)</c-></code>, the completion signal is forwarded to <code class="highlight"><c- n>recv</c-></code>.</p>
        <li data-md>
-        <p>the function <code class="highlight"><c- n>f</c-></code> is invoked in a way that is compatible with the execution policy <code class="highlight"><c- n>policy</c-></code>.</p>
+        <p>For <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>with</c-><c- o>-</c-><c- n>policy</c-></code></i>, the parameter <code class="highlight"><c- n>policy</c-></code> describes the manner in which the execution of these algorithms may be parallelized and the manner in which they apply the element access functions.</p>
       </ul>
      </ins>
    </ol>
    <div class="block-insert">
     <ol start="8">
      <li data-md>
-      <p>If <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> is <code class="highlight"><c- n>bulk_chunked</c-></code>, <code class="highlight"><c- n>bulk_unchunked</c-></code>, or <code class="highlight"><c- n>bulk</c-></code>, then the asynchronous operation corresponding to <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is allowed (but not required) to:</p>
+      <p><i>[Note: </i> The asynchronous operation corresponding to <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>with</c-><c- o>-</c-><c- n>policy</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> or <code class="highlight"><c- n>bulk_unchunked</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is allowed (but not required) to:</p>
       <ul>
        <li data-md>
         <p>complete with <code class="highlight"><c- n>set_stopped</c-><c- p>()</c-></code> if cancellation is requested (through the connected receiver);</p>
        <li data-md>
         <p>ignore cancellation requests;</p>
        <li data-md>
-        <p>make decaying copies of the values produced by the predecessor sender, if the values are copyable.</p>
+        <p>make decaying copies of the values produced by the predecessor sender, if the values are copyable. <i> — end note]</i></p>
       </ul>
     </ol>
    </div>
