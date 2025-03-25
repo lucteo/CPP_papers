@@ -455,9 +455,23 @@ On top of that, for special cases we also want to allow option 3.
 
     except that `sndr` is evaluated only once.
 
+6. Let `sndr` and `env` be subexpressions such that `Sndr` is `decltype((sndr))`. If <i>`sender-for`</i>`<Sndr, bulk_t>` is `false`, then the expression `bulk.transform_sender(sndr, env)` is ill-formed; otherwise, it is equal to:
+
+        <pre highlight="c++">
+        auto [_, data, child] = sndr;
+        auto& [policy, shape, f] = data;
+        auto new_f = [func=std::move(f)](Size begin, Size end, auto&&... vs)
+            noexcept(noexcept(f(begin, vs...))) {
+          while (begin != end) func(begin++, vs...);
+        }
+        return bulk_chunked(std::move(child), policy, shape, std::move(new_f));
+        </pre>
+
+    <i>[Note 1</i>: This causes the `bulk(sndr, policy, shape, f)` sender to be expressed in terms of `bulk_chunked(sndr, policy, shape, f)` when it is connected with a receiver whose execution domain does not customize `bulk`. <i> — end note]</i>
+
 </div>
 
-6. <ins>Let <i>`bulk-algo-t`</i> be either `bulk_t`, `bulk_chunked_t`, or `bulk_unchunked_t`.</ins>
+7. <ins>Let <i>`bulk-algo-t`</i> be either `bulk_chunked_t` or `bulk_unchunked_t`.</ins>
     The exposition-only class template <i>`impls-for`</i> ([exec.snd.general]) is specialized for <del>`bulk_t`</del><ins><i>`bulk-algo-t`</i></ins> as follows:
 
         <pre highlight="c++">
@@ -522,29 +536,9 @@ On top of that, for special cases we also want to allow option 3.
 
           1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), auto(shape), args...)` is well-formed.
 
-    3. The member <code><i>impls-for</i>&lt;<i>bulk_t</i>>::<i>complete</i></code> is initialized with a callable object equivalent to the following lambda:
-
-          <pre highlight="c++">
-          []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
-            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept
-            -> void requires <i>see below</i> {
-              auto& [policy, shape, f] = state;
-              constexpr bool nothrow = noexcept(f(auto(shape), args...));
-              auto new_f = [func=std::move(f)](Size begin, Size end, auto&&... vs)
-                  noexcept(nothrow) {
-                while (begin != end) func(begin++, vs...);
-              }
-              <i>impls-for</i>&lt;bulk_chunked_t>::<i>complete</i>(Index(),
-                <i>product-type</i>{policy, shape, std::move(new_f)},
-                rcvr, Tag(), std::forward&lt;Args>(args)...);
-            }
-          </pre>
-
-          1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), args...)` is well-formed.
-
     </div>
 
-7. Let the subexpression `out_sndr` denote the result of the invocation <del>`bulk`</del><ins><i>`bulk-with-policy`</i></ins>`(sndr, `<ins>`policy,`</ins>` shape, f)`<ins>, or `bulk_unchunked(sndr, shape, f)`,</ins> or an object equal to such, and let the subexpression `rcvr` denote a receiver such that the expression `connect(out_sndr, rcvr)` is well-formed.
+8. Let the subexpression `out_sndr` denote the result of the invocation <del>`bulk`</del><ins><i>`bulk-with-policy`</i></ins>`(sndr, `<ins>`policy,`</ins>` shape, f)`<ins>, or `bulk_unchunked(sndr, shape, f)`,</ins> or an object equal to such, and let the subexpression `rcvr` denote a receiver such that the expression `connect(out_sndr, rcvr)` is well-formed.
     The expression `connect(out_sndr, rcvr)` has undefined behavior unless it creates an asynchronous operation ([async.ops]) that, when started:
 
       - <del>on a value completion operation, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of the input sender, and</del>
@@ -580,7 +574,7 @@ On top of that, for special cases we also want to allow option 3.
             </ins>
 
 <div class="block-insert">
-8. <i>[Note: </i> The asynchronous operation corresponding to <i>`bulk-with-policy`</i>`(sndr, policy, shape, f)` or `bulk_unchunked(sndr, shape, f)` is allowed (but not required) to:
+9. <i>[Note: </i> The asynchronous operation corresponding to <i>`bulk-with-policy`</i>`(sndr, policy, shape, f)` or `bulk_unchunked(sndr, shape, f)` is allowed (but not required) to:
 
     - complete with `set_stopped()` if cancellation is requested (through the connected receiver);
     - ignore cancellation requests;
