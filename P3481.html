@@ -1564,7 +1564,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version b25686b9f, updated Fri Mar 14 14:15:20 2025 -0700" name="generator">
   <link href="http://wg21.link/P3481R3" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="bfd718a1eaef5dc947e95f77d66844b9a3c9f5bd" name="revision">
+  <meta content="e630e55a4ea31443117707e7e582bde546843f42" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2131,7 +2131,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">P3481R3<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-03-25">2025-03-25</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-03-26">2025-03-26</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2596,13 +2596,13 @@ If</p>
       <p>Let <code class="highlight"><c- n>sndr</c-></code> and <code class="highlight"><c- n>env</c-></code> be subexpressions such that <code class="highlight"><c- n>Sndr</c-></code> is <code class="highlight"><c- k>decltype</c-><c- p>((</c-><c- n>sndr</c-><c- p>))</c-></code>. If <i><code class="highlight"><c- n>sender</c-><c- o>-</c-><c- k>for</c-></code></i><code class="highlight"><c- o>&lt;</c-><c- n>Sndr</c-><c- p>,</c-> <c- n>bulk_t</c-><c- o>></c-></code> is <code class="highlight">false</code>, then the expression <code class="highlight"><c- n>bulk</c-><c- p>.</c-><c- n>transform_sender</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>env</c-><c- p>)</c-></code> is ill-formed; otherwise, it is equal to:</p>
 <pre class="highlight"><c- k>auto</c-> <c- p>[</c-><c- n>_</c-><c- p>,</c-> <c- n>data</c-><c- p>,</c-> <c- n>child</c-><c- p>]</c-> <c- o>=</c-> <c- n>sndr</c-><c- p>;</c->
 <c- k>auto</c-><c- o>&amp;</c-> <c- p>[</c-><c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>]</c-> <c- o>=</c-> <c- n>data</c-><c- p>;</c->
-<c- k>auto</c-> <c- n>new_f</c-> <c- o>=</c-> <c- p>[</c-><c- n>func</c-><c- o>=</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>f</c-><c- p>)](</c-><c- n>Size</c-> <c- n>begin</c-><c- p>,</c-> <c- n>Size</c-> <c- n>end</c-><c- p>,</c-> <c- k>auto</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>vs</c-><c- p>)</c->
+<c- k>auto</c-> <c- n>new_f</c-> <c- o>=</c-> <c- p>[</c-><c- n>func</c-><c- o>=</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>f</c-><c- p>)](</c-><c- n>Shape</c-> <c- n>begin</c-><c- p>,</c-> <c- n>Shape</c-> <c- n>end</c-><c- p>,</c-> <c- k>auto</c-><c- o>&amp;&amp;</c-><c- p>...</c-> <c- n>vs</c-><c- p>)</c->
     <c- k>noexcept</c-><c- p>(</c-><c- k>noexcept</c-><c- p>(</c-><c- n>f</c-><c- p>(</c-><c- n>begin</c-><c- p>,</c-> <c- n>vs</c-><c- p>...)))</c-> <c- p>{</c->
   <c- k>while</c-> <c- p>(</c-><c- n>begin</c-> <c- o>!=</c-> <c- n>end</c-><c- p>)</c-> <c- n>func</c-><c- p>(</c-><c- n>begin</c-><c- o>++</c-><c- p>,</c-> <c- n>vs</c-><c- p>...);</c->
 <c- p>}</c->
 <c- k>return</c-> <c- n>bulk_chunked</c-><c- p>(</c-><c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>child</c-><c- p>),</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>std</c-><c- o>::</c-><c- n>move</c-><c- p>(</c-><c- n>new_f</c-><c- p>));</c->
 </pre>
-      <p><i>[Note 1</i>: This causes the <code class="highlight"><c- n>bulk</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> sender to be expressed in terms of <code class="highlight"><c- n>bulk_chunked</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> when it is connected with a receiver whose execution domain does not customize <code class="highlight"><c- n>bulk</c-></code>. <i> — end note]</i></p>
+      <p><i>[Note ?</i>: This causes the <code class="highlight"><c- n>bulk</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> sender to be expressed in terms of <code class="highlight"><c- n>bulk_chunked</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> when it is connected with a receiver whose execution domain does not customize <code class="highlight"><c- n>bulk</c-></code>. <i> — end note]</i></p>
     </ol>
    </div>
    <ol start="7">
@@ -2736,7 +2736,7 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
    <div class="block-insert">
     <ol start="9">
      <li data-md>
-      <p><i>[Note: </i> The asynchronous operation corresponding to <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>with</c-><c- o>-</c-><c- n>policy</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> or <code class="highlight"><c- n>bulk_unchunked</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is allowed (but not required) to:</p>
+      <p><i>[Note ?: </i> The asynchronous operation corresponding to <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>with</c-><c- o>-</c-><c- n>policy</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> or <code class="highlight"><c- n>bulk_unchunked</c-><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> is allowed (but not required) to:</p>
       <ul>
        <li data-md>
         <p>complete with <code class="highlight"><c- n>set_stopped</c-><c- p>()</c-></code> if cancellation is requested (through the connected receiver);</p>

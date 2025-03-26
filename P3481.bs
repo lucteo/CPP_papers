@@ -460,14 +460,14 @@ On top of that, for special cases we also want to allow option 3.
         <pre highlight="c++">
         auto [_, data, child] = sndr;
         auto& [policy, shape, f] = data;
-        auto new_f = [func=std::move(f)](Size begin, Size end, auto&&... vs)
+        auto new_f = [func=std::move(f)](Shape begin, Shape end, auto&&... vs)
             noexcept(noexcept(f(begin, vs...))) {
           while (begin != end) func(begin++, vs...);
         }
         return bulk_chunked(std::move(child), policy, shape, std::move(new_f));
         </pre>
 
-    <i>[Note 1</i>: This causes the `bulk(sndr, policy, shape, f)` sender to be expressed in terms of `bulk_chunked(sndr, policy, shape, f)` when it is connected with a receiver whose execution domain does not customize `bulk`. <i> — end note]</i>
+    <i>[Note ?</i>: This causes the `bulk(sndr, policy, shape, f)` sender to be expressed in terms of `bulk_chunked(sndr, policy, shape, f)` when it is connected with a receiver whose execution domain does not customize `bulk`. <i> — end note]</i>
 
 </div>
 
@@ -574,7 +574,7 @@ On top of that, for special cases we also want to allow option 3.
             </ins>
 
 <div class="block-insert">
-9. <i>[Note: </i> The asynchronous operation corresponding to <i>`bulk-with-policy`</i>`(sndr, policy, shape, f)` or `bulk_unchunked(sndr, shape, f)` is allowed (but not required) to:
+9. <i>[Note ?: </i> The asynchronous operation corresponding to <i>`bulk-with-policy`</i>`(sndr, policy, shape, f)` or `bulk_unchunked(sndr, shape, f)` is allowed (but not required) to:
 
     - complete with `set_stopped()` if cancellation is requested (through the connected receiver);
     - ignore cancellation requests;
