@@ -2,6 +2,7 @@
 Source file for C++ standard papers
 
 ## Papers in this repo
+- P3609. Rendered [R0 (in progress)](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3609R0/generated/P3609.html)
 - P3481. Rendered: [latest published](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/P3481.html)
 - PXXX1 (abandoned). Rendered: [R1-in progress](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/PXXX1_abandoned.html)
 
@@ -15,7 +16,7 @@ Source file for C++ standard papers
 ## Using
 
 For continuously generate the paper as the source file is edited, run:
-- `./serve.sh <paper_source_filename>
+- `./serve.sh <paper_source_filename>`
 
 This will open the paper in the browser, and will continuously regenerate it as the source changes.
 
