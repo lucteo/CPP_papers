@@ -14,6 +14,11 @@ Source file for C++ standard papers
 
 ## Using
 
+For continuously generate the paper as the source file is edited, run:
+- `./serve.sh <paper_source_filename>
+
+This will open the paper in the browser, and will continuously regenerate it as the source changes.
+
 ### Papers using pandoc
 
 Prerequisite:
