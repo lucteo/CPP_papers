@@ -1,6 +1,6 @@
 ---
-title: On scheduler affinity in `std::lazy`
-document: P3609R0
+title: On scheduler affinity in `std::lazy` -- abandoned
+document: PXXX1R0
 date: today
 author:
     - name: Lucian Radu Teodorescu (Garmin)
