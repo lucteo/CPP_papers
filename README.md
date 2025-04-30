@@ -3,7 +3,7 @@ Source file for C++ standard papers
 
 ## Papers in this repo
 - P3481. Rendered: [latest published](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/P3481.html)
-- P3609. Rendered: [R1-in progress](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3609R0/generated/P3609.html)
+- PXXX1 (abandoned). Rendered: [R1-in progress](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/PXXX1_abandoned.html)
 
 
 ## Other papers
@@ -14,8 +14,24 @@ Source file for C++ standard papers
 
 ## Using
 
+For continuously generate the paper as the source file is edited, run:
+- `./serve.sh <paper_source_filename>
+
+This will open the paper in the browser, and will continuously regenerate it as the source changes.
+
+### Papers using pandoc
+
 Prerequisite:
-- install `pipx`; follow setps at [official documentation](https://pipx.pypa.io/latest/installation/#installing-pipx)
+- install `pandoc`; follow steps at [official documentation](https://pandoc.org/installing.html)
+
+To generate the output file once:
+- run `make -f wg21/Makefile <paper_name>.html
+  - the paper with source at `<paper_name>.md` will be generated at `generated/<paper_name>.html`
+
+### Papers using bikeshed
+
+Prerequisite:
+- install `pipx`; follow steps at [official documentation](https://pipx.pypa.io/latest/installation/#installing-pipx)
 
 To generate the output file once:
 - run `pipx run bikeshed spec <bikeshed_filename>`
