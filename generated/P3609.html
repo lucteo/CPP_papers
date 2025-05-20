@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-04-30" />
+  <meta name="dcterms.date" content="2025-05-21" />
   <title>Improving error reporting</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ reporting</h1>
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-04-30</td>
+    <td>2025-05-21</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -495,10 +495,104 @@ differently; library authors who try to improve error reporting on one
 compiler often make the errors hard to interpret on other compilers.</p>
 <p>This paper proposes a mechanism by which library authors can control
 error reporting for some misuses of their library.</p>
-<h1 class="unnumbered unlisted" id="changed-history">Changed history<a href="#changed-history" class="self-link"></a></h1>
-<p>TODO</p>
+<!-- # Change history # {- .unlisted}
+
+TODO -->
 <h1 data-number="1" id="motivation"><span class="header-section-number">1</span> Motivation<a href="#motivation" class="self-link"></a></h1>
-<p>TODO</p>
+<p>C++ is notoriously bad at error reporting. This is especially true if
+the error is related to template instantiations. Concepts help, but
+oftentimes errors produced are long and confusing. Other techniques,
+like using <code class="sourceCode cpp"><span class="kw">static_assert</span></code>s in
+the body of the functions help, but they too have limitations.</p>
+<p>Here is an example of erroneous C++ code:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>std::tuple&lt;int, double&gt; t;</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>auto x = std::get&lt;float&gt;(t);</span></code></pre></div>
+<p>On gcc 15.1, this produces an error log similar to:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>In file included from &lt;source&gt;:1:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-15.1.0/include/c++/15.1.0/tuple: In instantiation of &#39;constexpr _Tp&amp; std::get(tuple&lt;_Elements ...&gt;&amp;) [with _Tp = float; _Types = {int, double}]&#39;:</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:29:   required from here</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    5 |     auto x = std::get&lt;float&gt;(t);</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      |              ~~~~~~~~~~~~~~~^~~</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-15.1.0/include/c++/15.1.0/tuple:2485:27: error: static assertion failed: the type T in std::get&lt;T&gt; must occur exactly once in the tuple</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a> 2485 |       static_assert(__idx &lt; sizeof...(_Types),</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      |                     ~~~~~~^~~~~~~~~~~~~~~~~~~</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-15.1.0/include/c++/15.1.0/tuple:2485:27: note: the comparison reduces to &#39;(2 &lt; 2)&#39;</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-15.1.0/include/c++/15.1.0/tuple:2487:38: error: use of deleted function &#39;std::__enable_if_t&lt;(__i &gt;= sizeof... (_Types))&gt; std::__get_helper(const tuple&lt;_Elements ...&gt;&amp;) [with long unsigned int __i = 2; _Types = {int, double}; __enable_if_t&lt;(__i &gt;= sizeof... (_Types))&gt; = void]&#39;</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a> 2487 |       return std::__get_helper&lt;__idx&gt;(__t);</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>      |              ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-15.1.0/include/c++/15.1.0/tuple:2439:5: note: declared here</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a> 2439 |     __get_helper(const tuple&lt;_Types...&gt;&amp;) = delete;</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>      |     ^~~~~~~~~~~~</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-15.1.0/include/c++/15.1.0/tuple:2487:38: note: use &#39;-fdiagnostics-all-candidates&#39; to display considered candidates</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a> 2487 |       return std::__get_helper&lt;__idx&gt;(__t);</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>      |              ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>Compiler returned: 1</span></code></pre></div>
+<p>On clang 20.1.0 we have:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>In file included from &lt;source&gt;:1:</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-14.2.0/lib/gcc/x86_64-linux-gnu/14.2.0/../../../../include/c++/14.2.0/tuple:2484:21: error: static assertion failed due to requirement &#39;__idx &lt; sizeof...(_Types)&#39;: the type T in std::get&lt;T&gt; must occur exactly once in the tuple</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> 2484 |       static_assert(__idx &lt; sizeof...(_Types),</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>      |                     ^~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:19: note: in instantiation of function template specialization &#39;std::get&lt;float, int, double&gt;&#39; requested here</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    5 |     auto x = std::get&lt;float&gt;(t);</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>      |                   ^</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-14.2.0/lib/gcc/x86_64-linux-gnu/14.2.0/../../../../include/c++/14.2.0/tuple:2484:27: note: expression evaluates to &#39;2 &lt; 2&#39;</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a> 2484 |       static_assert(__idx &lt; sizeof...(_Types),</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>      |                     ~~~~~~^~~~~~~~~~~~~~~~~~~</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-14.2.0/lib/gcc/x86_64-linux-gnu/14.2.0/../../../../include/c++/14.2.0/tuple:2486:14: error: call to deleted function &#39;__get_helper&#39;</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a> 2486 |       return std::__get_helper&lt;__idx&gt;(__t);</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>      |              ^~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-14.2.0/lib/gcc/x86_64-linux-gnu/14.2.0/../../../../include/c++/14.2.0/tuple:2438:5: note: candidate function [with __i = 2, _Types = &lt;int, double&gt;] has been explicitly deleted</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a> 2438 |     __get_helper(const tuple&lt;_Types...&gt;&amp;) = delete;</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>      |     ^</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-14.2.0/lib/gcc/x86_64-linux-gnu/14.2.0/../../../../include/c++/14.2.0/tuple:2427:5: note: candidate template ignored: could not match &#39;_Tuple_impl&#39; against &#39;tuple&#39;</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a> 2427 |     __get_helper(_Tuple_impl&lt;__i, _Head, _Tail...&gt;&amp; __t) noexcept</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>      |     ^</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-14.2.0/lib/gcc/x86_64-linux-gnu/14.2.0/../../../../include/c++/14.2.0/tuple:2432:5: note: candidate template ignored: could not match &#39;_Tuple_impl&#39; against &#39;tuple&#39;</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a> 2432 |     __get_helper(const _Tuple_impl&lt;__i, _Head, _Tail...&gt;&amp; __t) noexcept</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>      |     ^</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-14.2.0/lib/gcc/x86_64-linux-gnu/14.2.0/../../../../include/c++/14.2.0/tuple:2486:14: error: non-const lvalue reference to type &#39;float&#39; cannot bind to a temporary of type &#39;__enable_if_t&lt;(2UL &gt;= sizeof...(_Types))&gt;&#39; (aka &#39;void&#39;)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a> 2486 |       return std::__get_helper&lt;__idx&gt;(__t);</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>3 errors generated.</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>Compiler returned: 1</span></code></pre></div>
+<p>(The output is copied verbatim from Compiler Explorer, using
+indicated compilers, with no extra compiler flags.)</p>
+<p>There are several problems with this diagnostic that will make it
+hard for the users to understand where the source of the problem
+lies:</p>
+<ul>
+<li>the actual error doesn’t properly say what is wrong
+<ul>
+<li>the code points to <code class="sourceCode cpp">__idx <span class="op">&lt;</span> <span class="kw">sizeof</span><span class="op">...(</span>_Types<span class="op">)</span></code>,
+but that has nothing familiar to the user</li>
+<li>the error message says <code class="sourceCode cpp">the type T in std<span class="op">::</span>get<span class="op">&lt;</span>T<span class="op">&gt;</span> must occur exactly once in the tuple</code>,
+but that is not very specific.</li>
+</ul></li>
+<li>the actual error source is inside of the standard library, not in
+the user code
+<ul>
+<li>in both cases, there is a note pointing to the user code, buried
+inside of multiple lines of library error/nodes</li>
+</ul></li>
+<li>we see secondary errors in the output</li>
+<li>the error message is too long, contains too much noise, making it
+harder to focus on the real issue</li>
+</ul>
+<p>What we really want instead is something like:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:19: error: there is no element of type `float` in tuple with types &lt;int, double&gt;</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    5 |     auto x = std::get&lt;float&gt;(t);</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>      |                   ^</span></code></pre></div>
+<p>That is it; no extra line pointing inside the source code of standard
+library.</p>
+<p>If, on the other hand, we slightly change the problem to the
+following code:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>std::tuple&lt;int, double, float, float&gt; t;</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>auto x = std::get&lt;float&gt;(t);</span></code></pre></div>
+<p>, the exact call to <code class="sourceCode cpp">std<span class="op">::</span>get<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;</span></code>
+should produce an error message like:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:19: error: the element of type `float` in appears multiple times in tuple with types &lt;int, double, float, float&gt;</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    5 |     auto x = std::get&lt;float&gt;(t);</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>      |                   ^</span></code></pre></div>
 <h1 data-number="2" id="examples"><span class="header-section-number">2</span> Examples<a href="#examples" class="self-link"></a></h1>
 <p>TODO</p>
 <h1 data-number="3" id="design-overview"><span class="header-section-number">3</span> Design overview<a href="#design-overview" class="self-link"></a></h1>
@@ -509,6 +603,13 @@ error reporting for some misuses of their library.</p>
 <p>TODO</p>
 <h1 data-number="6" id="specification"><span class="header-section-number">6</span> Specification<a href="#specification" class="self-link"></a></h1>
 <p>TODO</p>
+<!--
+References:
+- https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1267r0.pdf
+- https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2429r0.pdf
+- https://discourse.llvm.org/t/rfc-improving-clang-s-diagnostics/62584/1
+
+-->
 </div>
 </div>
 </body>
