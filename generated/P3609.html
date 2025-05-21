@@ -454,9 +454,19 @@ reporting</h1>
 <h1 id="toctitle">Contents</h1>
 <ul>
 <li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">1</span> Motivation<span></span></a></li>
-<li><a href="#examples" id="toc-examples"><span class="toc-section-number">2</span> Examples<span></span></a></li>
-<li><a href="#design-overview" id="toc-design-overview"><span class="toc-section-number">3</span> Design
-overview<span></span></a></li>
+<li><a href="#examples" id="toc-examples"><span class="toc-section-number">2</span> Examples<span></span></a>
+<ul>
+<li><a href="#stdexec-sender-mismatch" id="toc-stdexec-sender-mismatch"><span class="toc-section-number">2.1</span>
+<code class="sourceCode cpp">stdexec</code> sender
+mismatch<span></span></a></li>
+</ul></li>
+<li><a href="#design-overview" id="toc-design-overview"><span class="toc-section-number">3</span> Design overview<span></span></a>
+<ul>
+<li><a href="#rules-around-instantiation-error-handler" id="toc-rules-around-instantiation-error-handler"><span class="toc-section-number">3.1</span> Rules around instantiation error
+handler<span></span></a></li>
+<li><a href="#library-support" id="toc-library-support"><span class="toc-section-number">3.2</span> Library
+support<span></span></a></li>
+</ul></li>
 <li><a href="#discussions" id="toc-discussions"><span class="toc-section-number">4</span> Design
 discussions<span></span></a></li>
 <li><a href="#implementation" id="toc-implementation"><span class="toc-section-number">5</span> Implementation<span></span></a></li>
@@ -579,7 +589,7 @@ inside of multiple lines of library error/nodes</li>
 harder to focus on the real issue</li>
 </ul>
 <p>What we really want instead is something like:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:19: error: there is no element of type `float` in tuple with types &lt;int, double&gt;</span>
+<div class="sourceCode" id="cb4"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:19: error: there is no element of type &#39;float&#39; in tuple with types &lt;int, double&gt;</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    5 |     auto x = std::get&lt;float&gt;(t);</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>      |                   ^</span></code></pre></div>
 <p>That is it; no extra line pointing inside the source code of standard
@@ -590,13 +600,182 @@ following code:</p>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>auto x = std::get&lt;float&gt;(t);</span></code></pre></div>
 <p>, the exact call to <code class="sourceCode cpp">std<span class="op">::</span>get<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;</span></code>
 should produce an error message like:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:19: error: the element of type `float` in appears multiple times in tuple with types &lt;int, double, float, float&gt;</span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:19: error: the element of type &#39;float&#39; appears multiple times in tuple with types &lt;int, double, float, float&gt;</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    5 |     auto x = std::get&lt;float&gt;(t);</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>      |                   ^</span></code></pre></div>
 <h1 data-number="2" id="examples"><span class="header-section-number">2</span> Examples<a href="#examples" class="self-link"></a></h1>
-<p>TODO</p>
+<h2 data-number="2.1" id="stdexec-sender-mismatch"><span class="header-section-number">2.1</span>
+<code class="sourceCode cpp">stdexec</code> sender mismatch<a href="#stdexec-sender-mismatch" class="self-link"></a></h2>
+<p>For the given snipped:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ex::sender auto s = ex::just() | ex::then([](int x) { return x; });</span></code></pre></div>
+<p>we get the following errors on clang 20.1.0:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>In file included from &lt;source&gt;:1:</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>In file included from /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/execution.hpp:33:</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>In file included from /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__execute.hpp:25:</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__then.hpp:48:62: error: deduced type &#39;stdexec::(anonymous namespace)::__sexpr&lt;stdexec::(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt;&#39; does not satisfy &#39;__well_formed_sender&#39;</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>   48 |       auto operator()(_Sender&amp;&amp; __sndr, _Fun __fun) const -&gt; __well_formed_sender auto {</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>      |                                                              ^~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__meta.hpp:901:36: note: in instantiation of function template specialization &#39;stdexec::__then::then_t::operator()&lt;stdexec::(anonymous namespace)::__sexpr&lt;stdexec::(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt;, (lambda at &lt;source&gt;:6:47)&gt;&#39; requested here</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  901 |   using __call_result_t = decltype(__declval&lt;_Fun&gt;()(__declval&lt;_As&gt;()...));</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>      |                                    ^</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__sender_adaptor_closure.hpp:123:14: note: in instantiation of template type alias &#39;__call_result_t&#39; requested here</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  123 |           -&gt; __call_result_t&lt;_Fun, _Sender, _As...&gt; {</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>      |              ^</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__meta.hpp:901:36: note: while substituting deduced template arguments into function template &#39;operator()&#39; [with _Sender = stdexec::(anonymous namespace)::__sexpr&lt;stdexec::(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt;]</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  901 |   using __call_result_t = decltype(__declval&lt;_Fun&gt;()(__declval&lt;_As&gt;()...));</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>      |                                    ^</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__sender_adaptor_closure.hpp:74:10: note: in instantiation of template type alias &#39;__call_result_t&#39; requested here</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>   74 |       -&gt; __call_result_t&lt;_Closure, _Sender&gt; {</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>      |          ^</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:6:36: note: while substituting deduced template arguments into function template &#39;operator|&#39; [with _Sender = __sexpr_t&lt;just_t, __tuple&lt;nullptr&gt;&gt;, _Closure = __binder_back&lt;then_t, (lambda at &lt;source&gt;:6:47)&gt;]</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    6 |     ex::sender auto s = ex::just() | ex::then([](int x) { return x; });</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>      |                                    ^</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__senders.hpp:345:34: note: because &#39;__minvoke&lt;__with_default_q&lt;__completion_signatures_of_t, dependent_completions&gt;, __sexpr&lt;(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt;&gt;&#39; (aka &#39;_ERROR_&lt;stdexec::_NOT_CALLABLE_&lt;__mstring&lt;38UL&gt;{&quot;In stdexec::then(Sender, Function)[...]&quot;}, __mstring&lt;68UL&gt;{&quot;The specified function is not call[...]&quot;}&gt;, stdexec::_WITH_FUNCTION_&lt;(lambda at &lt;source&gt;:6:47)&gt;, stdexec::_WITH_ARGUMENTS_&lt;&gt;&gt;&#39;) does not satisfy &#39;__well_formed_completions&#39;</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  345 |   concept __well_formed_sender = __detail::__well_formed_completions&lt;</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>      |                                  ^</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__senders.hpp:51:41: note: because &#39;__well_formed_completions_v&lt;stdexec::_ERROR_&lt;stdexec::_NOT_CALLABLE_&lt;__mstring&lt;38UL&gt;{&quot;In stdexec::then(Sender, Function)...&quot;}&gt;, stdexec::_WITH_FUNCTION_&lt;(lambda at &lt;source&gt;:6:47)&gt;, stdexec::_WITH_ARGUMENTS_&lt;&gt; &gt; &gt;&#39; evaluated to false</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>   51 |     concept __well_formed_completions = __well_formed_completions_v&lt;_Completions&gt;;</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>      |                                         ^</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:6:36: error: invalid operands to binary expression (&#39;__sexpr_t&lt;just_t, __tuple&lt;nullptr&gt;&gt;&#39; (aka &#39;__sexpr&lt;stdexec::__descriptor_fn_v&lt;stdexec::__detail::__desc&lt;just_t, __tuple&lt;nullptr&gt;&gt;&gt;&gt;&#39;) and &#39;__binder_back&lt;then_t, (lambda at &lt;source&gt;:6:47)&gt;&#39;)</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    6 |     ex::sender auto s = ex::just() | ex::then([](int x) { return x; });</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>      |                         ~~~~~~~~~~ ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__sender_adaptor_closure.hpp:73:45: note: candidate template ignored: substitution failure [with _Sender = __sexpr_t&lt;just_t, __tuple&lt;nullptr&gt;&gt;, _Closure = __binder_back&lt;then_t, (lambda at &lt;source&gt;:6:47)&gt;]: no matching function for call to object of type &#39;stdexec::__closure::__binder_back&lt;stdexec::__then::then_t, (lambda at &lt;source&gt;:6:47)&gt;&#39;</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>   73 |     STDEXEC_ATTRIBUTE((always_inline)) auto operator|(_Sender&amp;&amp; __sndr, _Closure&amp;&amp; __clsur) //</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>      |                                             ^</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__sender_adaptor_closure.hpp:79:45: note: candidate template ignored: constraints not satisfied [with _T0 = __sexpr_t&lt;just_t, __tuple&lt;nullptr&gt;&gt;, _T1 = __binder_back&lt;then_t, (lambda at &lt;source&gt;:6:47)&gt;]</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>   79 |     STDEXEC_ATTRIBUTE((always_inline)) auto operator|(_T0&amp;&amp; __t0, _T1&amp;&amp; __t1) //</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>      |                                             ^</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__sender_adaptor_closure.hpp:78:15: note: because &#39;stdexec::(anonymous namespace)::__sexpr&lt;stdexec::(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt;&#39; does not satisfy &#39;__sender_adaptor_closure&#39;</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>   78 |     template &lt;__sender_adaptor_closure _T0, __sender_adaptor_closure _T1&gt;</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>      |               ^</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__sender_adaptor_closure.hpp:36:5: note: because &#39;derived_from&lt;__decay_t&lt;__sexpr&lt;(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt; &gt;, sender_adaptor_closure&lt;__decay_t&lt;__sexpr&lt;(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt; &gt; &gt; &gt;&#39; evaluated to false</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>   36 |     derived_from&lt;__decay_t&lt;_Tp&gt;, sender_adaptor_closure&lt;__decay_t&lt;_Tp&gt;&gt;&gt;</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>      |     ^</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/gcc-14.2.0/lib/gcc/x86_64-linux-gnu/14.2.0/../../../../include/c++/14.2.0/concepts:74:28: note: because &#39;__is_base_of(stdexec::__closure::sender_adaptor_closure&lt;stdexec::(anonymous namespace)::__sexpr&lt;stdexec::(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt; &gt;, stdexec::(anonymous namespace)::__sexpr&lt;stdexec::(lambda at /opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__basic_sender.hpp:45:7){}&gt;)&#39; evaluated to false</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>   74 |     concept derived_from = __is_base_of(_Base, _Derived)</span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>      |                            ^</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/execution.hpp:78:6: note: candidate template ignored: constraints not satisfied [with _Ignore = __sexpr_t&lt;just_t, __tuple&lt;nullptr&gt;&gt;, _Sender = __binder_back&lt;then_t, (lambda at &lt;source&gt;:6:47)&gt;]</span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>   78 | auto operator|(_Ignore&amp;&amp;, _Sender&amp;&amp;) noexcept;</span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>      |      ^</span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/execution.hpp:76:36: note: because &#39;stdexec::__closure::__binder_back&lt;stdexec::__then::then_t, (lambda at &lt;source&gt;:6:47)&gt;&#39; does not satisfy &#39;sender&#39;</span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>   76 | template &lt;stdexec::sender _Ignore, stdexec::sender _Sender&gt;</span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>      |                                    ^</span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>/opt/compiler-explorer/libs/stdexec/trunk/include/stdexec/__detail/__senders_core.hpp:49:5: note: because &#39;enable_sender&lt;__decay_t&lt;__binder_back&lt;then_t, (lambda at &lt;source&gt;:6:47)&gt; &gt; &gt;&#39; evaluated to false</span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>   49 |     enable_sender&lt;__decay_t&lt;_Sender&gt;&gt;                     //</span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>      |     ^</span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>2 errors generated.</span></code></pre></div>
+<p>Notes:</p>
+<ul>
+<li><code class="sourceCode cpp">stdexec</code> does some heavy lifting
+to produce some errors that contain some meaningful hints to the user:
+<ul>
+<li><code><em>ERROR</em>&lt;stdexec::<em>NOT_CALLABLE</em>&lt;__mstring&lt;38UL&gt;{“In
+stdexec::then(Sender, Function)[…]”}, __mstring&lt;68UL&gt;{“The
+specified function is not call[…]”}&gt;,
+stdexec::<em>WITH_FUNCTION</em>&lt;(lambda at <source>:6:47)&gt;,
+stdexec::<em>WITH_ARGUMENTS</em>&lt;&gt;&gt;‘) does not
+satisfy’__well_formed_completions</code></li>
+<li><code>because
+’__well_formed_completions_v&lt;stdexec::<em>ERROR</em>&lt;stdexec::<em>NOT_CALLABLE</em>&lt;__mstring&lt;38UL&gt;{“In
+stdexec::then(Sender, Function)…”}&gt;,
+stdexec::<em>WITH_FUNCTION</em>&lt;(lambda at <source>:6:47)&gt;,
+stdexec::<em>WITH_ARGUMENTS</em>&lt;&gt; &gt; &gt;’ evaluated to
+false</code></li>
+</ul></li>
+<li>while these may provide good hints, they still don’t properly tell
+the user what is wrong</li>
+<li>please note that the messages are cut</li>
+<li>these error messages don’t work well on all compilers (e.g.,
+MSVC)</li>
+</ul>
+<p>A better error message would be:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:6:36: error: function passed to &#39;then&#39; cannot be called with values produced by the previous sender: ()</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    6 |     ex::sender auto s = ex::just() | ex::then([](int x) { return x; });</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>      |                         ~~~~~~~~~~ ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:6:36: note: use &#39;-fexpand-errors=2&#39; to view more information</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    6 |     ex::sender auto s = ex::just() | ex::then([](int x) { return x; });</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>      |                         ~~~~~~~~~~ ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span></code></pre></div>
+<p>Here we envision a new compiler flag that controls how much of the
+error is expanded. Passing <code class="sourceCode cpp"><span class="op">-</span>fexpand<span class="op">-</span>errors<span class="op">=</span><span class="dv">2</span></code>
+here would produce the following output:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:6:36: error: function passed to &#39;then&#39; cannot be called with values produced by the previous sender: ()</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    6 |     ex::sender auto s = ex::just() | ex::then([](int x) { return x; });</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>      |                         ~~~~~~~~~~ ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:6:25: note: previous sender produces the following completion signatures: &#39;set_value()&#39;</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    6 |     ex::sender auto s = ex::just() | ex::then([](int x) { return x; });</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>      |                         ^ ~~~~~~~~</span></code></pre></div>
+<p>The examples involving senders are particularly interesting as,
+sometimes we detect an error only after we’ve built the entire flow of
+senders. In other words, the same expression might be valid or not
+depending on what senders follow after it.</p>
 <h1 data-number="3" id="design-overview"><span class="header-section-number">3</span> Design overview<a href="#design-overview" class="self-link"></a></h1>
+<p>For the <code class="sourceCode cpp">tuple</code> example given in
+the motivation, we envision the author of the library would annotate the
+<code class="sourceCode cpp">get</code> function template in the
+following way:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> T, <span class="kw">typename</span><span class="op">...</span> Types<span class="op">&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">constexpr</span> T<span class="op">&amp;</span> get<span class="op">(</span>tuple<span class="op">&lt;</span>Types<span class="op">...&gt;&amp;</span> t<span class="op">)</span> <span class="kw">noexcept</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">requires</span><span class="op">(...)</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">catch</span><span class="op">(</span>report_instantiation_errors<span class="op">&lt;</span>T, Types<span class="op">...&gt;())</span> <span class="co">// NEW</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="op">{...}</span></span></code></pre></div>
+<p>We add the <code class="sourceCode cpp"><span class="cf">catch</span><span class="op">(...)</span></code>
+syntax to introduce an <em>instantiation error handler</em>. This
+handler is called whenever the function fails to instantiate. In this
+case, if we fail to instantiate <code class="sourceCode cpp">get<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;(</span>t<span class="op">)</span></code>,
+the <code class="sourceCode cpp">report_instantiation_errors<span class="op">&lt;</span>T, Types<span class="op">...&gt;()</span></code>
+function will be called at compile-time. This function may look
+something like the following:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> T, <span class="kw">typename</span><span class="op">...</span> Types<span class="op">&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">consteval</span> std<span class="op">::</span>diagnostics<span class="op">::</span>diagnostic report_instantiation_errors<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> <span class="kw">namespace</span> std<span class="op">::</span>diagnostics;</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>type_count<span class="op">&lt;</span>T, Types<span class="op">...&gt;()</span> <span class="op">&gt;</span> <span class="dv">1</span><span class="op">)</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> error<span class="op">(</span><span class="st">&quot;the element of type &#39;&quot;</span>, type<span class="op">&lt;</span>T<span class="op">&gt;()</span>, <span class="st">&quot;&#39; appears multiple times in tuple with types &quot;</span>, types<span class="op">&lt;</span>Types<span class="op">...&gt;)</span>;</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> error<span class="op">(</span><span class="st">&quot;there is no element of type &#39;&quot;</span>, type<span class="op">&lt;</span>T<span class="op">&gt;()</span>, <span class="st">&quot;&#39; in tuple with types &quot;</span>, types<span class="op">&lt;</span>Types<span class="op">...&gt;)</span>;</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Here, the <code class="sourceCode cpp">std<span class="op">::</span>diagnostic</code>
+namespace is provided as part of this feature, and
+<code class="sourceCode cpp">error</code>,
+<code class="sourceCode cpp">type</code> and
+<code class="sourceCode cpp">types</code> are function declarations in
+this namespace.</p>
+<p>The main idea is that this function will be evaluated if we cannot
+instantiate the <code class="sourceCode cpp">get</code> function. The
+result of calling this function will be reported by the compiler as a
+diagnostic. In this case the diagnostic isa simple error; but, we can
+easily imagine cases in which we produce an error plus a series of
+additional notes.</p>
+<h2 data-number="3.1" id="rules-around-instantiation-error-handler"><span class="header-section-number">3.1</span> Rules around instantiation
+error handler<a href="#rules-around-instantiation-error-handler" class="self-link"></a></h2>
+<p>For an instantiation error handler expression we have the following
+rules:</p>
+<ul>
+<li>can be applied to templates (class, function, variables) or
+concepts</li>
+<li>will only be evaluated if an instantiation error occurs on the
+corresponding declaration</li>
+<li>can use the same expressions that can be used in a
+<code class="sourceCode cpp"><span class="kw">requires</span></code>
+clause</li>
+<li>can use the source-code locations of the template arguments
+(TODO)</li>
+<li>can use the source-code locations of the arguments, in case of
+functions (TODO)</li>
+</ul>
+<h2 data-number="3.2" id="library-support"><span class="header-section-number">3.2</span> Library support<a href="#library-support" class="self-link"></a></h2>
 <p>TODO</p>
+<ul>
+<li>representing diagnostics</li>
+<li>representing errors and notes</li>
+<li>representing source code locations</li>
+<li>obtaining source code locations from function arguments and template
+arguments</li>
+<li>printing types, type lists</li>
+<li>obtaining the value passed to the <code class="sourceCode cpp"><span class="op">-</span>fexpand<span class="op">-</span>errors</code>
+compiler flag</li>
+<li>try instantiating a template and get the corresponding error (custom
+messages only, or final messages)</li>
+</ul>
 <h1 data-number="4" id="discussions"><span class="header-section-number">4</span> Design discussions<a href="#discussions" class="self-link"></a></h1>
 <p>TODO</p>
 <h1 data-number="5" id="implementation"><span class="header-section-number">5</span> Implementation<a href="#implementation" class="self-link"></a></h1>
