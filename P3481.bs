@@ -1,6 +1,6 @@
 <pre class='metadata'>
 Title: `std::execution::bulk()` issues
-Shortname: P3481
+Shortname: D3481
 Level: 4
 Status: P
 Group: wg21
@@ -9,7 +9,7 @@ Editor: Lucian Radu Teodorescu, Garmin, lucteo@lucteo.ro
         Lewis Baker, lewissbaker@gmail.com
         Mark Hoemmen, NVIDIA, mhoemmen@nvidia.com
 Audience: SG1, LEWG, LWG
-URL: http://wg21.link/P3481R3
+URL: http://wg21.link/D3481R4
 Abstract: This paper explores the issues with `std::execution::bulk` algorithm and proposes a way to address them,
           making the API better for the users.
 Markup Shorthands: markdown yes
