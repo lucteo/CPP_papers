@@ -5,8 +5,8 @@ Level: 4
 Status: P
 Group: wg21
 Editor: Lucian Radu Teodorescu, Garmin, lucteo@lucteo.ro
-        Lewis Baker, lewissbaker@gmail.com
         Ruslan Arutyunyan, Intel, ruslan.arutyunyan@intel.com
+        Lewis Baker, lewissbaker@gmail.com
         Mark Hoemmen, NVIDIA, mhoemmen@nvidia.com
 Audience: SG1, LEWG, LWG
 URL: http://wg21.link/P3481R3
