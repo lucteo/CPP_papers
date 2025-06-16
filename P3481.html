@@ -1564,7 +1564,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version 275834c42, updated Wed Jun 11 14:18:15 2025 -0700" name="generator">
   <link href="http://wg21.link/P3481R3" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="5a6b5d0fa33491c17466ecd1eb444059266eacf1" name="revision">
+  <meta content="1298b7382a1ed6ade391b0b52576deb1e0886040" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2132,7 +2132,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">P3481R4<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
    <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal,
-    <time class="dt-updated" datetime="2025-06-16">2025-06-16</time></span></h2>
+    <time class="dt-updated" datetime="2025-06-17">2025-06-17</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2336,12 +2336,14 @@ This is particularly important when the functor passed to <code class="highlight
                                     <c- n>Size</c-> <c- n>size</c-><c- p>,</c->
                                     <c- n>Func</c-> <c- n>f</c-><c- p>);</c->
 
-<c- c1>// NEW: algorithm to ensure one execution agent per iteration</c->
+<c- c1>// NEW: algorithm to be used when one execution agent per iteration is desired</c->
 <c- k>template</c-><c- o>&lt;</c-><c- n>execution</c-><c- o>::</c-><c- n>sender</c-> <c- n>Predecessor</c-><c- p>,</c->
+         <c- k>typename</c-> <c- nc>ExecutionPolicy</c-><c- p>,</c->
          <c- n>std</c-><c- o>::</c-><c- n>integral</c-> <c- n>Size</c-><c- p>,</c->
          <c- n>std</c-><c- o>::</c-><c- n>invocable</c-><c- o>&lt;</c-><c- n>Size</c-><c- p>,</c-> <c- n>values</c-><c- o>-</c-><c- n>sent</c-><c- o>-</c-><c- n>by</c-><c- p>(</c-><c- n>Predecessor</c-><c- p>)...</c-><c- o>></c-> <c- n>Func</c->
 <c- o>></c->
 <c- n>execution</c-><c- o>::</c-><c- n>sender</c-> <c- k>auto</c-> <c- n>bulk_unchunked</c-><c- p>(</c-><c- n>Predecessor</c-> <c- n>pred</c-><c- p>,</c->
+                                      <c- n>ExecutionPolicy</c-><c- o>&amp;&amp;</c-> <c- n>pol</c-><c- p>,</c->
                                       <c- n>Size</c-> <c- n>size</c-><c- p>,</c->
                                       <c- n>Func</c-> <c- n>f</c-><c- p>);</c->
 
@@ -2390,7 +2392,10 @@ on a distinct execution agent:</p>
      <p>Even for schedulers with a weaker forward progress guarantee, users sometimes have performance reasons
  to control the distribution of loop iterations to execution agents.</p>
    </ol>
-   <p>We incorporated this design suggestion from <a data-link-type="biblio" href="#biblio-p3564r0" title="Make the concurrent forward progress guarantee usable in `bulk`">[P3564R0]</a> into this paper and name this API <code class="highlight"><c- n>bulk_unchunked</c-></code>.</p>
+   <p>Revisions R2 and R3 originally incorporated this design suggestion from <a data-link-type="biblio" href="#biblio-p3564r0" title="Make the concurrent forward progress guarantee usable in `bulk`">[P3564R0]</a> into this paper and name this API <code class="highlight"><c- n>bulk_unchunked</c-></code>.
+After further discussions in Sofia 2025, we realized that these two directions do not overlap well, and that it likely deserve separate APIs for the two design aspects.
+We decided that we can have <code class="highlight"><c- n>bulk_unchunked</c-></code> as an algorithm to be used when the user wants to execute each iteration on a distinct execution agent, and a new algorithm <code class="highlight"><c- n>bulk_concurrent</c-></code> that explicitly deals with concurrent forward progress guarantee.</p>
+   <p>This paper proposes <code class="highlight"><c- n>bulk_chunked</c-></code>, but does not propose <code class="highlight"><c- n>bulk_concurrent</c-></code>, leaving this for future work.</p>
    <h3 class="heading settled" data-level="4.3" id="design.policies"><span class="secno">4.3. </span><span class="content">Using execution policies</span><a class="self-link" href="#design.policies"></a></h3>
    <p>As discussed in the <a href="#motivation">§ 2 Motivation</a> section, not having the possibility to specify execution policies for the <code class="highlight"><c- n>bulk</c-></code> algorithm is a downside.
 On the one hand, defaulting to any policy other than <code class="highlight"><c- n>seq</c-></code> might lead to deadlocks.
@@ -2412,7 +2417,7 @@ Something like:</p>
 <c- k>auto</c-> <c- n>bulk_chunked_par_unseq</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>);</c->
 </pre>
    <p>We dropped this idea, as this isn’t scalable.</p>
-   <p>On the other hand, it’s quite easy to write a thin wrapper on top of <code class="highlight"><c- n>bulk</c-></code> / <code class="highlight"><c- n>bulk_chunked</c-></code> on the user side that calls the algorithm
+   <p>On the other hand, it’s quite easy to write a thin wrapper on top of <code class="highlight"><c- n>bulk</c-></code> / <code class="highlight"><c- n>bulk_chunked</c-></code> / <code class="highlight"><c- n>bulk_unchunked</c-></code> on the user side that calls the algorithm
 with the execution policy of choice.
 Something like:</p>
 <pre class="language-cpp highlight"><c- k>auto</c-> <c- n>user_bulk_par</c-><c- p>(</c-><c- k>auto</c-> <c- n>prev</c-><c- p>,</c-> <c- k>auto</c-> <c- n>size</c-><c- p>,</c-> <c- k>auto</c-> <c- n>f</c-><c- p>)</c-> <c- p>{</c->

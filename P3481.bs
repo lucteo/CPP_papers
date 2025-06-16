@@ -198,12 +198,14 @@ execution::sender auto bulk_chunked(Predecessor pred,
                                     Size size,
                                     Func f);
 
-// NEW: algorithm to ensure one execution agent per iteration
+// NEW: algorithm to be used when one execution agent per iteration is desired
 template<execution::sender Predecessor,
+         typename ExecutionPolicy,
          std::integral Size,
          std::invocable<Size, values-sent-by(Predecessor)...> Func
 >
 execution::sender auto bulk_unchunked(Predecessor pred,
+                                      ExecutionPolicy&& pol,
                                       Size size,
                                       Func f);
 
@@ -260,7 +262,11 @@ on a distinct execution agent:
 1. Even for schedulers with a weaker forward progress guarantee, users sometimes have performance reasons
      to control the distribution of loop iterations to execution agents.
 
-We incorporated this design suggestion from [[P3564R0]] into this paper and name this API `bulk_unchunked`.
+Revisions R2 and R3 originally incorporated this design suggestion from [[P3564R0]] into this paper and name this API `bulk_unchunked`.
+After further discussions in Sofia 2025, we realized that these two directions do not overlap well, and that it likely deserve separate APIs for the two design aspects.
+We decided that we can have `bulk_unchunked` as an algorithm to be used when the user wants to execute each iteration on a distinct execution agent, and a new algorithm `bulk_concurrent` that explicitly deals with concurrent forward progress guarantee.
+
+This paper proposes `bulk_chunked`, but does not propose `bulk_concurrent`, leaving this for future work.
 
 ## Using execution policies ## {#design.policies}
 
@@ -290,7 +296,7 @@ auto bulk_chunked_par_unseq(auto prev, auto size, auto f);
 
 We dropped this idea, as this isn't scalable.
 
-On the other hand, it's quite easy to write a thin wrapper on top of `bulk` / `bulk_chunked` on the user side that calls the algorithm
+On the other hand, it's quite easy to write a thin wrapper on top of `bulk` / `bulk_chunked` / `bulk_unchunked` on the user side that calls the algorithm
 with the execution policy of choice.
 Something like:
 
