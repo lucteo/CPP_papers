@@ -1,14 +1,14 @@
 <pre class='metadata'>
 Title: `std::execution::bulk()` issues
 Shortname: P3481
-Level: 3
+Level: 4
 Status: P
 Group: wg21
 Editor: Lucian Radu Teodorescu, Garmin, lucteo@lucteo.ro
         Lewis Baker, lewissbaker@gmail.com
         Ruslan Arutyunyan, Intel, ruslan.arutyunyan@intel.com
         Mark Hoemmen, NVIDIA, mhoemmen@nvidia.com
-Audience: LWG
+Audience: SG1, LEWG, LWG
 URL: http://wg21.link/P3481R3
 Abstract: This paper explores the issues with `std::execution::bulk` algorithm and proposes a way to address them,
           making the API better for the users.
@@ -59,6 +59,11 @@ div.block-insert pre.highlight {
 </style>
 
 # Changes history # {#history}
+
+## R4 ## {#r4}
+- Improve wording.
+- Add execution policy to `bulk_unchunked`.
+- remove extra check in `bulk_unchunked` for concurrent schedulers
 
 ## R3 ## {#r3}
 - Improve wording.
@@ -410,52 +415,36 @@ On top of that, for special cases we also want to allow option 3.
 
 1. `bulk`<ins>, `bulk_chunked`, and `bulk_unchunked`</ins> run<del>s</del> a task repeatedly for every index in an index space.
 
-2. The <del>name</del><ins>names</ins> `bulk`<ins>, and `bulk_chunked`</ins> <del>denotes a</del><ins>denote</ins> pipeable sender adaptor <del>object</del><ins>objects</ins>.<ins>
-    Let <i>`bulk-with-policy`</i> be either `bulk` or `bulk_chunked`.</ins>
-    For subexpressions `sndr`, <ins>`policy`,</ins> `shape`, and `f`, let <ins>`Policy` be `remove_cvref_t<decltype(policy)>` and</ins> `Shape` be `decltype(auto(shape))`.
+2. The <del>name</del><ins>names</ins> `bulk`<ins>, `bulk_chunked`, and `bulk_unchunked`</ins> <del>denotes a</del><ins>denote</ins> pipeable sender adaptor <del>object</del><ins>objects</ins>.<ins>
+    Let <i>`bulk-algo`</i> be either `bulk`, `bulk_chunked`, or `bulk_unchunked`.</ins>
+    For subexpressions `sndr`, <ins>`policy`,</ins> `shape`, and `f`, let <ins>`Policy` be `remove_cvref_t<decltype(policy)>`,</ins> `Shape` be `decltype(auto(shape))` <ins>, and `Func` be `decay_t<decltype((f))>`</ins>.
     If
 
       - `decltype((sndr))` does not satisfy `sender`, or
       - <ins>`is_execution_policy_v<Policy>` is `false`, or</ins>
       - `Shape` does not satisfy `integral`, or
-      - `decltype((f))` does not <del>satisfy <i>`movable-value`</i></del> <ins>model `copy_constructible`</ins>,
+      - <del>`decltype((f))`</del><ins>`Func`</ins> does not <del>satisfy <i>`movable-value`</i></del> <ins>model `copy_constructible`</ins>,
 
-    <del>bulk(sndr, shape, f)</del><ins><i>`bulk-with-policy`</i>`(sndr, policy, shape, f)`</ins> is ill-formed.
+    <del>bulk(sndr, shape, f)</del><ins><i>`bulk-algo`</i>`(sndr, policy, shape, f)`</ins> is ill-formed.
 
-3. Otherwise, the expression <del>`bulk(sndr, shape, f)`</del><ins><i>`bulk-with-policy`</i>`(sndr, policy, shape, f)`</ins> is expression-equivalent to:
-
-        <pre highlight="c++">
-        transform_sender(
-          <i>get-domain-early</i>(sndr),
-          <i>make-sender</i>(<del>bulk</del><ins><i>bulk-with-policy</i></ins>, <i>product-type</i>{<ins>policy, </ins>shape, f}, sndr))
-        </pre>
-
-
-    except that `sndr` is evaluated only once<ins>, and `policy` is stored in <i>`product-type`</i> object as a const l-value reference if its type is not copyable</ins>.
-
-<div class="block-insert">
-
-4. The name `bulk_unchunked` denotes a pipeable sender adaptor object.
-    For subexpressions `sndr`, `shape`, and `f`, let `Shape` be `decltype(auto(shape))`.
-    If
-
-      - `decltype((sndr))` does not satisfy `sender`, or
-      - `Shape` does not satisfy `integral`, or
-      - `decltype((f))` does not model `copy_constructible`,
-
-    `bulk_unchunked(sndr, shape, f)` is ill-formed.
-
-5. Otherwise, the expression `bulk_unchunked(sndr, shape, f)` is expression-equivalent to:
+3. Otherwise, the expression <del>`bulk(sndr, shape, f)`</del><ins><i>`bulk-algo`</i>`(sndr, policy, shape, f)`</ins> is expression-equivalent to:
 
         <pre highlight="c++">
         transform_sender(
           <i>get-domain-early</i>(sndr),
-          <i>make-sender</i>(bulk_unchunked, <i>product-type</i>{shape, f}, sndr))
+          <i>make-sender</i>(<del>bulk</del><ins><i>bulk-algo</i></ins>, <i>product-type</i><ins>&lt;<i>see below</i>, Shape, Func></ins>{<ins>policy, </ins>shape, f}, sndr))
         </pre>
+
 
     except that `sndr` is evaluated only once.
 
-6. Let `sndr` and `env` be subexpressions such that `Sndr` is `decltype((sndr))`. If <i>`sender-for`</i>`<Sndr, bulk_t>` is `false`, then the expression `bulk.transform_sender(sndr, env)` is ill-formed; otherwise, it is equal to:
+    <div class="block-insert">
+    3.1. The template argument of <i>`product-type`</i> is `Policy` if `Policy` models `copy_constructable`, and `const Policy&` otherwise.
+    </div>
+
+<div class="block-insert">
+
+4. Let `sndr` and `env` be subexpressions such that `Sndr` is `decltype((sndr))`. If <i>`sender-for`</i>`<Sndr, bulk_t>` is `false`, then the expression `bulk.transform_sender(sndr, env)` is ill-formed; otherwise, it is equivalent to:
 
         <pre highlight="c++">
         auto [_, data, child] = sndr;
@@ -467,55 +456,23 @@ On top of that, for special cases we also want to allow option 3.
         return bulk_chunked(std::move(child), policy, shape, std::move(new_f));
         </pre>
 
-    <i>[Note ?</i>: This causes the `bulk(sndr, policy, shape, f)` sender to be expressed in terms of `bulk_chunked(sndr, policy, shape, f)` when it is connected with a receiver whose execution domain does not customize `bulk`. <i> — end note]</i>
+    <i>[Note ?</i>: This causes the `bulk(sndr, policy, shape, f)` sender to be expressed in terms of `bulk_chunked(sndr, policy, shape, f)` when it is connected to a receiver whose execution domain does not customize `bulk`. <i> — end note]</i>
 
 </div>
 
-7. <ins>Let <i>`bulk-algo-t`</i> be either `bulk_chunked_t` or `bulk_unchunked_t`.</ins>
-    The exposition-only class template <i>`impls-for`</i> ([exec.snd.general]) is specialized for <del>`bulk_t`</del><ins><i>`bulk-algo-t`</i></ins> as follows:
+<div class="block-insert">
+5. The exposition-only class template `impls-for` ([exec.snd.general]) is specialized for `bulk_chunked_t` as follows:
 
         <pre highlight="c++">
         namespace std::execution {
           template&lt;>
-          struct <i>impls-for</i>&lt;<del>bulk_t</del><ins><i>bulk-algo-t</i></ins>> : <i>default-impls</i> {
+          struct <i>impls-for</i>&lt;bulk_chunked_t> : <i>default-impls</i> {
             static constexpr auto <i>complete</i> = <i>see below</i>;
           };
         }
         </pre>
 
-    1. The member <code><i>impls-for</i>&lt;<del>bulk_t</del><ins>bulk_unchunked_t</ins>>::<i>complete</i></code> is initialized with a callable object equivalent to the following lambda:
-
-          <pre highlight="c++">
-          []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
-            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept
-            -> void requires <i>see below</i> {
-              if constexpr (same_as&lt;Tag, set_value_t>) {
-                <ins>constexpr bool scheduler_available = requires {
-                  get_completion_scheduler&lt;set_value_t>(get_env(rcvr));
-                };
-                if constexpr(scheduler_available) {
-                  constexpr auto guarantee = get_forward_progress_guarantee(
-                    get_completion_scheduler&lt;set_value_t>(get_env(rcvr)));
-                  static_assert(guarantee != forward_progress_guarantee::concurrent);
-                }</ins>
-                auto& [shape, f] = state;
-                constexpr bool nothrow = noexcept(f(auto(shape), args...));
-                <i>TRY-EVAL</i>(rcvr, [&]() noexcept(nothrow) {
-                  for (decltype(auto(shape)) i = 0; i < shape; ++i) {
-                    f(auto(i), args...);
-                  }
-                  Tag()(std::move(rcvr), std::forward&lt;Args>(args)...);
-                }());
-              } else {
-                Tag()(std::move(rcvr), std::forward&lt;Args>(args)...);
-              }
-            }
-          </pre>
-
-          1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), args...)` is well-formed.
-
-    <div class="block-insert">
-    2. The member <code><i>impls-for</i>&lt;bulk_chunked_t>::<i>complete</i></code> is initialized with a callable object equivalent to the following lambda:
+    5.1. The member <code><i>impls-for</i>&lt;bulk_chunked_t>::<i>complete</i></code> is initialized with a callable object equivalent to the following lambda:
 
           <pre highlight="c++">
           []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
@@ -534,11 +491,45 @@ On top of that, for special cases we also want to allow option 3.
             }
           </pre>
 
-          1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), auto(shape), args...)` is well-formed.
+          5.1.1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), auto(shape), args...)` is well-formed.
 
-    </div>
+</div>
 
-8. Let the subexpression `out_sndr` denote the result of the invocation <del>`bulk`</del><ins><i>`bulk-with-policy`</i></ins>`(sndr, `<ins>`policy,`</ins>` shape, f)`<ins>, or `bulk_unchunked(sndr, shape, f)`,</ins> or an object equal to such, and let the subexpression `rcvr` denote a receiver such that the expression `connect(out_sndr, rcvr)` is well-formed.
+6. The exposition-only class template <i>`impls-for`</i> ([exec.snd.general]) is specialized for <del>`bulk_t`</del><ins>`bulk_unchunked_t`</ins> as follows:
+
+        <pre highlight="c++">
+        namespace std::execution {
+          template&lt;>
+          struct <i>impls-for</i>&lt;<del>bulk_t</del><ins>bulk_unchunked_t</ins>> : <i>default-impls</i> {
+            static constexpr auto <i>complete</i> = <i>see below</i>;
+          };
+        }
+        </pre>
+
+    6.1. The member <code><i>impls-for</i>&lt;<del>bulk_t</del><ins>bulk_unchunked_t</ins>>::<i>complete</i></code> is initialized with a callable object equivalent to the following lambda:
+
+          <pre highlight="c++">
+          []&lt;class Index, class State, class Rcvr, class Tag, class... Args>
+            (Index, State& state, Rcvr& rcvr, Tag, Args&&... args) noexcept
+            -> void requires <i>see below</i> {
+              if constexpr (same_as&lt;Tag, set_value_t>) {
+                auto& [shape, f] = state;
+                constexpr bool nothrow = noexcept(f(auto(shape), args...));
+                <i>TRY-EVAL</i>(rcvr, [&]() noexcept(nothrow) {
+                  for (decltype(auto(shape)) i = 0; i < shape; ++i) {
+                    f(auto(i), args...);
+                  }
+                  Tag()(std::move(rcvr), std::forward&lt;Args>(args)...);
+                }());
+              } else {
+                Tag()(std::move(rcvr), std::forward&lt;Args>(args)...);
+              }
+            }
+          </pre>
+
+          6.1.1. The expression in the *requires-clause* of the lambda above is `true` if and only if `Tag` denotes a type other than `set_value_t` or if the expression `f(auto(shape), args...)` is well-formed.
+
+7. Let the subexpression `out_sndr` denote the result of the invocation <del>`bulk`</del><ins><i>`bulk-algo`</i></ins>`(sndr, `<ins>`policy,`</ins>` shape, f)` or an object equal to such, and let the subexpression `rcvr` denote a receiver such that the expression `connect(out_sndr, rcvr)` is well-formed.
     The expression `connect(out_sndr, rcvr)` has undefined behavior unless it creates an asynchronous operation ([async.ops]) that, when started:
 
       - <del>on a value completion operation, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of the input sender, and</del>
@@ -546,42 +537,46 @@ On top of that, for special cases we also want to allow option 3.
       - <del>propagates all completion operations sent by `sndr`.<del>
 
       <ins>
-      - If `sndr` has a successful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, then:
+      - If `sndr` has a successful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, or decayed copies of those values if they model `copy_constructable`, then:
 
         - If `out_sndr` also completes successfully, then:
 
             - for `bulk`, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`;
 
-            - for `bulk_unchunked`, invokes `f(i, args...)` on a distinct execution agent for every `i` of type `Shape` from `0` to `shape`;
+            - for `bulk_unchunked`, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`;
 
-            - for `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range `[0, shape)`, such as for every `i` of type `Shape` from `0` to `shape`, there is an invocation with a pair `b` and `e`, such as `b <= i < e`.
+                - <i>[Note: </i> the underlying scheduler should execute each iteration on a distinct execution agent. <i> — end note]</i>
+
+            - for `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range `[0, shape)`, such that for every `i` of type `Shape` from `0` to `shape`, there is exactly one invocation with a pair `b` and `e`, such that `b <= i < e`.
 
 
-        - If `out_sndr` completes with `set_error(rcvr, e)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal, and `e` is either:
+        - If `out_sndr` completes with `set_error(rcvr, eptr)`, then the asynchronous operation may invoke a subset of the invocations of `f` before the error completion handler is called, and `eptr` is an exception pointer containing  either:
 
             - an exception thrown by an invocation of `f`, or
 
-            - an `bad_alloc` exception if the implementation fails to allocate required resources, or
+            - a `bad_alloc` exception if the implementation fails to allocate required resources, or
 
             - an exception derived from `runtime_error`.
 
-        - If `out_sndr` completes with `set_stopped(rcvr)`, the asynchronous operation may invoke a subset of the invocations of `f` as described above before the completion signal.
+        - If `out_sndr` completes with `set_stopped(rcvr)`, then the asynchronous operation may invoke a subset of the invocations of `f` before the stopped completion handler.
 
-      - If `sndr` does not complete with `set_value(...)`, the completion signal is forwarded to `recv`.
+      - If `sndr` does not complete with `set_value(...)`, then the completion is forwarded to `recv`.
 
-      - For <i>`bulk-with-policy`</i>, the parameter `policy` describes the manner in which the execution of these algorithms may be parallelized and the manner in which they apply the element access functions.
+      - For <i>`bulk-algo`</i>, the parameter `policy` describes the manner in which the execution of the asynchronous operations corresponding to these algorithms may be parallelized and the manner in which they apply `f`.
+        All the permissions and requirements for `f` are the same as for parallel algorithm element access functions [algorithms.parallel.exec].
 
             </ins>
 
 <div class="block-insert">
-9. <i>[Note ?: </i> The asynchronous operation corresponding to <i>`bulk-with-policy`</i>`(sndr, policy, shape, f)` or `bulk_unchunked(sndr, shape, f)` is allowed (but not required) to:
+8. <i>[Note: </i> The asynchronous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` can complete with `set_stopped()` if cancellation is requested or ignore cancellation requests. <i> — end note]</i>
 
-    - complete with `set_stopped()` if cancellation is requested (through the connected receiver);
-    - ignore cancellation requests;
-    - make decaying copies of the values produced by the predecessor sender, if the values are copyable. <i> — end note]</i>
 
 </div>
 
+
+# Acknowledgements # {#acknowledgements}
+
+Special thanks to Christian Trott and Tom Scogland for a very productive discussion on `bulk_unchunked` and help on working improvements.
 
 # Polls # {#polls}
 
