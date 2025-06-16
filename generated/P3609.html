@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-05-21" />
+  <meta name="dcterms.date" content="2025-05-22" />
   <title>Improving error reporting</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ reporting</h1>
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-05-21</td>
+    <td>2025-05-22</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -467,8 +467,11 @@ handler<span></span></a></li>
 <li><a href="#library-support" id="toc-library-support"><span class="toc-section-number">3.2</span> Library
 support<span></span></a></li>
 </ul></li>
-<li><a href="#discussions" id="toc-discussions"><span class="toc-section-number">4</span> Design
-discussions<span></span></a></li>
+<li><a href="#design-discussions" id="toc-design-discussions"><span class="toc-section-number">4</span> Design discussions<span></span></a>
+<ul>
+<li><a href="#static-asserts-are-not-enough" id="toc-static-asserts-are-not-enough"><span class="toc-section-number">4.1</span> Static asserts are not
+enough<span></span></a></li>
+</ul></li>
 <li><a href="#implementation" id="toc-implementation"><span class="toc-section-number">5</span> Implementation<span></span></a></li>
 <li><a href="#specification" id="toc-specification"><span class="toc-section-number">6</span> Specification<span></span></a></li>
 </ul>
@@ -603,6 +606,19 @@ should produce an error message like:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>&lt;source&gt;:5:19: error: the element of type &#39;float&#39; appears multiple times in tuple with types &lt;int, double, float, float&gt;</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    5 |     auto x = std::get&lt;float&gt;(t);</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>      |                   ^</span></code></pre></div>
+<p>To achieve this error reporting, we envision a facility that allows
+library authors to control error reporting on template/concept
+instantiations, with the following characteristics:</p>
+<ul>
+<li>report meaningful errors that explain why the library is
+misused</li>
+<li>allow error reporting to point to the user code (and not library
+code)</li>
+<li>allows the user to dynamically generate diagnostic messages based on
+the instantiation parameters</li>
+<li>does not add (significant) burden on the compiler if compilation is
+successful</li>
+</ul>
 <h1 data-number="2" id="examples"><span class="header-section-number">2</span> Examples<a href="#examples" class="self-link"></a></h1>
 <h2 data-number="2.1" id="stdexec-sender-mismatch"><span class="header-section-number">2.1</span>
 <code class="sourceCode cpp">stdexec</code> sender mismatch<a href="#stdexec-sender-mismatch" class="self-link"></a></h2>
@@ -776,7 +792,9 @@ compiler flag</li>
 <li>try instantiating a template and get the corresponding error (custom
 messages only, or final messages)</li>
 </ul>
-<h1 data-number="4" id="discussions"><span class="header-section-number">4</span> Design discussions<a href="#discussions" class="self-link"></a></h1>
+<h1 data-number="4" id="design-discussions"><span class="header-section-number">4</span> Design discussions<a href="#design-discussions" class="self-link"></a></h1>
+<h2 data-number="4.1" id="static-asserts-are-not-enough"><span class="header-section-number">4.1</span> Static asserts are not enough<a href="#static-asserts-are-not-enough" class="self-link"></a></h2>
+<p>TODO</p>
 <p>TODO</p>
 <h1 data-number="5" id="implementation"><span class="header-section-number">5</span> Implementation<a href="#implementation" class="self-link"></a></h1>
 <p>TODO</p>
