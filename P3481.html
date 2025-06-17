@@ -1562,9 +1562,9 @@ Possible extra rowspan handling
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
   <meta content="Bikeshed version 275834c42, updated Wed Jun 11 14:18:15 2025 -0700" name="generator">
-  <link href="http://wg21.link/D3481R4" rel="canonical">
+  <link href="http://wg21.link/P3481R4" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="9a3ef43f219e536d35af557a1c32d220222c3ec3" name="revision">
+  <meta content="930d59c4f2dc5e65becb4cb84fd9ad6e1c32dcda" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2132,11 +2132,11 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">D3481R4<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
    <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal,
-    <time class="dt-updated" datetime="2025-06-17">2025-06-17</time></span></h2>
+    <time class="dt-updated" datetime="2025-06-19">2025-06-19</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
-     <dd><a class="u-url" href="http://wg21.link/D3481R4">http://wg21.link/D3481R4</a>
+     <dd><a class="u-url" href="http://wg21.link/P3481R4">http://wg21.link/P3481R4</a>
      <dt class="editor">Authors:
      <dd class="editor p-author h-card vcard"><a class="p-name fn u-email email" href="mailto:lucteo@lucteo.ro">Lucian Radu Teodorescu</a> (<span class="p-org org">Garmin</span>)
      <dd class="editor p-author h-card vcard"><a class="p-name fn u-email email" href="mailto:ruslan.arutyunyan@intel.com">Ruslan Arutyunyan</a> (<span class="p-org org">Intel</span>)
@@ -2395,7 +2395,7 @@ on a distinct execution agent:</p>
    <p>Revisions R2 and R3 originally incorporated this design suggestion from <a data-link-type="biblio" href="#biblio-p3564r0" title="Make the concurrent forward progress guarantee usable in `bulk`">[P3564R0]</a> into this paper and name this API <code class="highlight"><c- n>bulk_unchunked</c-></code>.
 After further discussions in Sofia 2025, we realized that these two directions do not overlap well, and that it likely deserve separate APIs for the two design aspects.
 We decided that we can have <code class="highlight"><c- n>bulk_unchunked</c-></code> as an algorithm to be used when the user wants to execute each iteration on a distinct execution agent, and a new algorithm <code class="highlight"><c- n>bulk_concurrent</c-></code> that explicitly deals with concurrent forward progress guarantee.</p>
-   <p>This paper proposes <code class="highlight"><c- n>bulk_chunked</c-></code>, but does not propose <code class="highlight"><c- n>bulk_concurrent</c-></code>, leaving this for future work.</p>
+   <p>This paper proposes <code class="highlight"><c- n>bulk_unchunked</c-></code>, but does not propose <code class="highlight"><c- n>bulk_concurrent</c-></code>, leaving this for future work.</p>
    <h3 class="heading settled" data-level="4.3" id="design.policies"><span class="secno">4.3. </span><span class="content">Using execution policies</span><a class="self-link" href="#design.policies"></a></h3>
    <p>As discussed in the <a href="#motivation">§ 2 Motivation</a> section, not having the possibility to specify execution policies for the <code class="highlight"><c- n>bulk</c-></code> algorithm is a downside.
 On the one hand, defaulting to any policy other than <code class="highlight"><c- n>seq</c-></code> might lead to deadlocks.
