@@ -445,7 +445,7 @@ On top of that, for special cases we also want to allow option 3.
     except that `sndr` is evaluated only once.
 
     <div class="block-insert">
-    3.1. The template argument of <i>`product-type`</i> is `Policy` if `Policy` models `copy_constructable`, and `const Policy&` otherwise.
+    3.1. The first template argument of <i>`product-type`</i> is `Policy` if `Policy` models `copy_constructible`, and `const Policy&` otherwise.
     </div>
 
 <div class="block-insert">
@@ -551,7 +551,7 @@ On top of that, for special cases we also want to allow option 3.
 
             - for `bulk_unchunked`, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`;
 
-                - <i>[Note: </i> the underlying scheduler should execute each iteration on a distinct execution agent. <i> — end note]</i>
+                - <i>Recommended practice: </i> The underlying scheduler should execute each iteration on a distinct execution agent.
 
             - for `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range `[0, shape)`, such that for every `i` of type `Shape` from `0` to `shape`, there is exactly one invocation with a pair `b` and `e`, such that `b <= i < e`.
 

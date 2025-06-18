@@ -2,7 +2,7 @@
  <head>
   <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
   <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-  <title>D3481R4: std::execution::bulk() issues</title>
+  <title>P3481R4: std::execution::bulk() issues</title>
 <style data-fill-with="stylesheet">/******************************************************************************
  *                   Style sheet for the W3C specifications                   *
  *
@@ -1564,7 +1564,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version 275834c42, updated Wed Jun 11 14:18:15 2025 -0700" name="generator">
   <link href="http://wg21.link/P3481R4" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="930d59c4f2dc5e65becb4cb84fd9ad6e1c32dcda" name="revision">
+  <meta content="114d4c35490932d0877955128cc2effab27e019a" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2130,9 +2130,9 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
  <body class="h-entry">
   <div class="head">
    <p data-fill-with="logo"></p>
-   <h1 class="p-name no-ref" id="title">D3481R4<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
+   <h1 class="p-name no-ref" id="title">P3481R4<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
    <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal,
-    <time class="dt-updated" datetime="2025-06-19">2025-06-19</time></span></h2>
+    <time class="dt-updated" datetime="2025-06-18">2025-06-18</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2594,7 +2594,7 @@ If
 </pre>
      <p>except that <code class="highlight"><c- n>sndr</c-></code> is evaluated only once.</p>
      <div class="block-insert">
-3.1. The template argument of <i><code class="highlight"><c- n>product</c-><c- o>-</c-><c- n>type</c-></code></i> is <code class="highlight"><c- n>Policy</c-></code> if <code class="highlight"><c- n>Policy</c-></code> models <code class="highlight"><c- n>copy_constructable</c-></code>, and <code class="highlight"><c- k>const</c-> <c- n>Policy</c-><c- o>&amp;</c-></code> otherwise.
+3.1. The first template argument of <i><code class="highlight"><c- n>product</c-><c- o>-</c-><c- n>type</c-></code></i> is <code class="highlight"><c- n>Policy</c-></code> if <code class="highlight"><c- n>Policy</c-></code> models <code class="highlight"><c- n>copy_constructible</c-></code>, and <code class="highlight"><c- k>const</c-> <c- n>Policy</c-><c- o>&amp;</c-></code> otherwise.
 </div>
    </ol>
    <div class="block-insert">
@@ -2709,7 +2709,7 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
             <p>for <code class="highlight"><c- n>bulk_unchunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>i</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>;</p>
             <ul>
              <li data-md>
-              <p><i>[Note: </i> the underlying scheduler should execute each iteration on a distinct execution agent. <i> — end note]</i></p>
+              <p><i>Recommended practice: </i> The underlying scheduler should execute each iteration on a distinct execution agent.</p>
             </ul>
            <li data-md>
             <p>for <code class="highlight"><c- n>bulk_chunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times with pairs of <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> in range <code class="highlight"><c- p>[</c-><c- mi>0</c-><c- p>,</c-> <c- n>shape</c-><c- p>)</c-></code>, such that for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>, there is exactly one invocation with a pair <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code>, such that <code class="highlight"><c- n>b</c-> <c- o>&lt;=</c-> <c- n>i</c-> <c- o>&lt;</c-> <c- n>e</c-></code>.</p>
