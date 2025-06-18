@@ -1,15 +1,15 @@
 <pre class='metadata'>
 Title: `std::execution::bulk()` issues
 Shortname: P3481
-Level: 4
+Level: 5
 Status: P
 Group: wg21
 Editor: Lucian Radu Teodorescu, Garmin, lucteo@lucteo.ro
         Ruslan Arutyunyan, Intel, ruslan.arutyunyan@intel.com
         Lewis Baker, lewissbaker@gmail.com
         Mark Hoemmen, NVIDIA, mhoemmen@nvidia.com
-Audience: SG1, LEWG, LWG
-URL: http://wg21.link/P3481R4
+Audience: LWG
+URL: http://wg21.link/P3481R5
 Abstract: This paper explores the issues with `std::execution::bulk` algorithm and proposes a way to address them,
           making the API better for the users.
 Markup Shorthands: markdown yes
@@ -59,6 +59,9 @@ div.block-insert pre.highlight {
 </style>
 
 # Changes history # {#history}
+
+## R5 ## {#r5}
+- Apply LWG review feedback from Bulgaria, 2025
 
 ## R4 ## {#r4}
 - Improve wording.
