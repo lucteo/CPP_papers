@@ -2,7 +2,7 @@
  <head>
   <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
   <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-  <title>P3481R4: std::execution::bulk() issues</title>
+  <title>P3481R5: std::execution::bulk() issues</title>
 <style data-fill-with="stylesheet">/******************************************************************************
  *                   Style sheet for the W3C specifications                   *
  *
@@ -1561,10 +1561,10 @@ Possible extra rowspan handling
     blockquote c-[vi] { color: inherit; } /* Name.Variable.Instance */
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
-  <meta content="Bikeshed version 6270e4735, updated Tue Aug 6 12:12:30 2024 -0700" name="generator">
-  <link href="http://wg21.link/P3481R4" rel="canonical">
+  <meta content="Bikeshed version 275834c42, updated Wed Jun 11 14:18:15 2025 -0700" name="generator">
+  <link href="http://wg21.link/P3481R5" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="79b56cf14daa81c6b52384a975c3147663e18662" name="revision">
+  <meta content="d614ee6ab9ffc3aa942cd41f3775c3649575c3d9" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2130,19 +2130,20 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
  <body class="h-entry">
   <div class="head">
    <p data-fill-with="logo"></p>
-   <h1 class="p-name no-ref" id="title">P3481R4<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-06-18">2025-06-18</time></span></h2>
+   <h1 class="p-name no-ref" id="title">P3481R5<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
+   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal,
+    <time class="dt-updated" datetime="2025-06-19">2025-06-19</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
-     <dd><a class="u-url" href="http://wg21.link/P3481R4">http://wg21.link/P3481R4</a>
+     <dd><a class="u-url" href="http://wg21.link/P3481R5">http://wg21.link/P3481R5</a>
      <dt class="editor">Authors:
      <dd class="editor p-author h-card vcard"><a class="p-name fn u-email email" href="mailto:lucteo@lucteo.ro">Lucian Radu Teodorescu</a> (<span class="p-org org">Garmin</span>)
      <dd class="editor p-author h-card vcard"><a class="p-name fn u-email email" href="mailto:ruslan.arutyunyan@intel.com">Ruslan Arutyunyan</a> (<span class="p-org org">Intel</span>)
      <dd class="editor p-author h-card vcard"><a class="p-name fn u-email email" href="mailto:lewissbaker@gmail.com">Lewis Baker</a>
      <dd class="editor p-author h-card vcard"><a class="p-name fn u-email email" href="mailto:mhoemmen@nvidia.com">Mark Hoemmen</a> (<span class="p-org org">NVIDIA</span>)
      <dt>Audience:
-     <dd>SG1, LEWG, LWG
+     <dd>LWG
      <dt>Project:
      <dd>ISO/IEC 14882 Programming Languages — C++, ISO/IEC JTC1/SC22/WG21
     </dl>
@@ -2161,10 +2162,11 @@ making the API better for the users.</p>
     <li>
      <a href="#history"><span class="secno">1</span> <span class="content">Changes history</span></a>
      <ol class="toc">
-      <li><a href="#r4"><span class="secno">1.1</span> <span class="content">R4</span></a>
-      <li><a href="#r3"><span class="secno">1.2</span> <span class="content">R3</span></a>
-      <li><a href="#r2"><span class="secno">1.3</span> <span class="content">R2</span></a>
-      <li><a href="#r1"><span class="secno">1.4</span> <span class="content">R1</span></a>
+      <li><a href="#r5"><span class="secno">1.1</span> <span class="content">R5</span></a>
+      <li><a href="#r4"><span class="secno">1.2</span> <span class="content">R4</span></a>
+      <li><a href="#r3"><span class="secno">1.3</span> <span class="content">R3</span></a>
+      <li><a href="#r2"><span class="secno">1.4</span> <span class="content">R2</span></a>
+      <li><a href="#r1"><span class="secno">1.5</span> <span class="content">R1</span></a>
      </ol>
     <li>
      <a href="#motivation"><span class="secno">2</span> <span class="content">Motivation</span></a>
@@ -2206,7 +2208,12 @@ making the API better for the users.</p>
   </nav>
   <main>
    <h2 class="heading settled" data-level="1" id="history"><span class="secno">1. </span><span class="content">Changes history</span><a class="self-link" href="#history"></a></h2>
-   <h3 class="heading settled" data-level="1.1" id="r4"><span class="secno">1.1. </span><span class="content">R4</span><a class="self-link" href="#r4"></a></h3>
+   <h3 class="heading settled" data-level="1.1" id="r5"><span class="secno">1.1. </span><span class="content">R5</span><a class="self-link" href="#r5"></a></h3>
+   <ul>
+    <li data-md>
+     <p>Apply LWG review feedback from Bulgaria, 2025</p>
+   </ul>
+   <h3 class="heading settled" data-level="1.2" id="r4"><span class="secno">1.2. </span><span class="content">R4</span><a class="self-link" href="#r4"></a></h3>
    <ul>
     <li data-md>
      <p>Improve wording.</p>
@@ -2215,12 +2222,12 @@ making the API better for the users.</p>
     <li data-md>
      <p>remove extra check in <code class="highlight"><c- n>bulk_unchunked</c-></code> for concurrent schedulers</p>
    </ul>
-   <h3 class="heading settled" data-level="1.2" id="r3"><span class="secno">1.2. </span><span class="content">R3</span><a class="self-link" href="#r3"></a></h3>
+   <h3 class="heading settled" data-level="1.3" id="r3"><span class="secno">1.3. </span><span class="content">R3</span><a class="self-link" href="#r3"></a></h3>
    <ul>
     <li data-md>
      <p>Improve wording.</p>
    </ul>
-   <h3 class="heading settled" data-level="1.3" id="r2"><span class="secno">1.3. </span><span class="content">R2</span><a class="self-link" href="#r2"></a></h3>
+   <h3 class="heading settled" data-level="1.4" id="r2"><span class="secno">1.4. </span><span class="content">R2</span><a class="self-link" href="#r2"></a></h3>
    <ul>
     <li data-md>
      <p>Incorporate to the feedback from SG1 review, Austria, 2025.</p>
@@ -2233,7 +2240,7 @@ making the API better for the users.</p>
        <p>Specify an error for the "lack of resources" case.</p>
      </ul>
    </ul>
-   <h3 class="heading settled" data-level="1.4" id="r1"><span class="secno">1.4. </span><span class="content">R1</span><a class="self-link" href="#r1"></a></h3>
+   <h3 class="heading settled" data-level="1.5" id="r1"><span class="secno">1.5. </span><span class="content">R1</span><a class="self-link" href="#r1"></a></h3>
    <ul>
     <li data-md>
      <p>Incorporate to the feedback from SG1 review, Poland, 2024.</p>
@@ -2428,7 +2435,8 @@ Something like:</p>
 question that comes to mind is what should we do if we have execution policy passed via <code class="highlight"><c- n>bulk</c-></code> parameters that conflicts with
 execution policy attached to a scheduler?</p>
    <p>This is another area to explore. It’s quite obvious that execution policy passed to <code class="highlight"><c- n>bulk</c-></code> describes possible parallelization
-ways of <code class="highlight"><c- n>bulk</c-></code> callable object, while it’s not 100% obvious what execution policy attached to a scheduler means outside of <a data-link-type="biblio" href="#biblio-p2500r2" title="C++ parallel algorithms and P2300">[P2500R2]</a> proposal.</p>
+ways of <code class="highlight"><c- n>bulk</c-></code> callable object, while it’s not 100% obvious what execution policy attached to a scheduler means outside of
+<a data-link-type="biblio" href="#biblio-p2500r2" title="C++ parallel algorithms and P2300">[P2500R2]</a> proposal.</p>
    <p>We might choose different strategies (not all of them are mutually exclusive):</p>
    <ul>
     <li data-md>
@@ -2507,7 +2515,10 @@ Thus, we can peak arbitrary exception to throw</p>
 <c- k>struct</c-> <c- nc>bulk_unchunked_t</c-> <c- p>{</c-> <c- n>unspecified</c-> <c- p>};</c->
 </pre>
    </div>
-    [...] 
+   
+[...]
+
+
 <pre class="highlight"><c- kr>inline</c-> <c- k>constexpr</c-> <c- n>let_value_t</c-> <c- n>let_value</c-><c- p>{};</c->
 <c- kr>inline</c-> <c- k>constexpr</c-> <c- n>let_error_t</c-> <c- n>let_error</c-><c- p>{};</c->
 <c- kr>inline</c-> <c- k>constexpr</c-> <c- n>let_stopped_t</c-> <c- n>let_stopped</c-><c- p>{};</c->
@@ -2543,8 +2554,10 @@ Thus, we can peak arbitrary exception to throw</p>
       <del>object</del>
       <ins>objects</ins>
       .
-      <ins> Let <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> be either <code class="highlight"><c- n>bulk</c-></code>, <code class="highlight"><c- n>bulk_chunked</c-></code>, or <code class="highlight"><c- n>bulk_unchunked</c-></code>.</ins>
-       For subexpressions <code class="highlight"><c- n>sndr</c-></code>, 
+      <ins>
+Let <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> be either <code class="highlight"><c- n>bulk</c-></code>, <code class="highlight"><c- n>bulk_chunked</c-></code>, or <code class="highlight"><c- n>bulk_unchunked</c-></code>.</ins>
+      
+For subexpressions <code class="highlight"><c- n>sndr</c-></code>, 
       <ins><code class="highlight"><c- n>policy</c-></code>,</ins>
        <code class="highlight"><c- n>shape</c-></code>, and <code class="highlight"><c- n>f</c-></code>, let 
       <ins><code class="highlight"><c- n>Policy</c-></code> be <code class="highlight"><c- n>remove_cvref_t</c-><c- o>&lt;</c-><c- k>decltype</c-><c- p>(</c-><c- n>policy</c-><c- p>)</c-><c- o>></c-></code>,</ins>
@@ -2566,11 +2579,14 @@ If
         does not 
        <del>satisfy <i><code class="highlight"><c- n>movable</c-><c- o>-</c-><c- n>value</c-></code></i></del>
        <ins>model <code class="highlight"><c- n>copy_constructible</c-></code></ins>
-       , 
+       ,
+
      </ul>
      <del>bulk(sndr, shape, f)</del>
      <ins><i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code></ins>
-      is ill-formed. 
+      is ill-formed.
+
+
     <li data-md>
      <p>
       Otherwise, the expression 
@@ -2583,7 +2599,9 @@ If
   <i><c- n>make</c-><c- o>-</c-><c- n>sender</c-></i><c- p>(</c-><del><c- n>bulk</c-></del><ins><i><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></i></ins><c- p>,</c-> <i><c- n>product</c-><c- o>-</c-><c- n>type</c-></i><ins><c- o>&lt;</c-><i><c- n>see</c-> <c- n>below</c-></i><c- p>,</c-> <c- n>Shape</c-><c- p>,</c-> <c- n>Func</c-><c- o>></c-></ins><c- p>{</c-><ins><c- n>policy</c-><c- p>,</c-> </ins><c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>},</c-> <c- n>sndr</c-><c- p>))</c->
 </pre>
      <p>except that <code class="highlight"><c- n>sndr</c-></code> is evaluated only once.</p>
-     <div class="block-insert"> 3.1. The first template argument of <i><code class="highlight"><c- n>product</c-><c- o>-</c-><c- n>type</c-></code></i> is <code class="highlight"><c- n>Policy</c-></code> if <code class="highlight"><c- n>Policy</c-></code> models <code class="highlight"><c- n>copy_constructible</c-></code>, and <code class="highlight"><c- k>const</c-> <c- n>Policy</c-><c- o>&amp;</c-></code> otherwise. </div>
+     <div class="block-insert">
+3.1. The first template argument of <i><code class="highlight"><c- n>product</c-><c- o>-</c-><c- n>type</c-></code></i> is <code class="highlight"><c- n>Policy</c-></code> if <code class="highlight"><c- n>Policy</c-></code> models <code class="highlight"><c- n>copy_constructible</c-></code>, and <code class="highlight"><c- k>const</c-> <c- n>Policy</c-><c- o>&amp;</c-></code> otherwise.
+</div>
    </ol>
    <div class="block-insert">
     <ol start="4">
