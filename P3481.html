@@ -1561,10 +1561,10 @@ Possible extra rowspan handling
     blockquote c-[vi] { color: inherit; } /* Name.Variable.Instance */
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
-  <meta content="Bikeshed version 275834c42, updated Wed Jun 11 14:18:15 2025 -0700" name="generator">
+  <meta content="Bikeshed version 6270e4735, updated Tue Aug 6 12:12:30 2024 -0700" name="generator">
   <link href="http://wg21.link/P3481R4" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="114d4c35490932d0877955128cc2effab27e019a" name="revision">
+  <meta content="79b56cf14daa81c6b52384a975c3147663e18662" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 div.ed-note, span.ed-note {
@@ -2131,8 +2131,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">P3481R4<br><code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>execution</c-><c- o>::</c-><c- n>bulk</c-><c- p>()</c-></code> issues</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal,
-    <time class="dt-updated" datetime="2025-06-18">2025-06-18</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="profile-and-date"><span class="content">Published Proposal, <time class="dt-updated" datetime="2025-06-18">2025-06-18</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2429,8 +2428,7 @@ Something like:</p>
 question that comes to mind is what should we do if we have execution policy passed via <code class="highlight"><c- n>bulk</c-></code> parameters that conflicts with
 execution policy attached to a scheduler?</p>
    <p>This is another area to explore. It’s quite obvious that execution policy passed to <code class="highlight"><c- n>bulk</c-></code> describes possible parallelization
-ways of <code class="highlight"><c- n>bulk</c-></code> callable object, while it’s not 100% obvious what execution policy attached to a scheduler means outside of
-<a data-link-type="biblio" href="#biblio-p2500r2" title="C++ parallel algorithms and P2300">[P2500R2]</a> proposal.</p>
+ways of <code class="highlight"><c- n>bulk</c-></code> callable object, while it’s not 100% obvious what execution policy attached to a scheduler means outside of <a data-link-type="biblio" href="#biblio-p2500r2" title="C++ parallel algorithms and P2300">[P2500R2]</a> proposal.</p>
    <p>We might choose different strategies (not all of them are mutually exclusive):</p>
    <ul>
     <li data-md>
@@ -2509,10 +2507,7 @@ Thus, we can peak arbitrary exception to throw</p>
 <c- k>struct</c-> <c- nc>bulk_unchunked_t</c-> <c- p>{</c-> <c- n>unspecified</c-> <c- p>};</c->
 </pre>
    </div>
-   
-[...]
-
-
+    [...] 
 <pre class="highlight"><c- kr>inline</c-> <c- k>constexpr</c-> <c- n>let_value_t</c-> <c- n>let_value</c-><c- p>{};</c->
 <c- kr>inline</c-> <c- k>constexpr</c-> <c- n>let_error_t</c-> <c- n>let_error</c-><c- p>{};</c->
 <c- kr>inline</c-> <c- k>constexpr</c-> <c- n>let_stopped_t</c-> <c- n>let_stopped</c-><c- p>{};</c->
@@ -2548,10 +2543,8 @@ Thus, we can peak arbitrary exception to throw</p>
       <del>object</del>
       <ins>objects</ins>
       .
-      <ins>
-Let <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> be either <code class="highlight"><c- n>bulk</c-></code>, <code class="highlight"><c- n>bulk_chunked</c-></code>, or <code class="highlight"><c- n>bulk_unchunked</c-></code>.</ins>
-      
-For subexpressions <code class="highlight"><c- n>sndr</c-></code>, 
+      <ins> Let <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i> be either <code class="highlight"><c- n>bulk</c-></code>, <code class="highlight"><c- n>bulk_chunked</c-></code>, or <code class="highlight"><c- n>bulk_unchunked</c-></code>.</ins>
+       For subexpressions <code class="highlight"><c- n>sndr</c-></code>, 
       <ins><code class="highlight"><c- n>policy</c-></code>,</ins>
        <code class="highlight"><c- n>shape</c-></code>, and <code class="highlight"><c- n>f</c-></code>, let 
       <ins><code class="highlight"><c- n>Policy</c-></code> be <code class="highlight"><c- n>remove_cvref_t</c-><c- o>&lt;</c-><c- k>decltype</c-><c- p>(</c-><c- n>policy</c-><c- p>)</c-><c- o>></c-></code>,</ins>
@@ -2573,14 +2566,11 @@ If
         does not 
        <del>satisfy <i><code class="highlight"><c- n>movable</c-><c- o>-</c-><c- n>value</c-></code></i></del>
        <ins>model <code class="highlight"><c- n>copy_constructible</c-></code></ins>
-       ,
-
+       , 
      </ul>
      <del>bulk(sndr, shape, f)</del>
      <ins><i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code></ins>
-      is ill-formed.
-
-
+      is ill-formed. 
     <li data-md>
      <p>
       Otherwise, the expression 
@@ -2593,9 +2583,7 @@ If
   <i><c- n>make</c-><c- o>-</c-><c- n>sender</c-></i><c- p>(</c-><del><c- n>bulk</c-></del><ins><i><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></i></ins><c- p>,</c-> <i><c- n>product</c-><c- o>-</c-><c- n>type</c-></i><ins><c- o>&lt;</c-><i><c- n>see</c-> <c- n>below</c-></i><c- p>,</c-> <c- n>Shape</c-><c- p>,</c-> <c- n>Func</c-><c- o>></c-></ins><c- p>{</c-><ins><c- n>policy</c-><c- p>,</c-> </ins><c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>},</c-> <c- n>sndr</c-><c- p>))</c->
 </pre>
      <p>except that <code class="highlight"><c- n>sndr</c-></code> is evaluated only once.</p>
-     <div class="block-insert">
-3.1. The first template argument of <i><code class="highlight"><c- n>product</c-><c- o>-</c-><c- n>type</c-></code></i> is <code class="highlight"><c- n>Policy</c-></code> if <code class="highlight"><c- n>Policy</c-></code> models <code class="highlight"><c- n>copy_constructible</c-></code>, and <code class="highlight"><c- k>const</c-> <c- n>Policy</c-><c- o>&amp;</c-></code> otherwise.
-</div>
+     <div class="block-insert"> 3.1. The first template argument of <i><code class="highlight"><c- n>product</c-><c- o>-</c-><c- n>type</c-></code></i> is <code class="highlight"><c- n>Policy</c-></code> if <code class="highlight"><c- n>Policy</c-></code> models <code class="highlight"><c- n>copy_constructible</c-></code>, and <code class="highlight"><c- k>const</c-> <c- n>Policy</c-><c- o>&amp;</c-></code> otherwise. </div>
    </ol>
    <div class="block-insert">
     <ol start="4">
@@ -2698,7 +2686,7 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
      <ins>
       <ul>
        <li data-md>
-        <p>If <code class="highlight"><c- n>sndr</c-></code> has a successful completion, where <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of <code class="highlight"><c- n>sndr</c-></code>, or decayed copies of those values if they model <code class="highlight"><c- n>copy_constructable</c-></code>, then:</p>
+        <p>If <code class="highlight"><c- n>sndr</c-></code> has a successful completion, where <code class="highlight"><c- n>args</c-></code> is a pack of lvalue subexpressions referring to the value completion result datums of <code class="highlight"><c- n>sndr</c-></code>, or decayed copies of those values if they model <code class="highlight"><c- n>copy_constructible</c-></code>, then:</p>
         <ul>
          <li data-md>
           <p>If <code class="highlight"><c- n>out_sndr</c-></code> also completes successfully, then:</p>
@@ -2712,10 +2700,10 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
               <p><i>Recommended practice: </i> The underlying scheduler should execute each iteration on a distinct execution agent.</p>
             </ul>
            <li data-md>
-            <p>for <code class="highlight"><c- n>bulk_chunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or multiple times with pairs of <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> in range <code class="highlight"><c- p>[</c-><c- mi>0</c-><c- p>,</c-> <c- n>shape</c-><c- p>)</c-></code>, such that for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>, there is exactly one invocation with a pair <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code>, such that <code class="highlight"><c- n>b</c-> <c- o>&lt;=</c-> <c- n>i</c-> <c- o>&lt;</c-> <c- n>e</c-></code>.</p>
+            <p>for <code class="highlight"><c- n>bulk_chunked</c-></code>, invokes <code class="highlight"><c- n>f</c-><c- p>(</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>,</c-> <c- n>args</c-><c- p>...)</c-></code> zero or more times with pairs of <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> in range <code class="highlight"><c- p>[</c-><c- mi>0</c-><c- p>,</c-> <c- n>shape</c-><c- p>]</c-></code>, such that <code class="highlight"><c- n>b</c-> <c- o>&lt;</c-> <c- n>e</c-></code> and for every <code class="highlight"><c- n>i</c-></code> of type <code class="highlight"><c- n>Shape</c-></code> from <code class="highlight"><c- mi>0</c-></code> to <code class="highlight"><c- n>shape</c-></code>, there is exactly one invocation with a pair <code class="highlight"><c- n>b</c-></code> and <code class="highlight"><c- n>e</c-></code>, such that <code class="highlight"><c- n>i</c-></code> is in the range <code class="highlight"><c- p>[</c-><c- n>b</c-><c- p>,</c-> <c- n>e</c-><c- p>)</c-></code>.</p>
           </ul>
          <li data-md>
-          <p>If <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_error</c-><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- n>eptr</c-><c- p>)</c-></code>, then the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> before the error completion handler is called, and <code class="highlight"><c- n>eptr</c-></code> is an exception pointer containing  either:</p>
+          <p>If <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_error</c-><c- p>(</c-><c- n>rcvr</c-><c- p>,</c-> <c- n>eptr</c-><c- p>)</c-></code>, then the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> before the error completion handler is called, and <code class="highlight"><c- n>eptr</c-></code> is an <code class="highlight"><c- n>exception_ptr</c-></code> containing  either:</p>
           <ul>
            <li data-md>
             <p>an exception thrown by an invocation of <code class="highlight"><c- n>f</c-></code>, or</p>
@@ -2728,17 +2716,16 @@ The expression <code class="highlight"><c- n>connect</c-><c- p>(</c-><c- n>out_s
           <p>If <code class="highlight"><c- n>out_sndr</c-></code> completes with <code class="highlight"><c- n>set_stopped</c-><c- p>(</c-><c- n>rcvr</c-><c- p>)</c-></code>, then the asynchronous operation may invoke a subset of the invocations of <code class="highlight"><c- n>f</c-></code> before the stopped completion handler.</p>
         </ul>
        <li data-md>
-        <p>If <code class="highlight"><c- n>sndr</c-></code> does not complete with <code class="highlight"><c- n>set_value</c-><c- p>(...)</c-></code>, then the completion is forwarded to <code class="highlight"><c- n>recv</c-></code>.</p>
+        <p>If <code class="highlight"><c- n>sndr</c-></code> does not complete with <code class="highlight"><c- n>set_value</c-></code>, then the completion is forwarded to <code class="highlight"><c- n>recv</c-></code>.</p>
        <li data-md>
-        <p>For <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i>, the parameter <code class="highlight"><c- n>policy</c-></code> describes the manner in which the execution of the asynchronous operations corresponding to these algorithms may be parallelized and the manner in which they apply <code class="highlight"><c- n>f</c-></code>.
-All the permissions and requirements for <code class="highlight"><c- n>f</c-></code> are the same as for parallel algorithm element access functions [algorithms.parallel.exec].</p>
+        <p>For <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i>, the parameter <code class="highlight"><c- n>policy</c-></code> describes the manner in which the execution of the asynchronous operations corresponding to these algorithms may be parallelized and the manner in which they apply <code class="highlight"><c- n>f</c-></code>. Permissions and requirements on parallel algorithm element access functions ([algorithms.parallel.exec]) apply to <code class="highlight"><c- n>f</c-></code>.</p>
       </ul>
      </ins>
    </ol>
    <div class="block-insert">
     <ol start="8">
      <li data-md>
-      <p><i>[Note: </i> The asynchronous operation corresponding to <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> can complete with <code class="highlight"><c- n>set_stopped</c-><c- p>()</c-></code> if cancellation is requested or ignore cancellation requests. <i> — end note]</i></p>
+      <p><i>[Note: </i> The asynchronous operation corresponding to <i><code class="highlight"><c- n>bulk</c-><c- o>-</c-><c- n>algo</c-></code></i><code class="highlight"><c- p>(</c-><c- n>sndr</c-><c- p>,</c-> <c- n>policy</c-><c- p>,</c-> <c- n>shape</c-><c- p>,</c-> <c- n>f</c-><c- p>)</c-></code> can complete with <code class="highlight"><c- n>set_stopped</c-></code> if cancellation is requested or ignore cancellation requests. <i> — end note]</i></p>
     </ol>
    </div>
    <h2 class="heading settled" data-level="6" id="acknowledgements"><span class="secno">6. </span><span class="content">Acknowledgements</span><a class="self-link" href="#acknowledgements"></a></h2>

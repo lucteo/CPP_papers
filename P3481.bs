@@ -543,7 +543,7 @@ On top of that, for special cases we also want to allow option 3.
       - <del>propagates all completion operations sent by `sndr`.<del>
 
       <ins>
-      - If `sndr` has a successful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, or decayed copies of those values if they model `copy_constructable`, then:
+      - If `sndr` has a successful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, or decayed copies of those values if they model `copy_constructible`, then:
 
         - If `out_sndr` also completes successfully, then:
 
@@ -553,10 +553,10 @@ On top of that, for special cases we also want to allow option 3.
 
                 - <i>Recommended practice: </i> The underlying scheduler should execute each iteration on a distinct execution agent.
 
-            - for `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range `[0, shape)`, such that for every `i` of type `Shape` from `0` to `shape`, there is exactly one invocation with a pair `b` and `e`, such that `b <= i < e`.
+            - for `bulk_chunked`, invokes `f(b, e, args...)` zero or more times with pairs of `b` and `e` of type `Shape` in range `[0, shape]`, such that `b < e` and for every `i` of type `Shape` from `0` to `shape`, there is exactly one invocation with a pair `b` and `e`, such that `i` is in the range `[b, e)`.
 
 
-        - If `out_sndr` completes with `set_error(rcvr, eptr)`, then the asynchronous operation may invoke a subset of the invocations of `f` before the error completion handler is called, and `eptr` is an exception pointer containing  either:
+        - If `out_sndr` completes with `set_error(rcvr, eptr)`, then the asynchronous operation may invoke a subset of the invocations of `f` before the error completion handler is called, and `eptr` is an `exception_ptr` containing  either:
 
             - an exception thrown by an invocation of `f`, or
 
@@ -566,15 +566,14 @@ On top of that, for special cases we also want to allow option 3.
 
         - If `out_sndr` completes with `set_stopped(rcvr)`, then the asynchronous operation may invoke a subset of the invocations of `f` before the stopped completion handler.
 
-      - If `sndr` does not complete with `set_value(...)`, then the completion is forwarded to `recv`.
+      - If `sndr` does not complete with `set_value`, then the completion is forwarded to `recv`.
 
-      - For <i>`bulk-algo`</i>, the parameter `policy` describes the manner in which the execution of the asynchronous operations corresponding to these algorithms may be parallelized and the manner in which they apply `f`.
-        All the permissions and requirements for `f` are the same as for parallel algorithm element access functions [algorithms.parallel.exec].
+      - For <i>`bulk-algo`</i>, the parameter `policy` describes the manner in which the execution of the asynchronous operations corresponding to these algorithms may be parallelized and the manner in which they apply `f`. Permissions and requirements on parallel algorithm element access functions ([algorithms.parallel.exec]) apply to `f`.
 
             </ins>
 
 <div class="block-insert">
-8. <i>[Note: </i> The asynchronous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` can complete with `set_stopped()` if cancellation is requested or ignore cancellation requests. <i> — end note]</i>
+8. <i>[Note: </i> The asynchronous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` can complete with `set_stopped` if cancellation is requested or ignore cancellation requests. <i> — end note]</i>
 
 
 </div>
