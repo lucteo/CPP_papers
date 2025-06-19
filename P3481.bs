@@ -1,15 +1,15 @@
 <pre class='metadata'>
 Title: `std::execution::bulk()` issues
-Shortname: D3481
-Level: 4
+Shortname: P3481
+Level: 5
 Status: P
 Group: wg21
 Editor: Lucian Radu Teodorescu, Garmin, lucteo@lucteo.ro
         Ruslan Arutyunyan, Intel, ruslan.arutyunyan@intel.com
         Lewis Baker, lewissbaker@gmail.com
         Mark Hoemmen, NVIDIA, mhoemmen@nvidia.com
-Audience: SG1, LEWG, LWG
-URL: http://wg21.link/P3481R4
+Audience: LWG
+URL: http://wg21.link/P3481R5
 Abstract: This paper explores the issues with `std::execution::bulk` algorithm and proposes a way to address them,
           making the API better for the users.
 Markup Shorthands: markdown yes
@@ -59,6 +59,9 @@ div.block-insert pre.highlight {
 </style>
 
 # Changes history # {#history}
+
+## R5 ## {#r5}
+- Apply LWG review feedback from Bulgaria, 2025
 
 ## R4 ## {#r4}
 - Improve wording.
@@ -445,7 +448,7 @@ On top of that, for special cases we also want to allow option 3.
     except that `sndr` is evaluated only once.
 
     <div class="block-insert">
-    3.1. The template argument of <i>`product-type`</i> is `Policy` if `Policy` models `copy_constructable`, and `const Policy&` otherwise.
+    3.1. The first template argument of <i>`product-type`</i> is `Policy` if `Policy` models `copy_constructible`, and `const Policy&` otherwise.
     </div>
 
 <div class="block-insert">
@@ -543,7 +546,7 @@ On top of that, for special cases we also want to allow option 3.
       - <del>propagates all completion operations sent by `sndr`.<del>
 
       <ins>
-      - If `sndr` has a successful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, or decayed copies of those values if they model `copy_constructable`, then:
+      - If `sndr` has a successful completion, where `args` is a pack of lvalue subexpressions referring to the value completion result datums of `sndr`, or decayed copies of those values if they model `copy_constructible`, then:
 
         - If `out_sndr` also completes successfully, then:
 
@@ -551,12 +554,12 @@ On top of that, for special cases we also want to allow option 3.
 
             - for `bulk_unchunked`, invokes `f(i, args...)` for every `i` of type `Shape` from `0` to `shape`;
 
-                - <i>[Note: </i> the underlying scheduler should execute each iteration on a distinct execution agent. <i> — end note]</i>
+                - <i>Recommended practice: </i> The underlying scheduler should execute each iteration on a distinct execution agent.
 
-            - for `bulk_chunked`, invokes `f(b, e, args...)` zero or multiple times with pairs of `b` and `e` of type `Shape` in range `[0, shape)`, such that for every `i` of type `Shape` from `0` to `shape`, there is exactly one invocation with a pair `b` and `e`, such that `b <= i < e`.
+            - for `bulk_chunked`, invokes `f(b, e, args...)` zero or more times with pairs of `b` and `e` of type `Shape` in range `[0, shape]`, such that `b < e` and for every `i` of type `Shape` from `0` to `shape`, there is exactly one invocation with a pair `b` and `e`, such that `i` is in the range `[b, e)`.
 
 
-        - If `out_sndr` completes with `set_error(rcvr, eptr)`, then the asynchronous operation may invoke a subset of the invocations of `f` before the error completion handler is called, and `eptr` is an exception pointer containing  either:
+        - If `out_sndr` completes with `set_error(rcvr, eptr)`, then the asynchronous operation may invoke a subset of the invocations of `f` before the error completion handler is called, and `eptr` is an `exception_ptr` containing  either:
 
             - an exception thrown by an invocation of `f`, or
 
@@ -566,15 +569,14 @@ On top of that, for special cases we also want to allow option 3.
 
         - If `out_sndr` completes with `set_stopped(rcvr)`, then the asynchronous operation may invoke a subset of the invocations of `f` before the stopped completion handler.
 
-      - If `sndr` does not complete with `set_value(...)`, then the completion is forwarded to `recv`.
+      - If `sndr` does not complete with `set_value`, then the completion is forwarded to `recv`.
 
-      - For <i>`bulk-algo`</i>, the parameter `policy` describes the manner in which the execution of the asynchronous operations corresponding to these algorithms may be parallelized and the manner in which they apply `f`.
-        All the permissions and requirements for `f` are the same as for parallel algorithm element access functions [algorithms.parallel.exec].
+      - For <i>`bulk-algo`</i>, the parameter `policy` describes the manner in which the execution of the asynchronous operations corresponding to these algorithms may be parallelized and the manner in which they apply `f`. Permissions and requirements on parallel algorithm element access functions ([algorithms.parallel.exec]) apply to `f`.
 
             </ins>
 
 <div class="block-insert">
-8. <i>[Note: </i> The asynchronous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` can complete with `set_stopped()` if cancellation is requested or ignore cancellation requests. <i> — end note]</i>
+8. <i>[Note: </i> The asynchronous operation corresponding to <i>`bulk-algo`</i>`(sndr, policy, shape, f)` can complete with `set_stopped` if cancellation is requested or ignore cancellation requests. <i> — end note]</i>
 
 
 </div>
