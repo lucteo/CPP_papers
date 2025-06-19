@@ -9,7 +9,7 @@ Editor: Lucian Radu Teodorescu, Garmin, lucteo@lucteo.ro
         Lewis Baker, lewissbaker@gmail.com
         Mark Hoemmen, NVIDIA, mhoemmen@nvidia.com
 Audience: SG1, LEWG, LWG
-URL: http://wg21.link/D3481R4
+URL: http://wg21.link/P3481R4
 Abstract: This paper explores the issues with `std::execution::bulk` algorithm and proposes a way to address them,
           making the API better for the users.
 Markup Shorthands: markdown yes
@@ -266,7 +266,7 @@ Revisions R2 and R3 originally incorporated this design suggestion from [[P3564R
 After further discussions in Sofia 2025, we realized that these two directions do not overlap well, and that it likely deserve separate APIs for the two design aspects.
 We decided that we can have `bulk_unchunked` as an algorithm to be used when the user wants to execute each iteration on a distinct execution agent, and a new algorithm `bulk_concurrent` that explicitly deals with concurrent forward progress guarantee.
 
-This paper proposes `bulk_chunked`, but does not propose `bulk_concurrent`, leaving this for future work.
+This paper proposes `bulk_unchunked`, but does not propose `bulk_concurrent`, leaving this for future work.
 
 ## Using execution policies ## {#design.policies}
 
