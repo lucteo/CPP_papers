@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-09-03" />
+  <meta name="dcterms.date" content="2025-09-13" />
   <title>Iterating on `parallel_scheduler`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ code.sourceCode > span { display: inline; }
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-09-03</td>
+    <td>2025-09-13</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -479,6 +479,8 @@ customizations of
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
 enough<span></span></a></li>
+<li><a href="#removing-customization-mechanisms" id="toc-removing-customization-mechanisms"><span class="toc-section-number">2.8</span> Removing customization
+mechanisms<span></span></a></li>
 </ul></li>
 <li><a href="#proposed-wording" id="toc-proposed-wording"><span class="toc-section-number">3</span> Proposed
 wording<span></span></a></li>
@@ -547,6 +549,10 @@ APIs lie.</li>
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
 enough.</li>
+</ol></li>
+<li>Interactions with other NB comments:
+<ol start="8" type="1">
+<li>Removing customization mechanisms</li>
 </ol></li>
 </ul>
 <h1 data-number="2" id="discussions"><span class="header-section-number">2</span> Discussions<a href="#discussions" class="self-link"></a></h1>
@@ -673,6 +679,11 @@ this cost if it doesn’t make sense for the targeted platform.</p>
 <p>Even with stop token property that is specified by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>, it may not always make sense
 to support cancellation on the backend. The frontend can implement
 cancellation without passing this information to the backend.</p>
+<p>If we keep the list of properties (and query types) to be
+implementation-defined and fixed, we can always relax this later.
+Relaxing this in a later standard will imply that we would need to
+support new properties; this would be similar to adding new properties
+to be supported.</p>
 <p>Thus, the authors believe that the current option of making the list
 of properties (and query types) is the right choice for the users and no
 changes are needed here.</p>
@@ -947,9 +958,30 @@ are handled.</p>
 <p>This paper advocates for using early customization of
 <code class="sourceCode cpp">bulk</code> algorithms for
 <code class="sourceCode cpp">parallel_scheduler</code>.</p>
+<h2 data-number="2.8" id="removing-customization-mechanisms"><span class="header-section-number">2.8</span> Removing customization
+mechanisms<a href="#removing-customization-mechanisms" class="self-link"></a></h2>
+<p>Eric Niebler announced on reflector that NVIDA adds an NB comment
+suggesting to remove customization mechanisms from senders/receivers
+from C++26, and adding it into future versions of the standard. If that
+change is to be adopted, it also has implications to
+<code class="sourceCode cpp">parallel_scheduler</code>. We explore here
+the implications.</p>
+<p>First, on the user-facing code, we do not need to specify that
+<code class="sourceCode cpp">parallel_scheduler</code> needs to be
+customized.</p>
+<p>Secondly, from the backend we need to remove support for
+<code class="sourceCode cpp">bulk</code>. This means:</p>
+<ul>
+<li><code class="sourceCode cpp">schedule_bulk_chunked</code> and
+<code class="sourceCode cpp">schedule_bulk_unchunked</code> methods from
+<code class="sourceCode cpp">parallel_scheduler_backend</code></li>
+<li><code class="sourceCode cpp">bulk_item_receiver_proxy</code>
+struct</li>
+</ul>
 <h1 data-number="3" id="proposed-wording"><span class="header-section-number">3</span> Proposed wording<a href="#proposed-wording" class="self-link"></a></h1>
-<p>In section Parallel scheduler [exec.par.scheduler], apply the
-following changes:</p>
+<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: In
+section <em>Parallel scheduler</em> [exec.par.scheduler], apply the
+following changes: ]</span></p>
 <div class="rm" style="color: #bf0303">
 <p><span class="marginalizedparent"><a class="marginalized">7</a></span>
 A <em>bulk chunked proxy for
@@ -1054,6 +1086,9 @@ other completion operations are forwarded unchanged.</li>
 </ul>
 
 </div>
+<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: If
+sender customization is not removed, then add the following:
+]</span></p>
 <div class="add" style="color: #006e28">
 <p><span class="marginalizedparent"><a class="marginalized">?</a></span>
 Let
@@ -1163,9 +1198,10 @@ All other completion operations are forwarded unchanged.</p></li>
 
 </div>
 <hr>
-<p>In section
-<code class="sourceCode cpp">query_parallel_scheduler_backend</code>
-[exec.sysctxrepl.query], apply the following changes:</p>
+<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: In
+section
+<em><code class="sourceCode default">query_parallel_scheduler_backend</code></em>
+[exec.sysctxrepl.query], apply the following changes: ]</span></p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy <span class="op">{</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual ~receiver_proxy() = default;</code></span></del></span></span>
@@ -1205,7 +1241,8 @@ corresponding to different iterations.</p>
 cv-unqualified non-array object type.</p>
 <p><span class="marginalizedparent"><a class="marginalized">6</a></span>
 <em>Returns</em>: Let <code class="sourceCode cpp">env</code> be the
-environment of the receiver represented by <code class="sourceCode cpp"><span class="op">*</span><span class="kw">this</span></code><span class="add" style="color: #006e28"><ins>and <span><code class="sourceCode default">template &lt;typename T, typename R&gt; R</code></span>
+environment of the receiver represented by <code class="sourceCode cpp"><span class="op">*</span><span class="kw">this</span></code>
+<span class="add" style="color: #006e28"><ins>and <span><code class="sourceCode default">template &lt;typename T, typename R&gt; R</code></span>
 <em>implementation-defined-transform</em><span><code class="sourceCode default">(T&amp;&amp;)</code></span>
 an implementation-defined transformation</ins></span>. If:</p>
 <ul>
@@ -1244,6 +1281,75 @@ the implementation-defined set of supported result types for
 should be defined for any
 <span><code class="sourceCode default">T</code></span> that models
 <span><code class="sourceCode default">stoppable_token</code></span></ins></span></p>
+<hr>
+<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: If
+customizations are removed from
+<code class="sourceCode default">std::execution</code>, then also apply
+the following changes in _ Header
+<code class="sourceCode default">&lt;execution&gt;</code> synopsis_
+[execution.syn]: ]</span></p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// [exec.sysctxrepl], namespace system_context_replaceability</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy;</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">struct bulk_item_receiver_proxy;</code></span></del></span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> parallel_scheduler_backend;</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  shared_ptr<span class="op">&lt;</span>parallel_scheduler_backend<span class="op">&gt;</span> query_parallel_scheduler_backend<span class="op">()</span>;</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr>
+<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: If
+customizations are removed from
+<code class="sourceCode default">std::execution</code>, then also apply
+the following changes in
+<em><code class="sourceCode default">query_parallel_scheduler_backend</code></em>
+[exec.sysctxrepl.query]: ]</span></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="ednote" style="color: #0000ff">[ Editor&#39;s note: not
+repeating the body of <code class="sourceCode default">receiver_proxy</code> ]</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">struct bulk_item_receiver_proxy : receiver_proxy {</code></span></del></span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void execute(size_t, size_t) noexcept = 0;</code></span></del></span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">};</code></span></del></span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><span class="marginalizedparent"><a class="marginalized">4</a></span>
+<code class="sourceCode cpp">receiver_proxy</code> represents a receiver
+that will be notified by the implementations of
+<code class="sourceCode cpp">parallel_scheduler_backend</code> to
+trigger the completion operations. <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">bulk_item_receiver_proxy</code></span>
+is derived from
+<span><code class="sourceCode default">receiver_proxy</code></span> and
+is used for
+<span><code class="sourceCode default">bulk_chunked</code></span> and
+<span><code class="sourceCode default">bulk_unchunked</code></span>
+customizations that will also receive notifications from implementations
+of
+<span><code class="sourceCode default">parallel_scheduler_backend</code></span>
+corresponding to different iterations.</del></span></p>
+<hr>
+<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: If
+customizations are removed from
+<code class="sourceCode default">std::execution</code>, then also apply
+the following changes in <em>Class
+<code class="sourceCode default">parallel_scheduler_backend</code></em>
+[exec.sysctxrepl.psb]: ]</span></p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> parallel_scheduler_backend <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="op">~</span>parallel_scheduler_backend<span class="op">()</span> <span class="op">=</span> <span class="cf">default</span>;</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> schedule<span class="op">(</span>receiver_proxy<span class="op">&amp;</span>, span<span class="op">&lt;</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void schedule_bulk_chunked(size_t, bulk_item_receiver_proxy&amp;,</code></span></del></span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>                                       <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">span&lt;byte&gt;) noexcept = 0;</code></span></del></span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void schedule_bulk_unchunked(size_t, bulk_item_receiver_proxy&amp;,</code></span></del></span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>                                         <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">span&lt;byte&gt;) noexcept = 0;</code></span></del></span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: Also
+remove descriptions for
+<code class="sourceCode default">schedule_bulk_chunked</code> and
+<code class="sourceCode default">schedule_bulk_unchunked</code>, with
+paragraphs 4-9 ]</span></p>
 <h1 data-number="4" id="acknowledgments"><span class="header-section-number">4</span> Acknowledgments<a href="#acknowledgments" class="self-link"></a></h1>
 <p>Thanks to Tim Song and Tomasz Kamiński for working extra time to
 ensure that <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> is specified with high
