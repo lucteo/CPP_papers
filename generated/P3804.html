@@ -698,51 +698,104 @@ break this flow.</p>
 <code class="sourceCode cpp">parallel_scheduler</code> as yet another
 library C that can be compiled separately from the rest of the program.
 The backend may be compiled with different flag and with a different
-compiler than the rest of the modules (again, if the ABI matches). That
-is, there is a complete separation between the frontend (library
+compiler than the rest of the libraries (again, if the ABI matches).
+That is, there is a complete separation between the frontend (library
 implementing <code class="sourceCode cpp">parallel_scheduler</code>) and
 the backend (user provided implementation of
-<code class="sourceCode cpp">parallel_scheduler_backend</code>).</p>
-<p>This separation makes it impossible a completely extensible list of
-properties that can be dynamically agreed between the frontend and the
-backend. Let us walk the implications of this with two examples.</p>
-<p>Let’s assume that frontend defines a new property
-<code class="sourceCode cpp">friendliness</code>; maybe the program was
-compiled with a newer version of the standard that defined this
-property, while the backend is compiled with C++26. How would the
-backend implementation use this new property if it doesn’t even know it
-exists? It cannot.</p>
-<p>Looking from the opposite direction, let’s now assume that the
-backend is compiled with a newer version of the standard that knows
-about the <code class="sourceCode cpp">firendliness</code> property, and
-that the frontend is compiled with C++26 which doesn’t know about this
-property. The backend can try to query on the existence of this
-property, and we hope that the query needs to be actually fulfilled in
-the frontend.</p>
-<p>In this case, the discussion can be slightly more complicated. While
-the frontend might not know about
-<code class="sourceCode cpp">friendliness</code>, the environment in
-which the sender created by
-<code class="sourceCode cpp">parallel_scheduler</code> might now about
-this (for example, the user code is built for a newer version of C++
-than the standard library it uses). Looking at the versions, the triad
-user code, <code class="sourceCode cpp">parallel_scheduler</code> and
-backend looks like: new-old-new. While, theoretically we can solve the
-problem making the query work between the frontend and the backend
-(complicated, but we can), we need to solve the problem for the fronted
-querying the environment for a property
-<code class="sourceCode cpp">friendliness</code> that it does not know
-about (e.g., the same problem as before).</p>
-<p>The frontend can only query the environment by having some
-compile-time knowledge. Thus, the list of properties that frontend
-supports need to be known at compile-time. This aligns with the existing
-design in which both the frontend and the backend need to know at
-compile-time the list of properties that they support.</p>
-<p>To put it in a different perspective, the querying mechanism for
-senders/receivers is compile-time, and we cannot use it fully dynamic
-over run-time resilience boundaries.</p>
+<code class="sourceCode cpp">parallel_scheduler_backend</code>). Things
+are more complicated as the user code (the environment of the receiver
+connected to a <code class="sourceCode cpp">parallel_scheduler</code>
+sender) is outside of the control of the standard library.</p>
+<p>Thus, we have 3 components that we need to align:</p>
+<ul>
+<li>user code (receiver’s environment),</li>
+<li>frontend (<code class="sourceCode cpp">parallel_scheduler</code>
+implementation in the standard library),</li>
+<li>backend (user supplied functionality for launching execution
+agents).</li>
+</ul>
+<p>One attempt of trying to bridge these three things might look
+like:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// backend code</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> receiver_proxy <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;</span><span class="kw">typename</span> R, <span class="kw">typename</span> Q<span class="op">&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>optional<span class="op">&lt;</span>R<span class="op">&gt;</span> try_query<span class="op">(</span>Q<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">alignas</span><span class="op">(</span>R<span class="op">)</span> std<span class="op">::</span>byte storage<span class="op">[</span><span class="kw">sizeof</span><span class="op">(</span>R<span class="op">)]</span>;</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>try_query_impl<span class="op">(</span><span class="kw">typeid</span><span class="op">(</span>Q<span class="op">)</span>, <span class="kw">typeid</span><span class="op">(</span>R<span class="op">)</span>, <span class="op">&amp;</span>storage<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>       <span class="kw">struct</span> dtor <span class="op">{</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>          R<span class="op">&amp;</span> result;</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>          <span class="op">~</span>dtor<span class="op">()</span> <span class="op">{</span> result<span class="op">.~</span>R<span class="op">()</span>; <span class="op">}</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>       <span class="op">}</span>;</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>       dtor d<span class="op">{*</span>std<span class="op">::</span>launder<span class="op">(</span><span class="kw">reinterpret_cast</span><span class="op">&lt;</span>R<span class="op">*&gt;(&amp;</span>storage<span class="op">))}</span>;</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>       <span class="cf">return</span> std<span class="op">::</span>move<span class="op">(</span>d<span class="op">.</span>result<span class="op">)</span>;</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> std<span class="op">::</span>nullopt;</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>   <span class="kw">virtual</span> <span class="dt">bool</span> try_query_impl<span class="op">(</span>std<span class="op">::</span>type_index query_id, std<span class="op">::</span>type_index result_id, <span class="dt">void</span><span class="op">*</span> result_addr<span class="op">)</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>;</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="co">// frontend code</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">typename</span> Receiver<span class="op">&gt;</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> receiver_proxy_impl <span class="op">:</span> receiver_proxy <span class="op">{</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> env_t <span class="op">=</span> std<span class="op">::</span>env_of_t<span class="op">&lt;</span>Receiver<span class="op">&gt;</span>;</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> queries_t <span class="op">=</span> queries_of_t<span class="op">&lt;</span>env_t<span class="op">&gt;</span>;</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>   <span class="kw">template</span><span class="op">&lt;</span><span class="kw">typename</span> Q<span class="op">&gt;</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> query_result_t <span class="op">=</span> <span class="kw">decltype</span><span class="op">(</span><span class="kw">auto</span><span class="op">(</span>std<span class="op">::</span>declval<span class="op">&lt;</span><span class="kw">const</span> env_t<span class="op">&amp;&gt;().</span>query<span class="op">(</span>Q<span class="op">{})))</span>;</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>   Receiver rcvr;</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>   <span class="kw">struct</span> vtable_entry <span class="op">{</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>     std<span class="op">::</span>type_index query_id;</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>     std<span class="op">::</span>type_index result_id;</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>     <span class="dt">void</span> <span class="op">(*</span>getter<span class="op">)(</span>receiver_proxy<span class="op">*</span>, <span class="dt">void</span><span class="op">*</span> address<span class="op">)</span>;</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span>;</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>   <span class="kw">template</span><span class="op">&lt;</span><span class="kw">typename</span><span class="op">...</span> Queries<span class="op">&gt;</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>   <span class="kw">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> make_query_vtable<span class="op">(</span>type_list<span class="op">&lt;</span>Queries<span class="op">...&gt;)</span> <span class="op">{</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> std<span class="op">::</span>array<span class="op">&lt;</span>vtable_entry, <span class="kw">sizeof</span><span class="op">...(</span>Queries<span class="op">)&gt;</span> vtable<span class="op">{</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span><span class="kw">typeid</span><span class="op">(</span>Queries<span class="op">)</span>,</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>         <span class="kw">typeid</span><span class="op">(</span>query_result_t<span class="op">&lt;</span>Queries<span class="op">&gt;)</span>,</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>         <span class="op">[](</span>receiver_proxy<span class="op">*</span> proxy, <span class="dt">void</span><span class="op">*</span> address<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>           <span class="op">::</span><span class="kw">new</span> <span class="op">(</span>address<span class="op">)</span> query_result_t<span class="op">&lt;</span>Queries<span class="op">&gt;(</span>get_env<span class="op">(</span><span class="kw">static_cast</span><span class="op">&lt;</span>receiver_proxy_impl<span class="op">*&gt;(</span>proxy<span class="op">)-&gt;</span>receiver<span class="op">).</span>query<span class="op">(</span>Queries<span class="op">{}))</span>;</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>         <span class="op">}}...}</span>;</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>   <span class="dt">bool</span> try_query_impl<span class="op">(</span>std<span class="op">::</span>type_index query_id,</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>                       std<span class="op">::</span>type_index result_id,</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>                       <span class="dt">void</span><span class="op">*</span> address<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>     <span class="kw">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> vtable <span class="op">=</span> make_query_vtable<span class="op">(</span>queries_t<span class="op">{})</span>;</span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>     <span class="cf">for</span> <span class="op">(</span><span class="kw">auto</span><span class="op">&amp;</span> entry <span class="op">:</span> vtable<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>       <span class="cf">if</span> <span class="op">(</span>entry<span class="op">.</span>query_id <span class="op">==</span> query_id <span class="op">&amp;&amp;</span> entry<span class="op">.</span>result_id <span class="op">==</span> result_id<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>         entry<span class="op">.</span>getter<span class="op">(</span><span class="kw">this</span>, address<span class="op">)</span>;</span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>         <span class="cf">return</span> <span class="kw">true</span>;</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>       <span class="op">}</span></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>     <span class="op">}</span></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>     <span class="cf">return</span> <span class="kw">false</span>;</span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>   <span class="co">// ... etc. for set_value, and other methods</span></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>;</span></code></pre></div>
+<p>The key for this implementation is the
+<code class="sourceCode cpp">make_query_vtable</code> function in the
+frontend that makes a vtable-like structure containing ways to access
+the properties of the receiver’s environment. But this requires that the
+frontend has access, at compile-time, to the list of properties that the
+receiver supports. In our example, this is represented by <code class="sourceCode cpp">queries_of_t<span class="op">&lt;</span>env_t<span class="op">&gt;</span></code>,
+which is not detailed here.</p>
+<p>The problem is that we don’t have yet a good way to implement this
+query. To fully support all the properties that the receiver has, the
+frontend needs to be able to build them into a type list. We don’t have
+support for this.</p>
+<p>Without such a facility, the frontend and the backend can only query
+a set of properties that it knows. This aligns with the direction
+proposed by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>.</p>
+<p>If we would find such a solution in the future, the frontend can
+support new properties, which could be picked by the backend. As this is
+a relaxation of constraints, future standards can do it without breaking
+changes.</p>
 <p>The authors don’t see any changes in this area that would benefit the
-users.</p>
+users in a tangible way.</p>
 <h2 data-number="2.6" id="system_context_replaceability-is-not-a-good-name-to-use-for-the-namespace-in-which-the-replaceability-apis-lie"><span class="header-section-number">2.6</span>
 <code class="sourceCode cpp">system_context_replaceability</code> is not
 a good name to use for the namespace in which the replaceability APIs
@@ -945,9 +998,9 @@ given predecessor.</p>
 <p>If we implement early customization for
 <code class="sourceCode cpp">bulk</code> algorithms, the following
 example would not take advantage of parallel scheduler:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>task<span class="op">&lt;</span><span class="dt">void</span>, parallel_env<span class="op">&gt;</span> calls_serial_bulk<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">co_await</span> bulk<span class="op">(</span>just<span class="op">()</span>, par, <span class="dv">1&#39;000&#39;000</span>, func<span class="op">)</span>;</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>task<span class="op">&lt;</span><span class="dt">void</span>, parallel_env<span class="op">&gt;</span> calls_serial_bulk<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">co_await</span> bulk<span class="op">(</span>just<span class="op">()</span>, par, <span class="dv">1&#39;000&#39;000</span>, func<span class="op">)</span>;</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>This is fine, as it appears immediately to the user that
 <code class="sourceCode cpp">parallel_scheduler</code> was not used in
 <code class="sourceCode cpp">bulk</code>s invocation (even if
@@ -956,10 +1009,10 @@ from the receiver’s environment). To ensure that the
 <code class="sourceCode cpp">bulk</code> is run on
 <code class="sourceCode cpp">parallel_scheduler</code>, the user can do
 the following:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>task<span class="op">&lt;</span><span class="dt">void</span>, parallel_env<span class="op">&gt;</span> calls_parallel_bulk<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  parallel_scheduler sched <span class="op">=</span> <span class="kw">co_await</span> read_env<span class="op">(</span>get_scheduler<span class="op">)</span>;</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">co_await</span> bulk<span class="op">(</span>schedule<span class="op">(</span>sched<span class="op">)</span>, par, <span class="dv">1&#39;000&#39;000</span>, func<span class="op">)</span>;</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>task<span class="op">&lt;</span><span class="dt">void</span>, parallel_env<span class="op">&gt;</span> calls_parallel_bulk<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  parallel_scheduler sched <span class="op">=</span> <span class="kw">co_await</span> read_env<span class="op">(</span>get_scheduler<span class="op">)</span>;</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">co_await</span> bulk<span class="op">(</span>schedule<span class="op">(</span>sched<span class="op">)</span>, par, <span class="dv">1&#39;000&#39;000</span>, func<span class="op">)</span>;</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>This makes it explicit that we want to use the scheduler from the
 environment. It is typically a good idea to demand the user to be
 explicit in such cases, and avoid guessing.</p>
@@ -1133,16 +1186,16 @@ expression <code class="sourceCode default">get_domain(sch)</code>
 returns an expression of exposition-only type
 <em><code class="sourceCode default">parallel-scheduler-domain</code></em>,
 that is equivalent with:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode default cpp"><code class="sourceCode default"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>struct <em>parallel-scheduler-domain</em> {</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    template&lt;sender Sndr, queryable... Env&gt;</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        requires (sizeof...(Env) &lt;= 1)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>      static constexpr sender decltype(auto) transform_sender(Sndr&amp;&amp; sndr, const Env&amp;... env)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        noexcept;</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>};</span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="sourceCode default default"><code class="sourceCode default"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>template&lt;sender Sndr, queryable... Env&gt;</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  requires (sizeof...(Env) &lt;= 1)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>constexpr sender decltype(auto) <em>parallel-scheduler-domain</em>::transform_sender(Sndr&amp;&amp; sndr, const Env&amp;... env)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  noexcept;</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode default cpp"><code class="sourceCode default"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>struct <em>parallel-scheduler-domain</em> {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    template&lt;sender Sndr, queryable... Env&gt;</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        requires (sizeof...(Env) &lt;= 1)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>      static constexpr sender decltype(auto) transform_sender(Sndr&amp;&amp; sndr, const Env&amp;... env)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        noexcept;</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>};</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode default default"><code class="sourceCode default"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>template&lt;sender Sndr, queryable... Env&gt;</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  requires (sizeof...(Env) &lt;= 1)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>constexpr sender decltype(auto) <em>parallel-scheduler-domain</em>::transform_sender(Sndr&amp;&amp; sndr, const Env&amp;... env)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  noexcept;</span></code></pre></div>
 <ul>
 <li><span class="marginalizedparent"><a class="marginalized">11</a></span>
 <em>Returns</em>:
@@ -1221,26 +1274,26 @@ All other completion operations are forwarded unchanged.</p></li>
 section
 <em><code class="sourceCode default">query_parallel_scheduler_backend</code></em>
 [exec.sysctxrepl.query], apply the following changes: ]</span></p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy <span class="op">{</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual ~receiver_proxy() = default;</code></span></del></span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">protected</span><span class="op">:</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">bool</span> <em>query-env</em><span class="op">(</span><em>unspecified</em><span class="op">)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;   <span class="co">// exposition only</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">public</span><span class="op">:</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> set_value<span class="op">()</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> set_error<span class="op">(</span>exception_ptr<span class="op">)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> set_stopped<span class="op">()</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>      optional<span class="op">&lt;</span>P<span class="op">&gt;</span> try_query<span class="op">(</span>Query q<span class="op">)</span> <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">const</code></span></ins></span> <span class="kw">noexcept</span>;</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> bulk_item_receiver_proxy <span class="op">:</span> receiver_proxy <span class="op">{</span></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> execute<span class="op">(</span><span class="dt">size_t</span>, <span class="dt">size_t</span><span class="op">)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual ~receiver_proxy() = default;</code></span></del></span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">bool</span> <em>query-env</em><span class="op">(</span><em>unspecified</em><span class="op">)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;   <span class="co">// exposition only</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">public</span><span class="op">:</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> set_value<span class="op">()</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> set_error<span class="op">(</span>exception_ptr<span class="op">)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> set_stopped<span class="op">()</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>      optional<span class="op">&lt;</span>P<span class="op">&gt;</span> try_query<span class="op">(</span>Query q<span class="op">)</span> <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">const</code></span></ins></span> <span class="kw">noexcept</span>;</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> bulk_item_receiver_proxy <span class="op">:</span> receiver_proxy <span class="op">{</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> execute<span class="op">(</span><span class="dt">size_t</span>, <span class="dt">size_t</span><span class="op">)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">4</a></span>
 <code class="sourceCode cpp">receiver_proxy</code> represents a receiver
 that will be notified by the implementations of
@@ -1253,8 +1306,8 @@ from <code class="sourceCode cpp">receiver_proxy</code> and is used for
 will also receive notifications from implementations of
 <code class="sourceCode cpp">parallel_scheduler_backend</code>
 corresponding to different iterations.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>optional<span class="op">&lt;</span>P<span class="op">&gt;</span> try_query<span class="op">(</span>Query q<span class="op">)</span> <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">const</code></span></ins></span> <span class="kw">noexcept</span>;</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>optional<span class="op">&lt;</span>P<span class="op">&gt;</span> try_query<span class="op">(</span>Query q<span class="op">)</span> <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">const</code></span></ins></span> <span class="kw">noexcept</span>;</span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">5</a></span>
 <em>Mandates</em>: <code class="sourceCode cpp">P</code> is a
 cv-unqualified non-array object type.</p>
@@ -1307,14 +1360,14 @@ customizations are removed from
 the following changes in _ Header
 <code class="sourceCode default">&lt;execution&gt;</code> synopsis_
 [execution.syn]: ]</span></p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// [exec.sysctxrepl], namespace system_context_replaceability</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy;</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">struct bulk_item_receiver_proxy;</code></span></del></span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> parallel_scheduler_backend;</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  shared_ptr<span class="op">&lt;</span>parallel_scheduler_backend<span class="op">&gt;</span> query_parallel_scheduler_backend<span class="op">()</span>;</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// [exec.sysctxrepl], namespace system_context_replaceability</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy;</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">struct bulk_item_receiver_proxy;</code></span></del></span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> parallel_scheduler_backend;</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  shared_ptr<span class="op">&lt;</span>parallel_scheduler_backend<span class="op">&gt;</span> query_parallel_scheduler_backend<span class="op">()</span>;</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <hr>
 <p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: If
 customizations are removed from
@@ -1322,16 +1375,16 @@ customizations are removed from
 the following changes in
 <em><code class="sourceCode default">query_parallel_scheduler_backend</code></em>
 [exec.sysctxrepl.query]: ]</span></p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy <span class="op">{</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="ednote" style="color: #0000ff">[ Editor&#39;s note: not
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> receiver_proxy <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="ednote" style="color: #0000ff">[ Editor&#39;s note: not
 repeating the body of <code class="sourceCode default">receiver_proxy</code> ]</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">struct bulk_item_receiver_proxy : receiver_proxy {</code></span></del></span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void execute(size_t, size_t) noexcept = 0;</code></span></del></span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">};</code></span></del></span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">struct bulk_item_receiver_proxy : receiver_proxy {</code></span></del></span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void execute(size_t, size_t) noexcept = 0;</code></span></del></span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">};</code></span></del></span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">4</a></span>
 <code class="sourceCode cpp">receiver_proxy</code> represents a receiver
 that will be notified by the implementations of
@@ -1353,17 +1406,17 @@ customizations are removed from
 the following changes in <em>Class
 <code class="sourceCode default">parallel_scheduler_backend</code></em>
 [exec.sysctxrepl.psb]: ]</span></p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> parallel_scheduler_backend <span class="op">{</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="op">~</span>parallel_scheduler_backend<span class="op">()</span> <span class="op">=</span> <span class="cf">default</span>;</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> schedule<span class="op">(</span>receiver_proxy<span class="op">&amp;</span>, span<span class="op">&lt;</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void schedule_bulk_chunked(size_t, bulk_item_receiver_proxy&amp;,</code></span></del></span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>                                       <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">span&lt;byte&gt;) noexcept = 0;</code></span></del></span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void schedule_bulk_unchunked(size_t, bulk_item_receiver_proxy&amp;,</code></span></del></span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>                                         <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">span&lt;byte&gt;) noexcept = 0;</code></span></del></span></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> std<span class="op">::</span>execution<span class="op">::</span>system_context_replaceability <span class="op">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> parallel_scheduler_backend <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="op">~</span>parallel_scheduler_backend<span class="op">()</span> <span class="op">=</span> <span class="cf">default</span>;</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> schedule<span class="op">(</span>receiver_proxy<span class="op">&amp;</span>, span<span class="op">&lt;</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void schedule_bulk_chunked(size_t, bulk_item_receiver_proxy&amp;,</code></span></del></span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                                       <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">span&lt;byte&gt;) noexcept = 0;</code></span></del></span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">virtual void schedule_bulk_unchunked(size_t, bulk_item_receiver_proxy&amp;,</code></span></del></span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>                                         <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">span&lt;byte&gt;) noexcept = 0;</code></span></del></span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>;</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: Also
 remove descriptions for
 <code class="sourceCode default">schedule_bulk_chunked</code> and
