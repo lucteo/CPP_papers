@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-09-26" />
+  <meta name="dcterms.date" content="2025-09-27" />
   <title>Iterating on `parallel_scheduler`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ code.sourceCode > span { display: inline; }
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-09-26</td>
+    <td>2025-09-27</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -474,7 +474,7 @@ defined<span></span></a></li>
 <code class="sourceCode cpp">system_context_replaceability</code> is not
 a good name to use for the namespace in which the replaceability APIs
 lie<span></span></a></li>
-<li><a href="#the-wording-around-a-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough" id="toc-the-wording-around-a-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough"><span class="toc-section-number">2.7</span> The wording around a
+<li><a href="#the-wording-around-the-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough" id="toc-the-wording-around-the-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough"><span class="toc-section-number">2.7</span> The wording around the
 customizations of
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
@@ -511,10 +511,10 @@ Acknowledgments<span></span></a></li>
 }
 </style>
 <h1 class="unnumbered unlisted" id="abstract">Abstract<a href="#abstract" class="self-link"></a></h1>
-<p>Although <code class="sourceCode cpp">parallel_scheduler</code> <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> had a long time in the baking,
+<p>Although <code class="sourceCode cpp">parallel_scheduler</code> <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> was a long time in the making,
 getting it adopted in Sofia 2025 still left the impression that some of
 the fine details were not sufficiently discussed. This paper proposes to
-iterate over some of these aspects, aiming at getting the best possible
+iterate on some of these aspects, aiming to achieve the best possible
 outcome from <code class="sourceCode cpp">parallel_scheduler</code>.</p>
 <h1 data-number="1" id="introduction"><span class="header-section-number">1</span> Introduction<a href="#introduction" class="self-link"></a></h1>
 <p>This paper tries to address the following concerns:</p>
@@ -545,7 +545,7 @@ APIs lie.</li>
 </ol></li>
 <li>Wording:
 <ol start="7" type="1">
-<li>The wording around a customizations of
+<li>The wording around customizations of
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
 enough.</li>
@@ -558,7 +558,7 @@ enough.</li>
 <h1 data-number="2" id="discussions"><span class="header-section-number">2</span> Discussions<a href="#discussions" class="self-link"></a></h1>
 <h2 data-number="2.1" id="receiver_proxytry_query-could-possibly-be-const-qualified"><span class="header-section-number">2.1</span> <code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
 could possibly be const-qualified<a href="#receiver_proxytry_query-could-possibly-be-const-qualified" class="self-link"></a></h2>
-<p>Currently the specification defines
+<p>Currently, the specification defines
 <code class="sourceCode cpp">try_query</code> as:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>optional<span class="op">&lt;</span>P<span class="op">&gt;</span> try_query<span class="op">(</span>Query q<span class="op">)</span> <span class="kw">noexcept</span>;</span></code></pre></div>
@@ -572,9 +572,9 @@ proposes a change to mark this function as
 virtual destructor<a href="#receiver_proxy-does-not-need-a-virtual-destructor" class="self-link"></a></h2>
 <p>The code that destroys instances of
 <code class="sourceCode cpp">receiver_proxy</code> knows the actual type
-of the object, so the objects of type
+of the object, so objects of type
 <code class="sourceCode cpp">receiver_proxy</code> don’t need to be
-polymorphically destroyed. This paper proposes to remove the virtual
+destroyed polymorphically. This paper proposes to remove the virtual
 destructor.</p>
 <h2 data-number="2.3" id="receiver_proxytry_query-requires-inplace_stop_token-and-doesnt-accept-an-arbitrary-stop-token"><span class="header-section-number">2.3</span> <code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
 requires <code class="sourceCode cpp">inplace_stop_token</code> and
@@ -631,13 +631,13 @@ receiver.</p>
 possibility of using stop tokens other than
 <code class="sourceCode cpp">inplace_stop_token</code>. If <code class="sourceCode cpp">q<span class="op">(</span>env<span class="op">)</span></code>
 has the type <em><code class="sourceCode cpp">cv</code></em>
-<code class="sourceCode cpp">T</code>, and there is an implementation
-defined mapping from objects of type
+<code class="sourceCode cpp">T</code>, and there is an
+implementation-defined mapping from objects of type
 <code class="sourceCode cpp">T</code> to objects of type
 <code class="sourceCode cpp">P</code>, then <code class="sourceCode cpp">try_query<span class="op">&lt;</span>P<span class="op">&gt;(</span>q<span class="op">)</span></code>
 is allowed to return non-null objects.</p>
-<p>We recommend the implementations to support such mappings between any
-stop token to <code class="sourceCode cpp">inplace_stop_token</code>.
+<p>We recommend that implementations support such mappings between any
+stop token and <code class="sourceCode cpp">inplace_stop_token</code>.
 This would essentially make the frontend register a stop callback to the
 token from the environment and transform the stop request into a stop
 request to a temporary
@@ -646,13 +646,13 @@ request to a temporary
 not just stop tokens.</p>
 <hr />
 <p>We also considered an alternative design in which we add a
-<code class="sourceCode cpp">request_stop</code> member-function to the
+<code class="sourceCode cpp">request_stop</code> member function to the
 backend. The frontend could register a stop callback to the receiver’s
 stop token and directly call this function in the backend. Then, the
 backend could run whatever action is necessary to cancel the allocation
 of a thread.</p>
 <p>The main advantage of this alternative is the reduction of the number
-of stop callbacks that need to be registered, thus, reducing the size of
+of stop callbacks that need to be registered, thus reducing the size of
 the operation state.</p>
 <p>In our proposed solution, if the receiver’s stop token is not an
 <code class="sourceCode cpp">inplace_stop_token</code> then we have to
@@ -661,24 +661,24 @@ callback. Then, in the backend, we need another stop callback to be able
 to transform the received
 <code class="sourceCode cpp">inplace_stop_token</code> into a call to
 the underlying thread pool (Windows Thread Pool, libdispatch, etc.) to
-cancel outstanding work. This means that, on in the worst case we would
-use two stop tokens (in the best one, we are using only one).</p>
-<p>In this alternative we would always use a stop callback, thus we
+cancel outstanding work. This means that, in the worst case, we would
+use two stop callbacks (in the best case, we are using only one).</p>
+<p>In this alternative, we would always use a stop callback, thus we
 might be better off. However, this alternative has a number of
 disadvantages:</p>
 <ul>
-<li>Increases API space (we need another backend class with a method
+<li>Increases API surface (we need another backend class with a method
 dedicated to requesting stop).</li>
-<li>It is a property that can be queries from the receiver, yet we don’t
+<li>It is a property that can be queried from the receiver, yet we don’t
 use the API (non-uniform behavior).</li>
-<li>If we can’t query stop tokens through
+<li>If we can’t query stop tokens through the
 <code class="sourceCode cpp">try_query</code> interface, for C++26 we
 won’t have any properties that would use
 <code class="sourceCode cpp">try_query</code>.</li>
-<li>Complicates storage, and may lead to larger storage needs in
+<li>Complicates storage, and may lead to larger storage needs in the
 operation state.</li>
 </ul>
-<p>Currently the API for
+<p>Currently, the API for
 <code class="sourceCode cpp">parallel_scheduler_backend</code> looks
 like:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> parallel_scheduler_backend <span class="op">{</span></span>
@@ -704,27 +704,27 @@ change:</p>
 <p>If we just look at the space consumption, we can conclude the
 following:</p>
 <ul>
-<li>we need a virtual table, so that is a pointer occupied in the
+<li>We need a virtual table, so that is a pointer occupied in the
 operation state;</li>
-<li>the frontend needs to store a pointer of the returned
+<li>The frontend needs to store a pointer to the returned
 <code class="sourceCode cpp">backend_operation</code> object, so that is
 another pointer.</li>
 </ul>
-<p>These two pointers typically occupy less than a stop callback, so,
+<p>These two pointers typically occupy less than a stop callback, so
 this alternative might still occupy less space for the most general
 case. But, for the case in which the receiver has an
 <code class="sourceCode cpp">inplace_stop_token</code>, this actually
 occupies more space. Thus, the space advantage of this alternative is
 not a net win.</p>
 <p>Considering API surface, uniformity, continued usefulness of
-try_query, and storage trade-offs, we conclude that the proposed
-extension is preferable to the
+<code class="sourceCode cpp">try_query</code>, and storage trade-offs,
+we conclude that the proposed extension is preferable to the
 <code class="sourceCode cpp">request_stop</code> alternative.</p>
 <h2 data-number="2.4" id="the-list-of-properties-supported-by-receiver_proxytry_query-is-implementation-defined"><span class="header-section-number">2.4</span> The list of properties
 supported by <code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
 is implementation-defined<a href="#the-list-of-properties-supported-by-receiver_proxytry_query-is-implementation-defined" class="self-link"></a></h2>
 <p>When <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> defines the possibilities for
-the backend to query the properties of the final receiver it specifies
+the backend to query the properties of the final receiver, it specifies
 that the list of properties (both property types and query types) are
 implementation-defined. Instead, the proposal could have defined a fixed
 list of properties to be supported when replacing the backend.</p>
@@ -732,20 +732,20 @@ list of properties to be supported when replacing the backend.</p>
 use-cases:</p>
 <ol type="1">
 <li>Implementers might want to add additional properties to be
-queried</li>
-<li>Implementers might not want to implement all the properties</li>
+queried.</li>
+<li>Implementers might not want to implement all the properties.</li>
 </ol>
 <p>A good example for the first case is a vendor adding support for
 thread priorities. With the existing proposal, this can be done in a
 compliant manner.</p>
-<p>The second case involves implementors opting out of certain
+<p>The second case involves implementers opting out of certain
 properties. Let us assume that we standardize a mechanism to query
-thread priorities from the receiver. But, this may not make much
-difference on certain platforms, thus the implementors shall be able to
+thread priorities from the receiver. But this may not make much
+difference on certain platforms, thus the implementers should be able to
 opt out of supporting this query. Supporting a query typically has a
 small cost associated with it, so it makes sense to allow opting out of
 this cost if it doesn’t make sense for the targeted platform.</p>
-<p>Even with stop token property that is specified by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>, it may not always make sense
+<p>Even with the stop‑token property that is specified by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>, it may not always make sense
 to support cancellation on the backend. The frontend can implement
 cancellation without passing this information to the backend.</p>
 <p>If we keep the list of properties (and query types) to be
@@ -754,23 +754,23 @@ Relaxing this in a later standard will imply that we would need to
 support new properties; this would be similar to adding new properties
 to be supported.</p>
 <p>Thus, the authors believe that the current option of making the list
-of properties (and query types) is the right choice for the users and no
-changes are needed here.</p>
+of properties (and query types) implementation-defined is the right
+choice for the users and no changes are needed here.</p>
 <h2 data-number="2.5" id="receiver_proxytry_query-currently-requires-the-list-of-supported-queries-to-be-defined"><span class="header-section-number">2.5</span> <code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
 currently requires the list of supported queries to be defined<a href="#receiver_proxytry_query-currently-requires-the-list-of-supported-queries-to-be-defined" class="self-link"></a></h2>
-<p>One workflow that some of C++ have is to have separate compilations
-of their libraries. Two libraries, A and B can be compiled separately,
-sometimes with different versions of the compiler, sometimes even with
-different compilers (provided that the ABI match). This feature cannot
-break this flow.</p>
+<p>One workflow that some C++ users have is to have separate
+compilations of their libraries. Two libraries, A and B, can be compiled
+separately, sometimes with different versions of the compiler, sometimes
+even with different compilers (provided that the ABI matches). This
+feature cannot break this flow.</p>
 <p>For practical reasons, we can consider the backend of
 <code class="sourceCode cpp">parallel_scheduler</code> as yet another
 library C that can be compiled separately from the rest of the program.
-The backend may be compiled with different flag and with a different
+The backend may be compiled with different flags and with a different
 compiler than the rest of the libraries (again, if the ABI matches).
 That is, there is a complete separation between the frontend (library
 implementing <code class="sourceCode cpp">parallel_scheduler</code>) and
-the backend (user provided implementation of
+the backend (user-provided implementation of
 <code class="sourceCode cpp">parallel_scheduler_backend</code>). Things
 are more complicated as the user code (the environment of the receiver
 connected to a <code class="sourceCode cpp">parallel_scheduler</code>
@@ -780,10 +780,10 @@ sender) is outside of the control of the standard library.</p>
 <li>user code (receiver’s environment),</li>
 <li>frontend (<code class="sourceCode cpp">parallel_scheduler</code>
 implementation in the standard library),</li>
-<li>backend (user supplied functionality for launching execution
+<li>backend (user-supplied functionality for launching execution
 agents).</li>
 </ul>
-<p>One attempt of trying to bridge these three things might look
+<p>One attempt at trying to bridge these three things might look
 like:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// backend code</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> receiver_proxy <span class="op">{</span></span>
@@ -852,18 +852,18 @@ the properties of the receiver’s environment. But this requires that the
 frontend has access, at compile-time, to the list of properties that the
 receiver supports. In our example, this is represented by <code class="sourceCode cpp">queries_of_t<span class="op">&lt;</span>env_t<span class="op">&gt;</span></code>,
 which is not detailed here.</p>
-<p>The problem is that we don’t have yet a good way to implement this
+<p>The problem is that we don’t yet have a good way to implement this
 query. To fully support all the properties that the receiver has, the
 frontend needs to be able to build them into a type list. We don’t have
 support for this.</p>
 <p>Without such a facility, the frontend and the backend can only query
 a set of properties that it knows. This aligns with the direction
 proposed by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>.</p>
-<p>If we would find such a solution in the future, the frontend can
-support new properties, which could be picked by the backend. As this is
-a relaxation of constraints, future standards can do it without breaking
-changes.</p>
-<p>The authors don’t see any changes in this area that would benefit the
+<p>If we were to find such a solution in the future, the frontend could
+support new properties, which could be picked up by the backend. As this
+is a relaxation of constraints, future standards can do it without
+breaking changes.</p>
+<p>The authors don’t see any changes in this area that would benefit
 users in a tangible way.</p>
 <h2 data-number="2.6" id="system_context_replaceability-is-not-a-good-name-to-use-for-the-namespace-in-which-the-replaceability-apis-lie"><span class="header-section-number">2.6</span>
 <code class="sourceCode cpp">system_context_replaceability</code> is not
@@ -875,21 +875,21 @@ part of <code class="sourceCode cpp">system_context</code>. In that
 sense, the name
 <code class="sourceCode cpp">system_context_replaceability</code> made
 sense; it was the namespace in which we put things related to replacing
-default implementation around
+the default implementation around
 <code class="sourceCode cpp">system_context</code>. But now, we ended up
 with a different name, so the question is whether
 <code class="sourceCode cpp">system_context_replaceability</code> still
 makes sense.</p>
-<p>There are people who’s answer would be no. In that case, we might
+<p>There are people whose answer would be no. In that case, we might
 rename the namespace to something like
 <code class="sourceCode cpp">parallel_scheduler_replaceability</code>.</p>
 <p>But, there are also arguments for keeping the current name. We also
-envision having different types of schedulers. We were previously taking
-about a <code class="sourceCode cpp">main_scheduler</code> to be used on
-systems that have only one thread, or in which the main thread needs
-special treatment. We also had brief discussions about the need of
-<code class="sourceCode cpp">io_scheduler</code> (or
-<code class="sourceCode cpp">elastic_parallel_scheduler</code>) and
+envision having different types of schedulers. We were previously
+talking about a <code class="sourceCode cpp">main_scheduler</code> to be
+used on systems that have only one thread, or in which the main thread
+needs special treatment. We also had brief discussions about the need
+for an <code class="sourceCode cpp">io_scheduler</code> (or
+<code class="sourceCode cpp">elastic_parallel_scheduler</code>) and a
 <code class="sourceCode cpp">priority_scheduler</code> (to create
 threads with different priorities).</p>
 <p>There is a high chance that we would add new system-wide schedulers
@@ -899,11 +899,10 @@ them? Or should we reuse the abstractions that we already have?</p>
 <p>Probably, a good answer would be that we want to reuse the same
 namespace. In this context, the name
 <code class="sourceCode cpp">system_context_replaceability</code> makes
-sense. Especially since the work
+sense. Especially since the word
 <code class="sourceCode cpp">context</code> appears in the name, not the
 word <code class="sourceCode cpp">scheduler</code>.</p>
-<p>The authors don’t have a strong preference, and would like this to be
-discussed in LEWG. The following table shows a few options:</p>
+<p>The following table shows a few options:</p>
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -922,7 +921,7 @@ discussed in LEWG. The following table shows a few options:</p>
 <tbody>
 <tr class="odd">
 <td><code class="sourceCode cpp">system_context_replaceability</code></td>
-<td>Status quo. Allows replacing other backend in the future</td>
+<td>Status quo. Allows replacing other backends in the future</td>
 </tr>
 <tr class="even">
 <td><code class="sourceCode cpp">parallel_scheduler_replaceability</code></td>
@@ -960,16 +959,18 @@ discussed in LEWG. The following table shows a few options:</p>
 </tr>
 </tbody>
 </table>
-<h2 data-number="2.7" id="the-wording-around-a-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough"><span class="header-section-number">2.7</span> The wording around a
+<p>The authors favor the <code class="sourceCode cpp">replacement</code>
+option, but would like this to be discussed in LEWG.</p>
+<h2 data-number="2.7" id="the-wording-around-the-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough"><span class="header-section-number">2.7</span> The wording around the
 customizations of
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
-enough<a href="#the-wording-around-a-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough" class="self-link"></a></h2>
-<p>The wording in <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> mandated that we want
+enough<a href="#the-wording-around-the-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough" class="self-link"></a></h2>
+<p>The wording in <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> mandates that we want
 customizations for
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>,
 but it did not describe the details. Actually, this discussion was
-completely missing from the design section too. The proof of concept
+completely missing from the design section, too. The proof-of-concept
 implementation used the early customization mechanism, and part of the
 authors assumed that was always the case, but the paper doesn’t mention
 anything about it. This needs to be fixed.</p>
@@ -980,23 +981,23 @@ defer adding customizations to a later standard, and proposes a solution
 for allowing <code class="sourceCode cpp">parallel_scheduler</code> to
 customize the behavior of
 <code class="sourceCode cpp">bulk_chunked</code> and
-<code class="sourceCode cpp">bulk_unchunked</code>. We aim at building
-on top of <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span>.</p>
+<code class="sourceCode cpp">bulk_unchunked</code>. We aim to build on
+top of <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span>.</p>
 <h2 data-number="2.8" id="removing-customization-mechanisms"><span class="header-section-number">2.8</span> Removing customization
 mechanisms<a href="#removing-customization-mechanisms" class="self-link"></a></h2>
-<p>Eric Niebler announced on reflector that NVIDA adds an NB comment
-suggesting to remove customization mechanisms from senders/receivers
-from C++26, and adding it into future versions of the standard. This was
-translated into <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span>. If that change
-is to be adopted, it also has implications to
+<p>Eric Niebler announced on the reflector that NVIDIA added an NB
+comment suggesting removing customization mechanisms from
+senders/receivers from C++26, and adding them in future versions of the
+standard. This was translated into <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span>. If that change
+is to be adopted, it also has implications for
 <code class="sourceCode cpp">parallel_scheduler</code>. We explore here
 the implications.</p>
 <p>Although originally the thought was to completely remove
-customizations, after discussions the consensus was for <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span> to move towards
+customizations, after discussions the consensus was for <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span> to move toward
 a model that allows controlled customizations. This would allow vendors
 to provide customizations of <code class="sourceCode cpp">bulk</code>
 for <code class="sourceCode cpp">parallel_scheduler</code>. But, this
-mechanism is not widely exposed to the users.</p>
+mechanism is not widely exposed to users.</p>
 <p>This paper builds upon the effort in <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span>.</p>
 <h1 data-number="3" id="proposed-wording"><span class="header-section-number">3</span> Proposed wording<a href="#proposed-wording" class="self-link"></a></h1>
 <p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: In
@@ -1040,8 +1041,8 @@ is called, where: - <code class="sourceCode cpp">r</code> is a proxy for
 and - <code class="sourceCode cpp">s</code> is a preallocated backend
 storage for <code class="sourceCode cpp">r</code>. - All other
 completion operations are forwarded unchanged.</p>
-<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: Also
-contains the changes from D3826: ]</span></p>
+<p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: The
+following changes also contain the changes from D3826: ]</span></p>
 <div class="add" style="color: #006e28">
 <p><span class="marginalizedparent"><a class="marginalized">?</a></span>
 Let <code class="sourceCode default">sch</code> be a subexpression of
@@ -1156,7 +1157,7 @@ is a bulk unchunked proxy for
 <span><code class="sourceCode default">f</code></span> and arguments
 <span><code class="sourceCode default">args</code></span>;
 and</del></span></li>
-<li><span class="marginalizedparent"><a class="marginalized">(10.1.1)</a></span>
+<li><span class="marginalizedparent"><a class="marginalized">(11.1.1)</a></span>
 <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">r</code></span>
 is a proxy for <span><code class="sourceCode default">rcvr</code></span>
 with base <span><code class="sourceCode default">system_context_replaceability::bulk_item_receiver_proxy</code></span>
