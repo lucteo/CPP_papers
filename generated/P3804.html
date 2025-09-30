@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-09-27" />
+  <meta name="dcterms.date" content="2025-09-30" />
   <title>Iterating on `parallel_scheduler`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ code.sourceCode > span { display: inline; }
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-09-27</td>
+    <td>2025-09-30</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -457,7 +457,8 @@ code.sourceCode > span { display: inline; }
 <li><a href="#discussions" id="toc-discussions"><span class="toc-section-number">2</span> Discussions<span></span></a>
 <ul>
 <li><a href="#receiver_proxytry_query-could-possibly-be-const-qualified" id="toc-receiver_proxytry_query-could-possibly-be-const-qualified"><span class="toc-section-number">2.1</span> <code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
-could possibly be const-qualified<span></span></a></li>
+could possibly be
+<code class="sourceCode cpp"><span class="kw">const</span></code>-qualified<span></span></a></li>
 <li><a href="#receiver_proxy-does-not-need-a-virtual-destructor" id="toc-receiver_proxy-does-not-need-a-virtual-destructor"><span class="toc-section-number">2.2</span>
 <code class="sourceCode cpp">receiver_proxy</code> does not need a
 virtual destructor<span></span></a></li>
@@ -479,8 +480,6 @@ customizations of
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
 enough<span></span></a></li>
-<li><a href="#removing-customization-mechanisms" id="toc-removing-customization-mechanisms"><span class="toc-section-number">2.8</span> Removing customization
-mechanisms<span></span></a></li>
 </ul></li>
 <li><a href="#proposed-wording" id="toc-proposed-wording"><span class="toc-section-number">3</span> Proposed
 wording<span></span></a></li>
@@ -511,18 +510,19 @@ Acknowledgments<span></span></a></li>
 }
 </style>
 <h1 class="unnumbered unlisted" id="abstract">Abstract<a href="#abstract" class="self-link"></a></h1>
-<p>Although <code class="sourceCode cpp">parallel_scheduler</code> <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> was a long time in the making,
-getting it adopted in Sofia 2025 still left the impression that some of
-the fine details were not sufficiently discussed. This paper proposes to
-iterate on some of these aspects, aiming to achieve the best possible
-outcome from <code class="sourceCode cpp">parallel_scheduler</code>.</p>
+<p><code class="sourceCode cpp">parallel_scheduler</code> <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> was a long time in the making
+and was it adopted in Sofia 2025; still more design concerns were raised
+after that. This paper proposes to iterate on some of these aspects,
+aiming to achieve the best possible outcome from
+<code class="sourceCode cpp">parallel_scheduler</code>.</p>
 <h1 data-number="1" id="introduction"><span class="header-section-number">1</span> Introduction<a href="#introduction" class="self-link"></a></h1>
 <p>This paper tries to address the following concerns:</p>
 <ul>
 <li>Minor design tweaks:
 <ol type="1">
 <li><code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
-could possibly be const-qualified.</li>
+could possibly be
+<code class="sourceCode cpp"><span class="kw">const</span></code>-qualified.</li>
 <li><code class="sourceCode cpp">receiver_proxy</code> does not need a
 virtual destructor as the object is never destroyed
 polymorphically.</li>
@@ -550,14 +550,11 @@ APIs lie.</li>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
 enough.</li>
 </ol></li>
-<li>Interactions with other NB comments:
-<ol start="8" type="1">
-<li>Removing customization mechanisms</li>
-</ol></li>
 </ul>
 <h1 data-number="2" id="discussions"><span class="header-section-number">2</span> Discussions<a href="#discussions" class="self-link"></a></h1>
 <h2 data-number="2.1" id="receiver_proxytry_query-could-possibly-be-const-qualified"><span class="header-section-number">2.1</span> <code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
-could possibly be const-qualified<a href="#receiver_proxytry_query-could-possibly-be-const-qualified" class="self-link"></a></h2>
+could possibly be
+<code class="sourceCode cpp"><span class="kw">const</span></code>-qualified<a href="#receiver_proxytry_query-could-possibly-be-const-qualified" class="self-link"></a></h2>
 <p>Currently, the specification defines
 <code class="sourceCode cpp">try_query</code> as:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
@@ -581,8 +578,8 @@ requires <code class="sourceCode cpp">inplace_stop_token</code> and
 doesn’t accept an arbitrary stop token<a href="#receiver_proxytry_query-requires-inplace_stop_token-and-doesnt-accept-an-arbitrary-stop-token" class="self-link"></a></h2>
 <p>The specification of <code class="sourceCode cpp">parallel_scheduler<span class="op">::</span>try_query</code>
 <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> is too restrictive with
-respect to querying stop tokens. The wording states
-([exec.sysctxrepl.query]):</p>
+respect to querying stop tokens. The wording states (<span>33.16.2
+<a href="https://wg21.link/exec.sysctxrepl.query">[exec.sysctxrepl.query]</a></span>):</p>
 <hr />
 <div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>optional<span class="op">&lt;</span>P<span class="op">&gt;</span> try_query<span class="op">(</span>Query q<span class="op">)</span> <span class="kw">noexcept</span>;</span></code></pre></div>
@@ -669,14 +666,14 @@ disadvantages:</p>
 <ul>
 <li>Increases API surface (we need another backend class with a method
 dedicated to requesting stop).</li>
-<li>It is a property that can be queried from the receiver, yet we don’t
-use the API (non-uniform behavior).</li>
+<li>It is a property that can be queried from the receiver, yet we
+introduce a special API that leads to non-uniform behavior with querying
+other properties.</li>
 <li>If we can’t query stop tokens through the
 <code class="sourceCode cpp">try_query</code> interface, for C++26 we
 won’t have any properties that would use
 <code class="sourceCode cpp">try_query</code>.</li>
-<li>Complicates storage, and may lead to larger storage needs in the
-operation state.</li>
+<li>May lead to larger storage needs in the operation state.</li>
 </ul>
 <p>Currently, the API for
 <code class="sourceCode cpp">parallel_scheduler_backend</code> looks
@@ -697,9 +694,9 @@ change:</p>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> parallel_scheduler_backend <span class="op">{</span></span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="op">~</span>parallel_scheduler_backend<span class="op">()</span> <span class="op">=</span> <span class="cf">default</span>;</span>
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">void</code></span></del></span><span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">backend_operation</code></span></ins></span> schedule<span class="op">(</span>receiver_proxy<span class="op">&amp;</span>, std<span class="op">::</span>span<span class="op">&lt;</span>std<span class="op">::</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">void</code></span></del></span><span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">backend_operation</code></span></ins></span> schedule_bulk_chunked<span class="op">(</span><span class="dt">size_t</span>, bulk_item_receiver_proxy<span class="op">&amp;</span>, std<span class="op">::</span>span<span class="op">&lt;</span>std<span class="op">::</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">void</code></span></del></span><span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">backend_operation</code></span></ins></span> schedule_bulk_unchunked<span class="op">(</span><span class="dt">size_t</span>, bulk_item_receiver_proxy<span class="op">&amp;</span>, std<span class="op">::</span>span<span class="op">&lt;</span>std<span class="op">::</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">void</code></span></del></span><span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">backend_operation*</code></span></ins></span> schedule<span class="op">(</span>receiver_proxy<span class="op">&amp;</span>, std<span class="op">::</span>span<span class="op">&lt;</span>std<span class="op">::</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">void</code></span></del></span><span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">backend_operation*</code></span></ins></span> schedule_bulk_chunked<span class="op">(</span><span class="dt">size_t</span>, bulk_item_receiver_proxy<span class="op">&amp;</span>, std<span class="op">::</span>span<span class="op">&lt;</span>std<span class="op">::</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">void</code></span></del></span><span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">backend_operation*</code></span></ins></span> schedule_bulk_unchunked<span class="op">(</span><span class="dt">size_t</span>, bulk_item_receiver_proxy<span class="op">&amp;</span>, std<span class="op">::</span>span<span class="op">&lt;</span>std<span class="op">::</span>byte<span class="op">&gt;)</span> <span class="kw">noexcept</span> <span class="op">=</span> <span class="dv">0</span>;</span>
 <span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>;</span></code></pre></div>
 <p>If we just look at the space consumption, we can conclude the
 following:</p>
@@ -761,8 +758,9 @@ currently requires the list of supported queries to be defined<a href="#receiver
 <p>One workflow that some C++ users have is to have separate
 compilations of their libraries. Two libraries, A and B, can be compiled
 separately, sometimes with different versions of the compiler, sometimes
-even with different compilers (provided that the ABI matches). This
-feature cannot break this flow.</p>
+even with different compilers (provided that the ABI matches). The
+<code class="sourceCode cpp">parallel_scheduler</code> feature cannot
+break this flow.</p>
 <p>For practical reasons, we can consider the backend of
 <code class="sourceCode cpp">parallel_scheduler</code> as yet another
 library C that can be compiled separately from the rest of the program.
@@ -863,8 +861,8 @@ proposed by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.
 support new properties, which could be picked up by the backend. As this
 is a relaxation of constraints, future standards can do it without
 breaking changes.</p>
-<p>The authors don’t see any changes in this area that would benefit
-users in a tangible way.</p>
+<p>The authors don’t see any changes that would benefit users in a
+tangible way in this area.</p>
 <h2 data-number="2.6" id="system_context_replaceability-is-not-a-good-name-to-use-for-the-namespace-in-which-the-replaceability-apis-lie"><span class="header-section-number">2.6</span>
 <code class="sourceCode cpp">system_context_replaceability</code> is not
 a good name to use for the namespace in which the replaceability APIs
@@ -905,13 +903,13 @@ word <code class="sourceCode cpp">scheduler</code>.</p>
 <p>The following table shows a few options:</p>
 <table>
 <colgroup>
-<col style="width: 33%" />
-<col style="width: 66%" />
+<col style="width: 51%" />
+<col style="width: 48%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th><div style="text-align:center">
-<strong>Proposal</strong>
+<strong>Alternative names</strong>
 </div></th>
 <th><div style="text-align:center">
 <strong>Notes</strong>
@@ -957,6 +955,10 @@ word <code class="sourceCode cpp">scheduler</code>.</p>
 <td>Abbreviated name from
 <code class="sourceCode cpp">system_context_replaceability</code></td>
 </tr>
+<tr class="even">
+<td>N/A</td>
+<td>Just remove the namespace</td>
+</tr>
 </tbody>
 </table>
 <p>The authors favor the <code class="sourceCode cpp">replacement</code>
@@ -976,29 +978,12 @@ authors assumed that was always the case, but the paper doesn’t mention
 anything about it. This needs to be fixed.</p>
 <p>Also, the customization part does not treat the execution policy at
 all. Again, this needs to be fixed.</p>
-<p><span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span> proposes to
-defer adding customizations to a later standard, and proposes a solution
-for allowing <code class="sourceCode cpp">parallel_scheduler</code> to
-customize the behavior of
-<code class="sourceCode cpp">bulk_chunked</code> and
+<p>P3826R0 proposes to defer adding customizations to a later standard,
+and proposes a solution for allowing
+<code class="sourceCode cpp">parallel_scheduler</code> to customize the
+behavior of <code class="sourceCode cpp">bulk_chunked</code> and
 <code class="sourceCode cpp">bulk_unchunked</code>. We aim to build on
-top of <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span>.</p>
-<h2 data-number="2.8" id="removing-customization-mechanisms"><span class="header-section-number">2.8</span> Removing customization
-mechanisms<a href="#removing-customization-mechanisms" class="self-link"></a></h2>
-<p>Eric Niebler announced on the reflector that NVIDIA added an NB
-comment suggesting removing customization mechanisms from
-senders/receivers from C++26, and adding them in future versions of the
-standard. This was translated into <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span>. If that change
-is to be adopted, it also has implications for
-<code class="sourceCode cpp">parallel_scheduler</code>. We explore here
-the implications.</p>
-<p>Although originally the thought was to completely remove
-customizations, after discussions the consensus was for <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span> to move toward
-a model that allows controlled customizations. This would allow vendors
-to provide customizations of <code class="sourceCode cpp">bulk</code>
-for <code class="sourceCode cpp">parallel_scheduler</code>. But, this
-mechanism is not widely exposed to users.</p>
-<p>This paper builds upon the effort in <span class="citation" data-cites="D3826">[<a href="#ref-D3826" role="doc-biblioref"><strong>D3826?</strong></a>]</span>.</p>
+top of P3826R0.</p>
 <h1 data-number="3" id="proposed-wording"><span class="header-section-number">3</span> Proposed wording<a href="#proposed-wording" class="self-link"></a></h1>
 <p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: In
 section <em>Parallel scheduler</em> [exec.par.scheduler], apply the
@@ -1042,7 +1027,7 @@ and - <code class="sourceCode cpp">s</code> is a preallocated backend
 storage for <code class="sourceCode cpp">r</code>. - All other
 completion operations are forwarded unchanged.</p>
 <p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: The
-following changes also contain the changes from D3826: ]</span></p>
+following changes also contain the changes from P3826R0: ]</span></p>
 <div class="add" style="color: #006e28">
 <p><span class="marginalizedparent"><a class="marginalized">?</a></span>
 Let <code class="sourceCode default">sch</code> be a subexpression of
@@ -1089,7 +1074,7 @@ and the resulting operation state is started, then:</p>
 completes with values <code class="sourceCode cpp">vals</code>, let
 <code class="sourceCode cpp">args</code> be a pack of lvalue
 subexpressions designating <code class="sourceCode cpp">vals</code>,
-then <code class="sourceCode cpp">b<span class="op">.</span>schedule_bulk_chunked<span class="op">(</span><span class="rm" style="color: #bf0303"><del>shape</del></span> <span class="add" style="color: #006e28"><ins>parallelize ? shape :
+then <code class="sourceCode cpp">b<span class="op">.</span>schedule_bulk_chunked<span class="op">(</span><span class="rm" style="color: #bf0303"><del>shape</del></span> <span class="add" style="color: #006e28"><ins>parallelizable ? shape :
 1</ins></span>, r, s<span class="op">)</span></code> is called, where:
 <ul>
 <li><span class="marginalizedparent"><a class="marginalized">(10.1.1)</a></span>
@@ -1109,8 +1094,8 @@ indices <span><code class="sourceCode default">i</code></span> and
 <span><code class="sourceCode default">j</code></span> has effects
 equivalent to
 <span><code class="sourceCode default">f(i, j, args...)</code></span> if
-<span><code class="sourceCode default">parallelize</code></span> is
-<span><code class="sourceCode default">true</code></span> and
+<em><span><code class="sourceCode default">parallelizable</code></span></em>
+is <span><code class="sourceCode default">true</code></span> and
 <span><code class="sourceCode default">f(0, shape, args...)</code></span>
 otherwise; and</ins></span></li>
 <li><span class="marginalizedparent"><a class="marginalized">(10.1.2)</a></span>
@@ -1147,8 +1132,8 @@ and the resulting operation state is started, then:</p>
 completes with values <code class="sourceCode cpp">vals</code>, let
 <code class="sourceCode cpp">args</code> be a pack of lvalue
 subexpressions designating <code class="sourceCode cpp">vals</code>,
-then <code class="sourceCode cpp">b<span class="op">.</span>schedule_bulk_unchunked<span class="op">(</span>shape, r, s<span class="op">)</span></code>
-is called, where:
+then <code class="sourceCode cpp">b<span class="op">.</span>schedule_bulk_unchunked<span class="op">(</span><span class="rm" style="color: #bf0303"><del>shape</del></span> <span class="add" style="color: #006e28"><ins>parallelizable ? shape :
+1</ins></span>, r, s<span class="op">)</span></code> is called, where:
 <ul>
 <li><span class="marginalizedparent"><a class="marginalized">(11.1.1)</a></span>
 <span class="rm" style="color: #bf0303"><del><span><code class="sourceCode default">r</code></span>
@@ -1264,8 +1249,7 @@ should be defined for any
 <h1 data-number="4" id="acknowledgments"><span class="header-section-number">4</span> Acknowledgments<a href="#acknowledgments" class="self-link"></a></h1>
 <p>Thanks to Tim Song and Tomasz Kamiński for working extra time to
 ensure that <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> is specified with high
-standards. The C++ standard would not have been at the same level of
-quality without their love and care.</p>
+standards, for their love and care for the standard.</p>
 <p>Thanks to Lewis Baker for constantly pushing to get better and better
 solutions to the problems at hand.</p>
 <h1 data-number="5" id="bibliography"><span class="header-section-number">5</span> References<a href="#bibliography" class="self-link"></a></h1>
