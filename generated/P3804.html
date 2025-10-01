@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
 <head>
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-09-30" />
+  <meta name="dcterms.date" content="2025-10-01" />
   <title>Iterating on `parallel_scheduler`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -90,10 +90,6 @@ font-family: serif;
 hyphens: auto;
 line-height: 1.35;
 text-align: justify;
-
--webkit-text-size-adjust: none;
--moz-text-size-adjust: none;
-text-size-adjust: none;
 }
 @media screen and (max-width: 30em) {
 body {
@@ -428,15 +424,11 @@ code.sourceCode > span { display: inline; }
 <table style="border:none;float:right">
   <tr>
     <td>Document #:</td>
-    <td>
-      P3804R0
-      [<a href="https://wg21.link/P3804">Latest</a>]
-      [<a href="https://wg21.link/P3804/status">Status</a>]
-    </td>
+    <td>P3804R0</td>
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-09-30</td>
+    <td>2025-10-01</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -518,7 +510,7 @@ Acknowledgments<span></span></a></li>
 }
 </style>
 <h1 class="unnumbered unlisted" id="abstract">Abstract<a href="#abstract" class="self-link"></a></h1>
-<p><code class="sourceCode cpp">parallel_scheduler</code> <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> was a long time in the making
+<p><code class="sourceCode cpp">parallel_scheduler</code> <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> was a long time in the making
 and was it adopted in Sofia 2025; still more design concerns were raised
 after that. This paper proposes to iterate on some of these aspects,
 aiming to achieve the best possible outcome from
@@ -585,8 +577,9 @@ destructor.</p>
 requires <code class="sourceCode cpp">inplace_stop_token</code> and
 doesn’t accept an arbitrary stop token<a href="#receiver_proxytry_query-requires-inplace_stop_token-and-doesnt-accept-an-arbitrary-stop-token" class="self-link"></a></h2>
 <p>The specification of <code class="sourceCode cpp">parallel_scheduler<span class="op">::</span>try_query</code>
-<span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> is too restrictive with
-respect to querying stop tokens. The wording states (<span><a href="https://wg21.link/exec.sysctxrepl.query">[exec.sysctxrepl.query]</a></span>):</p>
+<span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> is too restrictive with
+respect to querying stop tokens. The wording states (<span>33.16.2
+<a href="https://wg21.link/exec.sysctxrepl.query">[exec.sysctxrepl.query]</a></span>):</p>
 <hr />
 <div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>optional<span class="op">&lt;</span>P<span class="op">&gt;</span> try_query<span class="op">(</span>Query q<span class="op">)</span> <span class="kw">noexcept</span>;</span></code></pre></div>
@@ -727,7 +720,7 @@ we conclude that the proposed extension is preferable to the
 <h2 data-number="2.4" id="the-list-of-properties-supported-by-receiver_proxytry_query-is-implementation-defined"><span class="header-section-number">2.4</span> The list of properties
 supported by <code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
 is implementation-defined<a href="#the-list-of-properties-supported-by-receiver_proxytry_query-is-implementation-defined" class="self-link"></a></h2>
-<p>When <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> defines the possibilities for
+<p>When <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> defines the possibilities for
 the backend to query the properties of the final receiver, it specifies
 that the list of properties (both property types and query types) are
 implementation-defined. Instead, the proposal could have defined a fixed
@@ -749,7 +742,7 @@ difference on certain platforms, thus the implementers should be able to
 opt out of supporting this query. Supporting a query typically has a
 small cost associated with it, so it makes sense to allow opting out of
 this cost if it doesn’t make sense for the targeted platform.</p>
-<p>Even with the stop‑token property that is specified by <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span>, it may not always make sense
+<p>Even with the stop‑token property that is specified by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>, it may not always make sense
 to support cancellation on the backend. The frontend can implement
 cancellation without passing this information to the backend.</p>
 <p>If we keep the list of properties (and query types) to be
@@ -863,7 +856,7 @@ frontend needs to be able to build them into a type list. We don’t have
 support for this.</p>
 <p>Without such a facility, the frontend and the backend can only query
 a set of properties that it knows. This aligns with the direction
-proposed by <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span>.</p>
+proposed by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>.</p>
 <p>If we were to find such a solution in the future, the frontend could
 support new properties, which could be picked up by the backend. As this
 is a relaxation of constraints, future standards can do it without
@@ -975,7 +968,7 @@ customizations of
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
 enough<a href="#the-wording-around-the-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough" class="self-link"></a></h2>
-<p>The wording in <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> mandates that we want
+<p>The wording in <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> mandates that we want
 customizations for
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>,
 but it did not describe the details. Actually, this discussion was
@@ -1255,7 +1248,7 @@ should be defined for any
 <span><code class="sourceCode default">stoppable_token</code></span></ins></span></p>
 <h1 data-number="4" id="acknowledgments"><span class="header-section-number">4</span> Acknowledgments<a href="#acknowledgments" class="self-link"></a></h1>
 <p>Thanks to Tim Song and Tomasz Kamiński for working extra time to
-ensure that <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> is specified with high
+ensure that <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> is specified with high
 standards, for their love and care for the standard.</p>
 <p>Thanks to Lewis Baker for constantly pushing to get better and better
 solutions to the problems at hand.</p>
