@@ -2,7 +2,7 @@
 Source file for C++ standard papers
 
 ## Papers in this repo
-- P3804. Rendered [R0 (in progress)](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3804R0/generated/P3804.html)
+- P3804. Rendered [R0 published](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/P3804.html) | [R1 (in progress)](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3804R1/generated/P3804.html)
 - P3609. Rendered [R0 (in progress)](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3609R0/generated/P3609.html)
 - P3481. Rendered: [latest published](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/P3481.html)
 - PXXX1 (abandoned). Rendered: [R1-in progress](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/PXXX1_abandoned.html)
