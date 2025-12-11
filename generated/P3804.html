@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-11-06" />
+  <meta name="dcterms.date" content="2025-12-11" />
   <title>Iterating on `parallel_scheduler`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -428,7 +428,7 @@ code.sourceCode > span { display: inline; }
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-11-06</td>
+    <td>2025-12-11</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -528,7 +528,7 @@ aiming to achieve the best possible outcome from
 <h2 data-number="1.1" id="r1"><span class="header-section-number">1.1</span> R1<a href="#r1" class="self-link"></a></h2>
 <ul>
 <li>incorporate the feedback from SG1 + LEWG, Kona 2025</li>
-<li>rebase wording on top of the decisions taken for <span class="citation" data-cites="P3826R1">[<a href="#ref-P3826R1" role="doc-biblioref"><strong>P3826R1?</strong></a>]</span></li>
+<li>rebase wording on top of the decisions taken for <span class="citation" data-cites="P3826R1">[<a href="https://isocpp.org/files/papers/P3826R1.html" role="doc-biblioref">P3826R1</a>]</span></li>
 </ul>
 <h1 data-number="2" id="introduction"><span class="header-section-number">2</span> Introduction<a href="#introduction" class="self-link"></a></h1>
 <p>This paper tries to address the following concerns:</p>
@@ -1006,29 +1006,33 @@ top of P3826R0.</p>
 <p><span class="ednote" style="color: #0000ff">[ Editor&#39;s note: In
 section <em>Parallel scheduler</em> [exec.par.scheduler], apply the
 following changes: ]</span></p>
-<div class="rm" style="color: #bf0303">
 <p><span class="marginalizedparent"><a class="marginalized">7</a></span>
-A <em>bulk chunked proxy for
-<code class="sourceCode default">rcvr</code> with callable
-<code class="sourceCode default">f</code> and arguments
-<code class="sourceCode default">args</code></em> is a proxy
-<code class="sourceCode default">r</code> for
-<code class="sourceCode default">rcvr</code> with base <code class="sourceCode default">system_context_replaceability::bulk_item_receiver_proxy</code>
-such that<code class="sourceCode default">r.execute(i, j)</code> for
-indices <code class="sourceCode default">i</code> and
-<code class="sourceCode default">j</code> has effects equivalent to
-<code class="sourceCode default">f(i, j, args...)</code>.</p>
+<span class="rm" style="color: #bf0303"><del>A <em>bulk chunked proxy
+for <span><code class="sourceCode default">rcvr</code></span> with
+callable <span><code class="sourceCode default">f</code></span> and
+arguments <span><code class="sourceCode default">args</code></span></em>
+is a proxy <span><code class="sourceCode default">r</code></span> for
+<span><code class="sourceCode default">rcvr</code></span> with base
+<span><code class="sourceCode default">system_context_replaceability::bulk_item_receiver_proxy</code></span>
+such that
+<span><code class="sourceCode default">r.execute(i, j)</code></span> for
+indices <span><code class="sourceCode default">i</code></span> and
+<span><code class="sourceCode default">j</code></span> has effects
+equivalent to
+<span><code class="sourceCode default">f(i, j, args...)</code></span>.</del></span></p>
 <p><span class="marginalizedparent"><a class="marginalized">8</a></span>
-A <em>bulk unchunked proxy for
-<code class="sourceCode default">rcvr</code> with callable
-<code class="sourceCode default">f</code> and arguments
-<code class="sourceCode default">args</code></em> is a proxy
-<code class="sourceCode default">r</code> for
-<code class="sourceCode default">rcvr</code> with base <code class="sourceCode default">system_context_replaceability::bulk_item_receiver_proxy</code>
-such that <code class="sourceCode default">r.execute(i, i+1)</code> for
-index <code class="sourceCode default">i</code> has effects equivalent
-to <code class="sourceCode default">f(i, args...)</code>.</p>
-</div>
+<span class="rm" style="color: #bf0303"><del>A <em>bulk unchunked proxy
+for <span><code class="sourceCode default">rcvr</code></span> with
+callable <span><code class="sourceCode default">f</code></span> and
+arguments <span><code class="sourceCode default">args</code></span></em>
+is a proxy <span><code class="sourceCode default">r</code></span> for
+<span><code class="sourceCode default">rcvr</code></span> with base
+<span><code class="sourceCode default">system_context_replaceability::bulk_item_receiver_proxy</code></span>
+such that
+<span><code class="sourceCode default">r.execute(i, i+1)</code></span>
+for index <span><code class="sourceCode default">i</code></span> has
+effects equivalent to
+<span><code class="sourceCode default">f(i, args...)</code></span>.</del></span></p>
 <p><span class="marginalizedparent"><a class="marginalized">9</a></span>
 Let <code class="sourceCode cpp">b</code> be
 <i><code class="sourceCode cpp">BACKEND<span class="op">-</span>OF</code></i><code class="sourceCode cpp"><span class="op">(</span>sch<span class="op">)</span></code>,
@@ -1053,11 +1057,11 @@ that is equivalent with:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode default cpp"><code class="sourceCode default"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>struct <em>parallel-scheduler-domain</em> {</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  template&lt;<em><code class="sourceCode cpp">sender<span class="op">-</span><span class="cf">for</span></code></em>&lt;bulk_chunked_t&gt; Sndr, queryable Env&gt;</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  static constexpr sender decltype(auto) transform_sender(set_value_t, Sndr&amp;&amp; sndr, const Env&amp; env) const noexcept {</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    return <em>see below</em></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    return <em>see below</em>;</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  template&lt;<em><code class="sourceCode cpp">sender<span class="op">-</span><span class="cf">for</span></code></em>&lt;bulk_unchunked_t&gt; Sndr, queryable Env&gt;</span>
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  static constexpr sender decltype(auto) transform_sender(set_value_t, Sndr&amp;&amp; sndr, const Env&amp; env) const noexcept {</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    return <em>see below</em></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    return <em>see below</em>;</span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>};</span></code></pre></div>
 <p><span class="marginalizedparent"><a class="marginalized">?</a></span>
@@ -1172,13 +1176,13 @@ and</del></span></li>
 is a proxy for <span><code class="sourceCode default">rcvr</code></span>
 with base <span><code class="sourceCode default">system_context_replaceability::bulk_item_receiver_proxy</code></span>
 such that
-<span><code class="sourceCode default">r.execute(i, i+1)</code></span>
+<span><code class="sourceCode default">r.execute(i, i + 1)</code></span>
 for index <span><code class="sourceCode default">i</code></span> has
 effects equivalent to
 <span><code class="sourceCode default">f(i, args...)</code></span> if
 <span><code class="sourceCode default">parallelize</code></span> is
 <span><code class="sourceCode default">true</code></span> and
-<span><code class="sourceCode default">for (decltype(shape) i=0; i&lt;shape; i++) { f(i, args...); }</code></span>
+<span><code class="sourceCode default">for (decltype(shape) i = 0; i &lt; shape; i++) { f(i, args...); }</code></span>
 otherwise; and</ins></span></li>
 <li><span class="marginalizedparent"><a class="marginalized">(11.1.2)</a></span>
 <code class="sourceCode cpp">s</code> is a preallocated backend storage
@@ -1270,7 +1274,7 @@ the implementation-defined set of supported result types for
 <em><span><code class="sourceCode default">implementation-defined-transform</code></span></em><span><code class="sourceCode default">(T&amp;&amp;)</code></span>
 should be defined for any
 <span><code class="sourceCode default">T</code></span> that models
-<span><code class="sourceCode default">stoppable_token</code></span></ins></span></p>
+<span><code class="sourceCode default">stoppable_token</code></span>.</ins></span></p>
 <h1 data-number="5" id="polls"><span class="header-section-number">5</span> Polls<a href="#polls" class="self-link"></a></h1>
 <h2 data-number="5.1" id="sg1-lewg-kona-2025"><span class="header-section-number">5.1</span> SG1 + LEWG, Kona 2025<a href="#sg1-lewg-kona-2025" class="self-link"></a></h2>
 <ol type="1">
@@ -1304,6 +1308,9 @@ solutions to the problems at hand.</p>
 <div id="ref-P2079R10" class="csl-entry" role="doc-biblioentry">
 [P2079R10] Lucian Radu Teodorescu, Ruslan Arutyunyan, Lee Howes, Michael
 Voss. 2025-06-25. Parallel Scheduler. <a href="https://wg21.link/p2079r10"><div class="csl-block">https://wg21.link/p2079r10</div></a>
+</div>
+<div id="ref-P3826R1" class="csl-entry" role="doc-biblioentry">
+[P3826R1] Eric Niebler. Fix or Remove Sender Algorithm Customization. <a href="https://isocpp.org/files/papers/P3826R1.html"><div class="csl-block">https://isocpp.org/files/papers/P3826R1.html</div></a>
 </div>
 </div>
 </div>
