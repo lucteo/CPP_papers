@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2025-12-11" />
+  <meta name="dcterms.date" content="2025-12-12" />
   <title>Iterating on `parallel_scheduler`</title>
   <style>
       code{white-space: pre-wrap;}
@@ -90,6 +90,10 @@ font-family: serif;
 hyphens: auto;
 line-height: 1.35;
 text-align: justify;
+
+-webkit-text-size-adjust: none;
+-moz-text-size-adjust: none;
+text-size-adjust: none;
 }
 @media screen and (max-width: 30em) {
 body {
@@ -424,11 +428,15 @@ code.sourceCode > span { display: inline; }
 <table style="border:none;float:right">
   <tr>
     <td>Document #:</td>
-    <td>P3804R1</td>
+    <td>
+      P3804R1
+      [<a href="https://wg21.link/P3804">Latest</a>]
+      [<a href="https://wg21.link/P3804/status">Status</a>]
+    </td>
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2025-12-11</td>
+    <td>2025-12-12</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -519,7 +527,7 @@ Acknowledgments<span></span></a></li>
 }
 </style>
 <h1 class="unnumbered unlisted" id="abstract">Abstract<a href="#abstract" class="self-link"></a></h1>
-<p><code class="sourceCode cpp">parallel_scheduler</code> <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> was a long time in the making
+<p><code class="sourceCode cpp">parallel_scheduler</code> <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> was a long time in the making
 and was it adopted in Sofia 2025; still more design concerns were raised
 after that. This paper proposes to iterate on some of these aspects,
 aiming to achieve the best possible outcome from
@@ -528,7 +536,7 @@ aiming to achieve the best possible outcome from
 <h2 data-number="1.1" id="r1"><span class="header-section-number">1.1</span> R1<a href="#r1" class="self-link"></a></h2>
 <ul>
 <li>incorporate the feedback from SG1 + LEWG, Kona 2025</li>
-<li>rebase wording on top of the decisions taken for <span class="citation" data-cites="P3826R1">[<a href="https://isocpp.org/files/papers/P3826R1.html" role="doc-biblioref">P3826R1</a>]</span></li>
+<li>rebase wording on top of the decisions taken for <span class="citation" data-cites="P3826R1"><a href="https://isocpp.org/files/papers/P3826R1.html" role="doc-biblioref">[P3826R1]</a></span></li>
 </ul>
 <h1 data-number="2" id="introduction"><span class="header-section-number">2</span> Introduction<a href="#introduction" class="self-link"></a></h1>
 <p>This paper tries to address the following concerns:</p>
@@ -592,9 +600,8 @@ destructor.</p>
 requires <code class="sourceCode cpp">inplace_stop_token</code> and
 doesn’t accept an arbitrary stop token<a href="#receiver_proxytry_query-requires-inplace_stop_token-and-doesnt-accept-an-arbitrary-stop-token" class="self-link"></a></h2>
 <p>The specification of <code class="sourceCode cpp">parallel_scheduler<span class="op">::</span>try_query</code>
-<span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> is too restrictive with
-respect to querying stop tokens. The wording states (<span>33.16.2
-<a href="https://wg21.link/exec.sysctxrepl.query">[exec.sysctxrepl.query]</a></span>):</p>
+<span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> is too restrictive with
+respect to querying stop tokens. The wording states (<span><a href="https://wg21.link/exec.sysctxrepl.query">[exec.sysctxrepl.query]</a></span>):</p>
 <hr />
 <div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">class</span> P, <em>class-type</em> Query<span class="op">&gt;</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>optional<span class="op">&lt;</span>P<span class="op">&gt;</span> try_query<span class="op">(</span>Query q<span class="op">)</span> <span class="kw">noexcept</span>;</span></code></pre></div>
@@ -735,7 +742,7 @@ we conclude that the proposed extension is preferable to the
 <h2 data-number="3.4" id="the-list-of-properties-supported-by-receiver_proxytry_query-is-implementation-defined"><span class="header-section-number">3.4</span> The list of properties
 supported by <code class="sourceCode cpp">receiver_proxy<span class="op">::</span>try_query</code>
 is implementation-defined<a href="#the-list-of-properties-supported-by-receiver_proxytry_query-is-implementation-defined" class="self-link"></a></h2>
-<p>When <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> defines the possibilities for
+<p>When <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> defines the possibilities for
 the backend to query the properties of the final receiver, it specifies
 that the list of properties (both property types and query types) are
 implementation-defined. Instead, the proposal could have defined a fixed
@@ -757,7 +764,7 @@ difference on certain platforms, thus the implementers should be able to
 opt out of supporting this query. Supporting a query typically has a
 small cost associated with it, so it makes sense to allow opting out of
 this cost if it doesn’t make sense for the targeted platform.</p>
-<p>Even with the stop‑token property that is specified by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>, it may not always make sense
+<p>Even with the stop‑token property that is specified by <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span>, it may not always make sense
 to support cancellation on the backend. The frontend can implement
 cancellation without passing this information to the backend.</p>
 <p>If we keep the list of properties (and query types) to be
@@ -871,7 +878,7 @@ frontend needs to be able to build them into a type list. We don’t have
 support for this.</p>
 <p>Without such a facility, the frontend and the backend can only query
 a set of properties that it knows. This aligns with the direction
-proposed by <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span>.</p>
+proposed by <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span>.</p>
 <p>If we were to find such a solution in the future, the frontend could
 support new properties, which could be picked up by the backend. As this
 is a relaxation of constraints, future standards can do it without
@@ -986,7 +993,7 @@ customizations of
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>
 for <code class="sourceCode cpp">parallel_scheduler</code> isn’t precise
 enough<a href="#the-wording-around-the-customizations-of-bulk_unchunkedbulk_chunked-for-parallel_scheduler-isnt-precise-enough" class="self-link"></a></h2>
-<p>The wording in <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> mandates that we want
+<p>The wording in <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> mandates that we want
 customizations for
 <code class="sourceCode cpp">bulk_unchunked</code>/<code class="sourceCode cpp">bulk_chunked</code>,
 but it did not describe the details. Actually, this discussion was
@@ -1041,13 +1048,20 @@ let <code class="sourceCode cpp">sndr</code> be the object returned by
 and let <code class="sourceCode cpp">rcvr</code> be a receiver. If
 <code class="sourceCode cpp">rcvr</code> is connected to
 <code class="sourceCode cpp">sndr</code> and the resulting operation
-state is started, then: - If <code class="sourceCode cpp">sndr</code>
-completes successfully, then <code class="sourceCode cpp">b<span class="op">.</span>schedule<span class="op">(</span>r, s<span class="op">)</span></code>
-is called, where: - <code class="sourceCode cpp">r</code> is a proxy for
+state is started, then:</p>
+<ul>
+<li>If <code class="sourceCode cpp">sndr</code> completes successfully,
+then <code class="sourceCode cpp">b<span class="op">.</span>schedule<span class="op">(</span>r, s<span class="op">)</span></code>
+is called, where:
+<ul>
+<li><code class="sourceCode cpp">r</code> is a proxy for
 <code class="sourceCode cpp">rcvr</code> with base <code class="sourceCode cpp">system_context_replaceability<span class="op">::</span>receiver_proxy</code>;
-and - <code class="sourceCode cpp">s</code> is a preallocated backend
-storage for <code class="sourceCode cpp">r</code>. - All other
-completion operations are forwarded unchanged.</p>
+and</li>
+<li><code class="sourceCode cpp">s</code> is a preallocated backend
+storage for <code class="sourceCode cpp">r</code>.</li>
+</ul></li>
+<li>All other completion operations are forwarded unchanged.</li>
+</ul>
 <div class="add" style="color: #006e28">
 <p><span class="marginalizedparent"><a class="marginalized">?</a></span>
 The expression <code class="sourceCode default">get_domain(sch)</code>
@@ -1073,8 +1087,7 @@ For arguments <code class="sourceCode default">sndr</code> and
 <code class="sourceCode default">shape</code>, and
 <code class="sourceCode default">f</code> be expressions equal to the
 arguments used to create <code class="sourceCode default">sndr</code>.
-Also, let
-<em><code class="sourceCode default">parallelizable</code></em> be
+Also, let <code class="sourceCode default">p</code> be
 <code class="sourceCode default">true</code> if
 <code class="sourceCode default">pol</code> is
 <code class="sourceCode default">par</code> or
@@ -1091,9 +1104,7 @@ connected to the sender returned by <span><code class="sourceCode default">bulk_
 <span><code class="sourceCode default">transform_sender</code></span>
 overload that accepts senders with tag
 <span><code class="sourceCode default">bulk_chunked_t</code></span>
-returns a sender
-<span><code class="sourceCode default">new_sndr</code></span> such that
-if it is connected to a receiver
+returns a sender such that if it is connected to a receiver
 <span><code class="sourceCode default">rcvr</code></span></ins></span>
 and the resulting operation state is started, then:</p>
 <ul>
@@ -1103,7 +1114,7 @@ and the resulting operation state is started, then:</p>
 completes with values <code class="sourceCode cpp">vals</code>, let
 <code class="sourceCode cpp">args</code> be a pack of lvalue
 subexpressions designating <code class="sourceCode cpp">vals</code>,
-then <code class="sourceCode cpp">b<span class="op">.</span>schedule_bulk_chunked<span class="op">(</span><span class="rm" style="color: #bf0303"><del>shape</del></span> <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default"><em>parallelizable</em> ? shape : 1</code></span></ins></span>, r, s<span class="op">)</span></code>
+then <code class="sourceCode cpp">b<span class="op">.</span>schedule_bulk_chunked<span class="op">(</span><span class="rm" style="color: #bf0303"><del>shape</del></span> <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">p ? shape : 1</code></span></ins></span>, r, s<span class="op">)</span></code>
 is called, where:
 <ul>
 <li><span class="marginalizedparent"><a class="marginalized">(10.1.1)</a></span>
@@ -1123,8 +1134,8 @@ indices <span><code class="sourceCode default">i</code></span> and
 <span><code class="sourceCode default">j</code></span> has effects
 equivalent to
 <span><code class="sourceCode default">f(i, j, args...)</code></span> if
-<em><span><code class="sourceCode default">parallelizable</code></span></em>
-is <span><code class="sourceCode default">true</code></span> and
+<span><code class="sourceCode default">p</code></span> is
+<span><code class="sourceCode default">true</code></span> and
 <span><code class="sourceCode default">f(0, shape, args...)</code></span>
 otherwise; and</ins></span></li>
 <li><span class="marginalizedparent"><a class="marginalized">(10.1.2)</a></span>
@@ -1149,9 +1160,7 @@ connected to the sender returned by <span><code class="sourceCode default">bulk_
 <span><code class="sourceCode default">transform_sender</code></span>
 overload that accepts senders with tag
 <span><code class="sourceCode default">bulk_unchunked_t</code></span>
-returns a sender
-<span><code class="sourceCode default">new_sndr</code></span> such that
-if it is connected to a receiver
+returns a sender such that if it is connected to a receiver
 <span><code class="sourceCode default">rcvr</code></span></ins></span>
 and the resulting operation state is started, then:</p>
 <ul>
@@ -1161,7 +1170,7 @@ and the resulting operation state is started, then:</p>
 completes with values <code class="sourceCode cpp">vals</code>, let
 <code class="sourceCode cpp">args</code> be a pack of lvalue
 subexpressions designating <code class="sourceCode cpp">vals</code>,
-then <code class="sourceCode cpp">b<span class="op">.</span>schedule_bulk_unchunked<span class="op">(</span><span class="rm" style="color: #bf0303"><del>shape</del></span> <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default"><em>parallelizable</em> ? shape : 1</code></span></ins></span>, r, s<span class="op">)</span></code>
+then <code class="sourceCode cpp">b<span class="op">.</span>schedule_bulk_unchunked<span class="op">(</span><span class="rm" style="color: #bf0303"><del>shape</del></span> <span class="add" style="color: #006e28"><ins><span><code class="sourceCode default">p ? shape : 1</code></span></ins></span>, r, s<span class="op">)</span></code>
 is called, where:
 <ul>
 <li><span class="marginalizedparent"><a class="marginalized">(11.1.1)</a></span>
@@ -1180,7 +1189,7 @@ such that
 for index <span><code class="sourceCode default">i</code></span> has
 effects equivalent to
 <span><code class="sourceCode default">f(i, args...)</code></span> if
-<span><code class="sourceCode default">parallelize</code></span> is
+<span><code class="sourceCode default">p</code></span> is
 <span><code class="sourceCode default">true</code></span> and
 <span><code class="sourceCode default">for (decltype(shape) i = 0; i &lt; shape; i++) { f(i, args...); }</code></span>
 otherwise; and</ins></span></li>
@@ -1236,7 +1245,7 @@ cv-unqualified non-array object type.</p>
 <p><span class="marginalizedparent"><a class="marginalized">6</a></span>
 <em>Returns</em>: Let <code class="sourceCode cpp">env</code> be the
 environment of the receiver represented by <code class="sourceCode cpp"><span class="op">*</span><span class="kw">this</span></code>
-<span class="add" style="color: #006e28"><ins>and <span><code class="sourceCode default">template &lt;typename T, typename R&gt; R</code></span>
+<span class="add" style="color: #006e28"><ins>and <span><code class="sourceCode default">template &lt;class T, class R&gt; R</code></span>
 <em><span><code class="sourceCode default">implementation-defined-transform</code></span></em><span><code class="sourceCode default">(T&amp;&amp;)</code></span>
 an implementation-defined transformation</ins></span>. If:</p>
 <ul>
@@ -1249,32 +1258,48 @@ implementation-defined set of supported result types for
 <code class="sourceCode cpp">Query</code>; or</li>
 <li><span class="marginalizedparent"><a class="marginalized">(6.3)</a></span> the
 expression <code class="sourceCode cpp">q<span class="op">(</span>env<span class="op">)</span></code>
-is not well-formed<span class="add" style="color: #006e28"><ins>;
-or</ins></span><span class="rm" style="color: #bf0303"><del>or does not
-have type
+is not well-formed<span class="rm" style="color: #bf0303"><del>or does
+not have type
 <em><span><code class="sourceCode default">cv</code></span></em>
 <span><code class="sourceCode default">P</code></span>,</del></span></li>
-<li><span class="add" style="color: #006e28"><ins><span class="marginalizedparent"><a class="marginalized">(6.4)</a></span> the
-expression
-<em><span><code class="sourceCode default">implementation-defined-transform</code></span></em><span><code class="sourceCode default">(q(env))</code></span>
-is not well-formed or does not have type
-<em><span><code class="sourceCode default">cv</code></span></em>
-<span><code class="sourceCode default">P</code></span>,</ins></span></li>
 </ul>
 <p>then returns <code class="sourceCode cpp">nullopt</code>. Otherwise,
-returns <code class="sourceCode cpp">q<span class="op">(</span>env<span class="op">)</span></code>.</p>
+<span class="add" style="color: #006e28"><ins>if
+<span><code class="sourceCode default">q(env)</code></span> has a type
+<em><span><code class="sourceCode default">cv</code></span></em>
+<span><code class="sourceCode default">P</code></span>, then
+it</ins></span> returns <code class="sourceCode cpp">q<span class="op">(</span>env<span class="op">)</span></code>.
+<span class="add" style="color: #006e28"><ins>Otherwise, return value is
+implementation-defined.</ins></span></p>
 <p><span class="marginalizedparent"><a class="marginalized">7</a></span>
 <em>Remarks</em>: <code class="sourceCode cpp">get_stop_token_t</code>
 is in the implementation-defined set of supported queries, and
 <code class="sourceCode cpp">inplace_stop_token</code> is a member of
 the implementation-defined set of supported result types for
 <code class="sourceCode cpp">get_stop_token_t</code>.</p>
-<p><span class="add" style="color: #006e28"><ins><span class="marginalizedparent"><a class="marginalized">8</a></span>
-<em>Recommended practice</em>: <span><code class="sourceCode default">template &lt;typename T&gt; inplace_stop_token</code></span>
-<em><span><code class="sourceCode default">implementation-defined-transform</code></span></em><span><code class="sourceCode default">(T&amp;&amp;)</code></span>
-should be defined for any
-<span><code class="sourceCode default">T</code></span> that models
-<span><code class="sourceCode default">stoppable_token</code></span>.</ins></span></p>
+<p><span class="marginalizedparent"><a class="marginalized">8</a></span>
+<span class="add" style="color: #006e28"><ins><em>Recommended
+practice</em>: If <span><code class="sourceCode default">P</code></span>
+denotes
+<span><code class="sourceCode default">inplace_stop_token</code></span>
+and <span><code class="sourceCode default">T</code></span> is a type,
+other than
+<span><code class="sourceCode default">inplace_stop_token</code></span>,
+that models
+<span><code class="sourceCode default">stoppable_token</code></span>,
+<span><code class="sourceCode default">try_query</code></span> should
+return an object of type
+<span><code class="sourceCode default">inplace_stop_token</code></span>
+such that until one of
+<span><code class="sourceCode default">set_value</code></span>,
+<span><code class="sourceCode default">set_error</code></span> or
+<span><code class="sourceCode default">set_stopped</code></span> is
+called on <span><code class="sourceCode default">*this</code></span>,
+all calls to
+<span><code class="sourceCode default">try_query</code></span> return
+equivalent
+<span><code class="sourceCode default">inplace_stop_token</code></span>
+objects.</ins></span></p>
 <h1 data-number="5" id="polls"><span class="header-section-number">5</span> Polls<a href="#polls" class="self-link"></a></h1>
 <h2 data-number="5.1" id="sg1-lewg-kona-2025"><span class="header-section-number">5.1</span> SG1 + LEWG, Kona 2025<a href="#sg1-lewg-kona-2025" class="self-link"></a></h2>
 <ol type="1">
@@ -1299,7 +1324,7 @@ parallel_scheduler P3804” NB comment to LWG.</p>
 </ol>
 <h1 data-number="6" id="acknowledgments"><span class="header-section-number">6</span> Acknowledgments<a href="#acknowledgments" class="self-link"></a></h1>
 <p>Thanks to Tim Song and Tomasz Kamiński for working extra time to
-ensure that <span class="citation" data-cites="P2079R10">[<a href="https://wg21.link/p2079r10" role="doc-biblioref">P2079R10</a>]</span> is specified with high
+ensure that <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> is specified with high
 standards, for their love and care for the standard.</p>
 <p>Thanks to Lewis Baker for constantly pushing to get better and better
 solutions to the problems at hand.</p>
