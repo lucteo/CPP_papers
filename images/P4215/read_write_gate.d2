@@ -1,0 +1,102 @@
+read_write_gate: {
+  grid-rows: 6
+  grid-columns: 3
+  horizontal-gap: 120
+  vertical-gap: 80
+
+  HR1: "head_read1()" {
+    shape: rectangle
+  }
+  SR1: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  THR1: "tail_read1_h()" {
+    shape: rectangle
+  }
+
+  SR1_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  R1: "read1()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  TWR1: "tail_read1_w()" {
+    shape: rectangle
+  }
+
+  SW: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  W: "write()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  TWW: "tail_write_w()" {
+    shape: rectangle
+  }
+
+  HW: "head_write()" {
+    shape: rectangle
+  }
+  SW_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  THW: "tail_write_h()" {
+    shape: rectangle
+  }
+
+  HR2: "head_read2()" {
+    shape: rectangle
+  }
+  SR2_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  THR2: "tail_read2_h()" {
+    shape: rectangle
+  }
+
+  SR2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  R2: "read2()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  TWR2: "tail_read2_w()" {
+    shape: rectangle
+  }
+
+  HR1 -> R1: "NewLocal 1"
+  R1 -> TWR1: "NewLocal 2"
+  HR1 -> THR1: "NewLocal 3"
+
+  HR2 -> R2: "NewLocal 1"
+  R2 -> TWR2: "NewLocal 2"
+  HR2 -> THR2: "NewLocal 3"
+
+  HW -> W: "NewLocal 1"
+  W -> TWW: "NewLocal 2"
+  HW -> THW: "NewLocal 3"
+
+  R1 <-> W: "ReadWriteGate: read1 < > write" {
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+  R2 <-> W: "ReadWriteGate: read2 < > write" {
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+}

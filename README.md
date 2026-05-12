@@ -2,13 +2,17 @@
 Source file for C++ standard papers
 
 ## Papers in this repo
-- P3804. Rendered [R0 published](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/P3804.html) | [R1 (in progress)](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3804R1/generated/P3804.html)
+- D4215. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/4215.html)
+- D4214. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/4214.html)
+- P3804. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/P3804.html) | Official [WG21 link](https://wg21.link/P3804)
 - P3609. Rendered [R0 (in progress)](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3609R0/generated/P3609.html)
-- P3481. Rendered: [latest published](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/P3481.html)
+- P3481. Rendered: [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/P3481.html) | Official [WG21 link](https://wg21.link/P3481)
 - PXXX1 (abandoned). Rendered: [R1-in progress](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/PXXX1_abandoned.html)
 
 
 ## Other papers
+- [P4044R0: Just `pre!`. Mandatory precondition for contracts](https://wg21.link/P4044R0)
+- [P3911R2: Make Contracts Reliably Non-Ignorable](https://wg21.link/P3911R2)
 - [P2079: System execution context](https://wg21.link/P2079) ([source](https://github.com/LeeHowes/CPP/blob/master/paper_framework_sources/p2079_system_execution_context.bs))
 - [P3149: `async_scope` – Creating scopes for non-sequential concurrency](https://wg21.link/P3149)
 - [P2300: `std::execution`](https://wg21.link/P2300) ([source](https://github.com/cplusplus/sender-receiver/blob/main/execution.bs))

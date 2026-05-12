@@ -1,0 +1,82 @@
+phase_gate: {
+  grid-rows: 2
+  grid-columns: 6
+  horizontal-gap: 100
+  vertical-gap: 90
+
+  H11: "head1(1)" {
+    shape: rectangle
+  }
+  W11: "phase1(1)" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  A1: "arrive_and_wait()" {
+    shape: rectangle
+    style.fill: lightgray
+  }
+  W21: "phase2(1)" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  A12: "arrive_and_wait()" {
+    shape: rectangle
+    style.fill: lightgray
+  }
+  T21: "tail2(1)" {
+    shape: rectangle
+  }
+
+  H12: "head1(2)" {
+    shape: rectangle
+  }
+  W12: "phase1(2)" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  A2: "arrive_and_wait()" {
+    shape: rectangle
+    style.fill: lightgray
+  }
+  W22: "phase2(2)" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  A22: "arrive_and_wait()" {
+    shape: rectangle
+    style.fill: lightgray
+  }
+  T22: "tail2(2)" {
+    shape: rectangle
+  }
+
+  H11 -> W11: "NewLocal 1"
+  W11 -> A1: "arrive"
+  A1 -> W21: "next phase"
+  W21 -> A12
+
+  H12 -> W12: "NewLocal 1"
+  W12 -> A2: "arrive"
+  A2 -> W22: "next phase"
+  W22 -> A22
+
+  A12 -> T21: "NewLocal 2"
+  A22 -> T22: "NewLocal 2"
+
+  W11 -> W22: "P1 < P2"
+  W12 -> W21: ""
+
+  W21 -> T22: "P2 < tail"
+  W22 -> T21: ""
+
+  W11 <-> W12: "same phase: ||" {
+    style.stroke-dash: 3
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+  W21 <-> W22: "same phase: ||" {
+    style.stroke-dash: 4
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+}

@@ -1,0 +1,153 @@
+capacity_gate: "capacity_gate, K=2" {
+  grid-rows: 7
+  grid-columns: 4
+  horizontal-gap: 120
+  vertical-gap: 80
+
+  H1: "head1()" {
+    shape: rectangle
+  }
+  S0_h: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  S0: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  TH1: "tail1_h()" {
+    shape: rectangle
+  }
+
+  S1: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  W1: "w1()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  S1_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  TW1: "tail1_w()" {
+    shape: rectangle
+  }
+
+  H2: "head2()" {
+    shape: rectangle
+  }
+  S2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  S2_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  TH2: "tail2_h()" {
+    shape: rectangle
+  }
+
+  S3: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  W2: "w2()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  S3_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  TW2: "tail2_w()" {
+    shape: rectangle
+  }
+
+  H3: "head3()" {
+    shape: rectangle
+  }
+  S4: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  S4_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  TH3: "tail3_h()" {
+    shape: rectangle
+  }
+
+  S6: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  S6_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  S6_3: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  S6_4: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+
+  S5: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  S5_2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  W3: "w3()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  TW3: "tail3_w()" {
+    shape: rectangle
+  }
+
+  H1 -> W1: "NewLocal 1"
+  W1 -> TW1: "NewLocal 2"
+  H1 -> TH1: "NewLocal 3"
+
+  H2 -> W2: "NewLocal 1"
+  W2 -> TW2: "NewLocal 2"
+  H2 -> TH2: "NewLocal 3"
+
+  H3 -> W3: "NewLocal 1"
+  W3 -> TW3: "NewLocal 2"
+  H3 -> TH3: "NewLocal 3"
+
+  W1 <-> W2: "w1 || w2" {
+    style.stroke-dash: 4
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+
+  W1 -> W3: ""
+  W2 -> W3: "one slot must be released"
+}

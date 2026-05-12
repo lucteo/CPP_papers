@@ -1,0 +1,69 @@
+serial_gate: {
+  grid-rows: 4
+  grid-columns: 3
+  horizontal-gap: 120
+  vertical-gap: 90
+
+  H1: "head1()" {
+    shape: rectangle
+  }
+  TH1: "tail1_h()" {
+    shape: rectangle
+  }
+  S0: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+
+  S1: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  W1: "w1()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  TW1: "tail1_w()" {
+    shape: rectangle
+  }
+
+  S2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  W2: "w2()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  TW2: "tail2_w()" {
+    shape: rectangle
+  }
+
+  H2: "head2()" {
+    shape: rectangle
+  }
+  TH2: "tail2_h()" {
+    shape: rectangle
+  }
+  S3: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+
+  H1 -> W1: "NewLocal 1"
+  W1 -> TW1: "NewLocal 2"
+  H1 -> TH1: "NewLocal 3"
+
+  H2 -> W2: "NewLocal 1"
+  W2 -> TW2: "NewLocal 2"
+  H2 -> TH2: "NewLocal 3"
+
+  W1 <-> W2: "SerialGate: w1 < > w2" {
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+}

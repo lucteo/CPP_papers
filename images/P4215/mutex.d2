@@ -1,0 +1,39 @@
+mutex: {
+  grid-rows: 2
+  grid-columns: 3
+  horizontal-gap: 120
+  vertical-gap: 90
+
+  H1: "head1()" {
+    shape: rectangle
+  }
+  W1: "w1()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  T1: "tail1()" {
+    shape: rectangle
+  }
+
+  H2: "head2()" {
+    shape: rectangle
+  }
+  W2: "w2()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  T2: "tail2()" {
+    shape: rectangle
+  }
+
+  H1 -> W1: "Local 1"
+  W1 -> T1: "Local 2"
+
+  H2 -> W2: "Local 1"
+  W2 -> T2: "Local 2"
+
+  W1 <-> W2: "Mutex: w1 < > w2" {
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+}
