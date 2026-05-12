@@ -1,0 +1,66 @@
+readiness_gate: {
+  grid-rows: 3
+  grid-columns: 4
+  horizontal-gap: 120
+  vertical-gap: 90
+
+  HW: "head_wait()" {
+    shape: rectangle
+  }
+  TWH: "tail_wait_h()" {
+    shape: rectangle
+  }
+  S: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  S1: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+
+  S2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  WAIT: "g.wait()" {
+    shape: rectangle
+    style.fill: lightgray
+  }
+  C: "when_ready()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  WT2: "tail_wait_w()" {
+    shape: rectangle
+  }
+
+  HU: "head_update()" {
+    shape: rectangle
+  }
+  W: "set_ready()" {
+    shape: rectangle
+    style.fill: lightgray
+  }
+  TU: "tail_update()" {
+    shape: rectangle
+  }
+  S2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+
+  HW -> TWH: "NewLocal 3"
+  HU -> W: "NewLocal 1"
+  W -> TU: "NewLocal 2"
+
+  HW -> WAIT: "NewLocal 1"
+  WAIT -> C: "NewLocal 2"
+  C -> WT2: "NewLocal3"
+
+  W -> C: "ready"
+}

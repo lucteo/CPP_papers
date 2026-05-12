@@ -1,0 +1,72 @@
+semaphore: "semaphore, K=2" {
+  grid-rows: 3
+  grid-columns: 4
+  horizontal-gap: 120
+  vertical-gap: 90
+
+  H1: "head1()" {
+    shape: rectangle
+  }
+  W1: "w1()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  T1: "tail1()" {
+    shape: rectangle
+  }
+  S0: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+
+  H2: "head2()" {
+    shape: rectangle
+  }
+  W2: "w2()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  T2: "tail2()" {
+    shape: rectangle
+  }
+  S1: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+
+  H3: "head3()" {
+    shape: rectangle
+  }
+  S2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  W3: "w3()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  T3: "tail3()" {
+    shape: rectangle
+  }
+
+  H1 -> W1: "Local 1"
+  W1 -> T1: "Local 2"
+
+  H2 -> W2: "Local 1"
+  W2 -> T2: "Local 2"
+
+  H3 -> W3: "Local 1"
+  W3 -> T3: "Local 2"
+
+  W1 <-> W2: "w1 || w2" {
+    style.stroke-dash: 4
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+
+  W1 -> W3: ""
+  W2 -> W3: "one slot must be released"
+}

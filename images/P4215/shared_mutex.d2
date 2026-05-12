@@ -1,0 +1,57 @@
+shared_mutex: {
+  grid-rows: 3
+  grid-columns: 3
+  horizontal-gap: 120
+  vertical-gap: 90
+
+  H1: "head_read1()" {
+    shape: rectangle
+  }
+  R1: "read1()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  T1: "tail_read1()" {
+    shape: rectangle
+  }
+
+  H3: "head_write()" {
+    shape: rectangle
+  }
+  W: "write()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  T3: "tail_write()" {
+    shape: rectangle
+  }
+
+  H2: "head_read2()" {
+    shape: rectangle
+  }
+  R2: "read2()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  T2: "tail_read2()" {
+    shape: rectangle
+  }
+
+  H1 -> R1: "Local 1"
+  R1 -> T1: "Local 2"
+
+  H2 -> R2: "Local 1"
+  R2 -> T2: "Local 2"
+
+  H3 -> W: "Local 1"
+  W -> T3: "Local 2"
+
+  R1 <-> W: "SharedMutex: read1 < > write" {
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+  R2 <-> W: "SharedMutex: read2 < > write" {
+    source-arrowhead.shape: triangle
+    target-arrowhead.shape: triangle
+  }
+}

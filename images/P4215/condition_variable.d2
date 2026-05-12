@@ -1,0 +1,46 @@
+condition_variable: {
+  grid-rows: 2
+  grid-columns: 4
+  horizontal-gap: 120
+  vertical-gap: 90
+
+  H1: "head()" {
+    shape: rectangle
+  }
+  S: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+  C: "c()" {
+    shape: rectangle
+    style.fill: lightgreen
+  }
+  T1: "tail()" {
+    shape: rectangle
+  }
+
+  H2: "head2()" {
+    shape: rectangle
+  }
+  W: "w()" {
+    shape: rectangle
+    style.fill: salmon
+  }
+  T2: "tail2()" {
+    shape: rectangle
+  }
+  S2: "" {
+    width: 1
+    height: 1
+    style.opacity: 0
+  }
+
+  H1 -> C: "Local 1"
+  C -> T1: "Local 2"
+
+  H2 -> W: "Local 1"
+  W -> T2: "Local 2"
+
+  W -> C: "CondVar: w < c"
+}
