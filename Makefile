@@ -21,7 +21,7 @@ help:
 
 .PHONY: update
 update:
-	$(MAKE) -f $(WG21_MAKEFILE) update
+	@cd wg21 && $(MAKE) update
 
 .PHONY: html pdf latex
 html: $(addsuffix .html,$(PAPERS))
