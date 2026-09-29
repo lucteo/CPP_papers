@@ -510,15 +510,17 @@ scheduler?<span></span></a></li>
 <li><a href="#safety" id="toc-safety"><span class="toc-section-number">6.1</span> Safety<span></span></a></li>
 <li><a href="#progress" id="toc-progress"><span class="toc-section-number">6.2</span> Progress<span></span></a></li>
 </ul></li>
-<li><a href="#proposed-wording" id="toc-proposed-wording"><span class="toc-section-number">7</span> Proposed
+<li><a href="#prior-art-and-implementation-experience" id="toc-prior-art-and-implementation-experience"><span class="toc-section-number">7</span> Prior art and implementation
+experience<span></span></a></li>
+<li><a href="#proposed-wording" id="toc-proposed-wording"><span class="toc-section-number">8</span> Proposed
 wording<span></span></a></li>
-<li><a href="#polls" id="toc-polls"><span class="toc-section-number">8</span> Polls<span></span></a>
+<li><a href="#polls" id="toc-polls"><span class="toc-section-number">9</span> Polls<span></span></a>
 <ul>
-<li><a href="#sg1-brno-2026-for-p4215r0" id="toc-sg1-brno-2026-for-p4215r0"><span class="toc-section-number">8.1</span> SG1, Brno 2026, for <span class="citation" data-cites="P4215R0"><span>[P4215R0]</span></span><span></span></a></li>
+<li><a href="#sg1-brno-2026-for-p4215r0" id="toc-sg1-brno-2026-for-p4215r0"><span class="toc-section-number">9.1</span> SG1, Brno 2026, for <span class="citation" data-cites="P4215R0"><span>[P4215R0]</span></span><span></span></a></li>
 </ul></li>
-<li><a href="#acknowledgements" id="toc-acknowledgements"><span class="toc-section-number">9</span>
+<li><a href="#acknowledgements" id="toc-acknowledgements"><span class="toc-section-number">10</span>
 Acknowledgements<span></span></a></li>
-<li><a href="#bibliography" id="toc-bibliography"><span class="toc-section-number">10</span> References<span></span></a></li>
+<li><a href="#bibliography" id="toc-bibliography"><span class="toc-section-number">11</span> References<span></span></a></li>
 </ul>
 </div>
 <style>
@@ -1230,20 +1232,36 @@ to the application preserves progress.</p>
 safety properties, we achieve correctness.</p>
 <p>If the preconditions for progress are violated, we might still reach
 live-locks. A serial gate cannot detect or prevent them.</p>
-<h1 data-number="7" id="proposed-wording"><span class="header-section-number">7</span> Proposed wording<a href="#proposed-wording" class="self-link"></a></h1>
+<h1 data-number="7" id="prior-art-and-implementation-experience"><span class="header-section-number">7</span> Prior art and implementation
+experience<a href="#prior-art-and-implementation-experience" class="self-link"></a></h1>
+<p>Serialized execution through task queues is a common concurrency
+pattern, although such queues do not always serialize entire
+asynchronous operations. Well-known examples include <a href="https://www.boost.org/doc/libs/latest/doc/html/boost_asio/overview/core/strands.html">strands
+in Boost.Asio</a> and <a href="https://developer.apple.com/library/archive/documentation/General/Conceptual/ConcurrencyProgrammingGuide/OperationQueues/OperationQueues.html">serial
+dispatch queues</a> in Grand Central Dispatch.</p>
+<p>Closer to the proposed facility, <a href="https://github.com/facebookexperimental/libunifex/blob/main/doc/api_reference.md#async_mutex">unifex::async_mutex</a>
+is a sender-based asynchronous mutex: acquisition occurs through a
+sender, while release remains manual. <a href="https://github.com/lewissbaker/cppcoro#async_mutex">cppcoro::async_mutex</a>
+supports both manual acquisition and
+<code class="sourceCode cpp">scoped_lock_async<span class="op">()</span></code>
+, whose result is an RAII lock.</p>
+<p>A prototype implementation of the proposed
+<code class="sourceCode cpp">serial_gate</code>
+is available in <a href="https://github.com/bemanproject/gates">beman.gates</a>.</p>
+<h1 data-number="8" id="proposed-wording"><span class="header-section-number">8</span> Proposed wording<a href="#proposed-wording" class="self-link"></a></h1>
 <p>TODO</p>
-<h1 data-number="8" id="polls"><span class="header-section-number">8</span> Polls<a href="#polls" class="self-link"></a></h1>
-<h2 data-number="8.1" id="sg1-brno-2026-for-p4215r0"><span class="header-section-number">8.1</span> SG1, Brno 2026, for <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span><a href="#sg1-brno-2026-for-p4215r0" class="self-link"></a></h2>
+<h1 data-number="9" id="polls"><span class="header-section-number">9</span> Polls<a href="#polls" class="self-link"></a></h1>
+<h2 data-number="9.1" id="sg1-brno-2026-for-p4215r0"><span class="header-section-number">9.1</span> SG1, Brno 2026, for <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span><a href="#sg1-brno-2026-for-p4215r0" class="self-link"></a></h2>
 <p>Poll: SG1 likes the design direction of <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span> and considers the gate
 facilities important for C++29.</p>
 
 <div class="sourceCode" id="cb11"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>| SF | F | N | A | SA |</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>| 11 | 0 | 0 | 0 | 0  |</span></code></pre></div>
-<h1 data-number="9" id="acknowledgements"><span class="header-section-number">9</span> Acknowledgements<a href="#acknowledgements" class="self-link"></a></h1>
+<h1 data-number="10" id="acknowledgements"><span class="header-section-number">10</span> Acknowledgements<a href="#acknowledgements" class="self-link"></a></h1>
 <p>The authors would like to thank the SG1 experts, especially Robert
 Leahy and Ian Petersen, for providing valuable feedback on the gates
 proposal.</p>
-<h1 data-number="10" id="bibliography"><span class="header-section-number">10</span> References<a href="#bibliography" class="self-link"></a></h1>
+<h1 data-number="11" id="bibliography"><span class="header-section-number">11</span> References<a href="#bibliography" class="self-link"></a></h1>
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="1" role="doc-bibliography">
 <div id="ref-P0290R4" class="csl-entry" role="doc-biblioentry">
 [P0290R4] Anthony Williams. 2023-02-16. apply() for synchronized_value.
