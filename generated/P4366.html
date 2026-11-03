@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="mpark/wg21" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="dcterms.date" content="2026-09-29" />
+  <title>`serial_gate`: a first step towards non-local
+concurrency</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+      div.csl-block{margin-left: 1.5em;}
+      ul.task-list{list-style: none;}
+      pre > code.sourceCode { white-space: pre; position: relative; }
+      pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+      pre > code.sourceCode > span:empty { height: 1.2em; }
+      .sourceCode { overflow: visible; }
+      code.sourceCode > span { color: inherit; text-decoration: inherit; }
+      div.sourceCode { margin: 1em 0; }
+      pre.sourceCode { margin: 0; }
+      @media screen {
+      div.sourceCode { overflow: auto; }
+      }
+      @media print {
+      pre > code.sourceCode { white-space: pre-wrap; }
+      pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+      }
+      pre.numberSource code
+        { counter-reset: source-line 0; }
+      pre.numberSource code > span
+        { position: relative; left: -4em; counter-increment: source-line; }
+      pre.numberSource code > span > a:first-child::before
+        { content: counter(source-line);
+          position: relative; left: -1em; text-align: right; vertical-align: baseline;
+          border: none; display: inline-block;
+          -webkit-touch-callout: none; -webkit-user-select: none;
+          -khtml-user-select: none; -moz-user-select: none;
+          -ms-user-select: none; user-select: none;
+          padding: 0 4px; width: 4em;
+          color: #aaaaaa;
+        }
+      pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+      div.sourceCode
+        {  background-color: #f6f8fa; }
+      @media screen {
+      pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+      }
+      code span { } /* Normal */
+      code span.al { color: #ff0000; } /* Alert */
+      code span.an { } /* Annotation */
+      code span.at { } /* Attribute */
+      code span.bn { color: #9f6807; } /* BaseN */
+      code span.bu { color: #9f6807; } /* BuiltIn */
+      code span.cf { color: #00607c; } /* ControlFlow */
+      code span.ch { color: #9f6807; } /* Char */
+      code span.cn { } /* Constant */
+      code span.co { color: #6a737d; font-style: italic; } /* Comment */
+      code span.cv { color: #6a737d; font-style: italic; } /* CommentVar */
+      code span.do { color: #6a737d; } /* Documentation */
+      code span.dt { color: #00607c; } /* DataType */
+      code span.dv { color: #9f6807; } /* DecVal */
+      code span.er { color: #ff0000; font-weight: bold; } /* Error */
+      code span.ex { } /* Extension */
+      code span.fl { color: #9f6807; } /* Float */
+      code span.fu { } /* Function */
+      code span.im { } /* Import */
+      code span.in { color: #6a737d; } /* Information */
+      code span.kw { color: #00607c; } /* Keyword */
+      code span.op { color: #7b3e91; } /* Operator */
+      code span.ot { } /* Other */
+      code span.pp { color: #6f4e37; } /* Preprocessor */
+      code span.re { } /* RegionMarker */
+      code span.sc { color: #9f6807; } /* SpecialChar */
+      code span.ss { color: #9f6807; } /* SpecialString */
+      code span.st { color: #9f6807; } /* String */
+      code span.va { } /* Variable */
+      code span.vs { color: #9f6807; } /* VerbatimString */
+      code span.wa { color: #6a737d; font-weight: bold; } /* Warning */
+      code.diff {color: #898887}
+      code.diff span.va {color: #006e28}
+      code.diff span.st {color: #bf0303}
+  </style>
+  <style type="text/css">
+body {
+margin: 5em;
+font-family: serif;
+
+hyphens: auto;
+line-height: 1.35;
+text-align: justify;
+
+-webkit-text-size-adjust: none;
+-moz-text-size-adjust: none;
+text-size-adjust: none;
+}
+@media screen and (max-width: 30em) {
+body {
+margin: 1.5em;
+}
+}
+div.wrapper {
+max-width: 60em;
+margin: auto;
+}
+ul {
+list-style-type: none;
+padding-left: 2em;
+margin-top: -0.2em;
+margin-bottom: -0.2em;
+}
+a {
+text-decoration: none;
+color: #4183C4;
+}
+a.hidden_link {
+text-decoration: none;
+color: inherit;
+}
+li {
+margin-top: 0.6em;
+margin-bottom: 0.6em;
+}
+h1, h2, h3, h4 {
+position: relative;
+line-height: 1;
+}
+a.self-link {
+position: absolute;
+top: 0;
+left: calc(-1 * (3.5rem - 26px));
+width: calc(3.5rem - 26px);
+height: 2em;
+text-align: center;
+border: none;
+transition: opacity .2s;
+opacity: .5;
+font-family: sans-serif;
+font-weight: normal;
+font-size: 83%;
+}
+a.self-link:hover { opacity: 1; }
+a.self-link::before { content: "§"; }
+ul > li:before {
+content: "\2014";
+position: absolute;
+margin-left: -1.5em;
+}
+:target { background-color: #C9FBC9; }
+:target .codeblock { background-color: #C9FBC9; }
+:target ul { background-color: #C9FBC9; }
+.abbr_ref { float: right; }
+.folded_abbr_ref { float: right; }
+:target .folded_abbr_ref { display: none; }
+:target .unfolded_abbr_ref { float: right; display: inherit; }
+.unfolded_abbr_ref { display: none; }
+.secnum { display: inline-block; min-width: 35pt; }
+.header-section-number { display: inline-block; min-width: 35pt; }
+.annexnum { display: block; }
+div.sourceLinkParent {
+float: right;
+}
+a.sourceLink {
+position: absolute;
+opacity: 0;
+margin-left: 10pt;
+}
+a.sourceLink:hover {
+opacity: 1;
+}
+a.itemDeclLink {
+position: absolute;
+font-size: 75%;
+text-align: right;
+width: 5em;
+opacity: 0;
+}
+a.itemDeclLink:hover { opacity: 1; }
+span.marginalizedparent {
+position: relative;
+left: -5em;
+}
+li span.marginalizedparent { left: -7em; }
+li ul > li span.marginalizedparent { left: -9em; }
+li ul > li ul > li span.marginalizedparent { left: -11em; }
+li ul > li ul > li ul > li span.marginalizedparent { left: -13em; }
+div.footnoteNumberParent {
+position: relative;
+left: -4.7em;
+}
+a.marginalized {
+position: absolute;
+font-size: 75%;
+text-align: right;
+width: 5em;
+}
+a.enumerated_item_num {
+position: relative;
+left: -3.5em;
+display: inline-block;
+margin-right: -3em;
+text-align: right;
+width: 3em;
+}
+div.para { margin-bottom: 0.6em; margin-top: 0.6em; text-align: justify; }
+div.section { text-align: justify; }
+div.sentence { display: inline; }
+span.indexparent {
+display: inline;
+position: relative;
+float: right;
+right: -1em;
+}
+a.index {
+position: absolute;
+display: none;
+}
+a.index:before { content: "⟵"; }
+
+a.index:target {
+display: inline;
+}
+.indexitems {
+margin-left: 2em;
+text-indent: -2em;
+}
+div.itemdescr {
+margin-left: 3em;
+}
+.bnf {
+font-family: serif;
+margin-left: 40pt;
+margin-top: 0.5em;
+margin-bottom: 0.5em;
+}
+.ncbnf {
+font-family: serif;
+margin-top: 0.5em;
+margin-bottom: 0.5em;
+margin-left: 40pt;
+}
+.ncsimplebnf {
+font-family: serif;
+font-style: italic;
+margin-top: 0.5em;
+margin-bottom: 0.5em;
+margin-left: 40pt;
+background: inherit; 
+}
+span.textnormal {
+font-style: normal;
+font-family: serif;
+white-space: normal;
+display: inline-block;
+}
+span.rlap {
+display: inline-block;
+width: 0px;
+}
+span.descr { font-style: normal; font-family: serif; }
+span.grammarterm { font-style: italic; }
+span.term { font-style: italic; }
+span.terminal { font-family: monospace; font-style: normal; }
+span.nonterminal { font-style: italic; }
+span.tcode { font-family: monospace; font-style: normal; }
+span.textbf { font-weight: bold; }
+span.textsc { font-variant: small-caps; }
+a.nontermdef { font-style: italic; font-family: serif; }
+span.emph { font-style: italic; }
+span.techterm { font-style: italic; }
+span.mathit { font-style: italic; }
+span.mathsf { font-family: sans-serif; }
+span.mathrm { font-family: serif; font-style: normal; }
+span.textrm { font-family: serif; }
+span.textsl { font-style: italic; }
+span.mathtt { font-family: monospace; font-style: normal; }
+span.mbox { font-family: serif; font-style: normal; }
+span.ungap { display: inline-block; width: 2pt; }
+span.textit { font-style: italic; }
+span.texttt { font-family: monospace; }
+span.tcode_in_codeblock { font-family: monospace; font-style: normal; }
+span.phantom { color: white; }
+
+span.math { font-style: normal; }
+span.mathblock {
+display: block;
+margin-left: auto;
+margin-right: auto;
+margin-top: 1.2em;
+margin-bottom: 1.2em;
+text-align: center;
+}
+span.mathalpha {
+font-style: italic;
+}
+span.synopsis {
+font-weight: bold;
+margin-top: 0.5em;
+display: block;
+}
+span.definition {
+font-weight: bold;
+display: block;
+}
+.codeblock {
+margin-left: 1.2em;
+line-height: 127%;
+}
+.outputblock {
+margin-left: 1.2em;
+line-height: 127%;
+}
+div.itemdecl {
+margin-top: 2ex;
+}
+code.itemdeclcode {
+white-space: pre;
+display: block;
+}
+span.textsuperscript {
+vertical-align: super;
+font-size: smaller;
+line-height: 0;
+}
+.footnotenum { vertical-align: super; font-size: smaller; line-height: 0; }
+.footnote {
+font-size: small;
+margin-left: 2em;
+margin-right: 2em;
+margin-top: 0.6em;
+margin-bottom: 0.6em;
+}
+div.minipage {
+display: inline-block;
+margin-right: 3em;
+}
+div.numberedTable {
+text-align: center;
+margin: 2em;
+}
+div.figure {
+text-align: center;
+margin: 2em;
+}
+table {
+border: 1px solid black;
+border-collapse: collapse;
+margin-left: auto;
+margin-right: auto;
+margin-top: 0.8em;
+text-align: left;
+hyphens: none; 
+}
+td, th {
+padding-left: 1em;
+padding-right: 1em;
+vertical-align: top;
+}
+td.empty {
+padding: 0px;
+padding-left: 1px;
+}
+td.left {
+text-align: left;
+}
+td.right {
+text-align: right;
+}
+td.center {
+text-align: center;
+}
+td.justify {
+text-align: justify;
+}
+td.border {
+border-left: 1px solid black;
+}
+tr.rowsep, td.cline {
+border-top: 1px solid black;
+}
+tr.even, tr.odd {
+border-bottom: 1px solid black;
+}
+tr.capsep {
+border-top: 3px solid black;
+border-top-style: double;
+}
+tr.header {
+border-bottom: 3px solid black;
+border-bottom-style: double;
+}
+th {
+border-bottom: 1px solid black;
+}
+span.centry {
+font-weight: bold;
+}
+div.table {
+display: block;
+margin-left: auto;
+margin-right: auto;
+text-align: center;
+width: 90%;
+}
+span.indented {
+display: block;
+margin-left: 2em;
+margin-bottom: 1em;
+margin-top: 1em;
+}
+ol.enumeratea { list-style-type: none; background: inherit; }
+ol.enumerate { list-style-type: none; background: inherit; }
+
+code.sourceCode > span { display: inline; }
+</style>
+  <link href="data:image/x-icon;base64,AAABAAIAEBAAAAEAIABoBAAAJgAAACAgAAABACAAqBAAAI4EAAAoAAAAEAAAACAAAAABACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AIJEAACCRAAAgkQAAIJEAACCRAAAgkQAVoJEAN6CRADegkQAWIJEAACCRAAAgkQAAIJEAACCRAAA////AP///wCCRAAAgkQAAIJEAACCRAAsgkQAvoJEAP+CRAD/gkQA/4JEAP+CRADAgkQALoJEAACCRAAAgkQAAP///wD///8AgkQAAIJEABSCRACSgkQA/IJEAP99PQD/dzMA/3czAP99PQD/gkQA/4JEAPyCRACUgkQAFIJEAAD///8A////AHw+AFiBQwDqgkQA/4BBAP9/PxP/uZd6/9rJtf/bybX/upd7/39AFP+AQQD/gkQA/4FDAOqAQgBc////AP///wDKklv4jlEa/3o7AP+PWC//8+3o///////////////////////z7un/kFox/35AAP+GRwD/mVYA+v///wD///8A0Zpk+NmibP+0d0T/8evj///////+/fv/1sKz/9bCs//9/fr//////+/m2/+NRwL/nloA/5xYAPj///8A////ANKaZPjRmGH/5cKh////////////k149/3UwAP91MQD/lmQ//86rhv+USg3/m1YA/5hSAP+bVgD4////AP///wDSmmT4zpJY/+/bx///////8+TV/8mLT/+TVx//gkIA/5lVAP+VTAD/x6B//7aEVv/JpH7/s39J+P///wD///8A0ppk+M6SWP/u2sf///////Pj1f/Nj1T/2KFs/8mOUv+eWhD/lEsA/8aee/+0glT/x6F7/7J8Rvj///8A////ANKaZPjRmGH/48Cf///////+/v7/2qt//82PVP/OkFX/37KJ/86siv+USg7/mVQA/5hRAP+bVgD4////AP///wDSmmT40ppk/9CVXP/69O////////7+/v/x4M//8d/P//7+/f//////9u7n/6tnJf+XUgD/nFgA+P///wD///8A0ppk+NKaZP/RmWL/1qNy//r07///////////////////////+vXw/9akdP/Wnmn/y5FY/6JfFvj///8A////ANKaZFTSmmTo0ppk/9GYYv/Ql1//5cWm//Hg0P/x4ND/5cWm/9GXYP/RmGH/0ppk/9KaZOjVnmpY////AP///wDSmmQA0ppkEtKaZI7SmmT60ppk/9CWX//OkVb/zpFW/9CWX//SmmT/0ppk/NKaZJDSmmQS0ppkAP///wD///8A0ppkANKaZADSmmQA0ppkKtKaZLrSmmT/0ppk/9KaZP/SmmT/0ppkvNKaZCrSmmQA0ppkANKaZAD///8A////ANKaZADSmmQA0ppkANKaZADSmmQA0ppkUtKaZNzSmmTc0ppkVNKaZADSmmQA0ppkANKaZADSmmQA////AP5/AAD4HwAA4AcAAMADAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAMADAADgBwAA+B8AAP5/AAAoAAAAIAAAAEAAAAABACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AP///wCCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAAyCRACMgkQA6oJEAOqCRACQgkQAEIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAA////AP///wD///8A////AIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRABigkQA5oJEAP+CRAD/gkQA/4JEAP+CRADqgkQAZoJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAAD///8A////AP///wD///8AgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAA4gkQAwoJEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQAxIJEADyCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAAgkQAAP///wD///8A////AP///wCCRAAAgkQAAIJEAACCRAAAgkQAAIJEAACCRAAWgkQAmIJEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAJyCRAAYgkQAAIJEAACCRAAAgkQAAIJEAACCRAAA////AP///wD///8A////AIJEAACCRAAAgkQAAIJEAACCRAAAgkQAdIJEAPCCRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAP+CRAD/gkQA/4JEAPSCRAB4gkQAAIJEAACCRAAAgkQAAIJEAAD///8A////AP///wD///8AgkQAAIJEAACCRAAAgkQASoJEANKCRAD/gkQA/4JEAP+CRAD/g0YA/39AAP9zLgD/bSQA/2shAP9rIQD/bSQA/3MuAP9/PwD/g0YA/4JEAP+CRAD/gkQA/4JEAP+CRADUgkQAToJEAACCRAAAgkQAAP///wD///8A////AP///wB+PwAAgkUAIoJEAKiCRAD/gkQA/4JEAP+CRAD/hEcA/4BBAP9sIwD/dTAA/5RfKv+viF7/vp56/76ee/+wiF7/lWAr/3YxAP9sIwD/f0AA/4RHAP+CRAD/gkQA/4JEAP+CRAD/gkQArIJEACaBQwAA////AP///wD///8A////AIBCAEBzNAD6f0EA/4NFAP+CRAD/gkQA/4VIAP92MwD/bSUA/6N1Tv/ezsL/////////////////////////////////38/D/6V3Uv9uJgD/dTEA/4VJAP+CRAD/gkQA/4JEAP+BQwD/fUAA/4FDAEj///8A////AP///wD///8AzJRd5qBlKf91NgD/dDUA/4JEAP+FSQD/cy4A/3YyAP/PuKP//////////////////////////////////////////////////////9K7qP94NQD/ciwA/4VJAP+CRAD/fkEA/35BAP+LSwD/mlYA6v///wD///8A////AP///wDdpnL/4qx3/8KJUv+PUhf/cTMA/3AsAP90LgD/4dK+/////////////////////////////////////////////////////////////////+TYxf91MAD/dTIA/31CAP+GRwD/llQA/6FcAP+gWwD8////AP///wD///8A////ANGZY/LSm2X/4ap3/92mcP+wdT3/byQA/8mwj////////////////////////////////////////////////////////////////////////////+LYxv9zLgP/jUoA/59bAP+hXAD/nFgA/5xYAPL///8A////AP///wD///8A0ppk8tKaZP/RmWL/1p9q/9ubXv/XqXj////////////////////////////7+fD/vZyG/6BxS/+gcUr/vJuE//r37f//////////////////////3MOr/5dQBf+dVQD/nVkA/5xYAP+cWAD/nFgA8v///wD///8A////AP///wDSmmTy0ppk/9KaZP/SmWP/yohJ//jo2P//////////////////////4NTG/4JDFf9lGAD/bSQA/20kAP9kGAD/fz8S/+Xb0f//////5NG9/6txN/+LOgD/m1QA/51aAP+cWAD/m1cA/5xYAP+cWADy////AP///wD///8A////ANKaZPLSmmT/0ppk/8+TWf/Unmv//v37//////////////////////+TWRr/VwsA/35AAP+ERgD/g0UA/4JGAP9lHgD/kFga/8KXX/+TRwD/jT4A/49CAP+VTQD/n10A/5xYAP+OQQD/lk4A/55cAPL///8A////AP///wD///8A0ppk8tKaZP/SmmT/y4tO/92yiP//////////////////////8NnE/8eCQP+rcTT/ez0A/3IyAP98PgD/gEMA/5FSAP+USwD/jj8A/5lUAP+JNwD/yqV2/694Mf+HNQD/jkAA/82rf/+laBj/jT4A8v///wD///8A////AP///wDSmmTy0ppk/9KaZP/LiUr/4byY///////////////////////gupX/0I5P/+Wuev/Lklz/l1sj/308AP+QSwD/ol0A/59aAP+aVQD/k0oA/8yoh///////+fXv/6pwO//Lp3v///////Pr4f+oay7y////AP///wD///8A////ANKaZPLSmmT/0ppk/8uJSv/hvJj//////////////////////+G7l//Jhkb/0ppk/96nc//fqXX/x4xO/6dkFP+QSQD/llEA/5xXAP+USgD/yaOA///////38uv/qG05/8ijdv//////8efb/6ZpLPL///8A////AP///wD///8A0ppk8tKaZP/SmmT/zIxO/9yxh///////////////////////7dbA/8iEQf/Sm2X/0Zlj/9ScZv/eqHf/2KJv/7yAQf+XTgD/iToA/5lSAP+JNgD/yKFv/611LP+HNQD/jT8A/8qmeP+kZRT/jT4A8v///wD///8A////AP///wDSmmTy0ppk/9KaZP/Pk1n/1J5q//78+//////////////////+/fv/1aFv/8iEQv/Tm2b/0ppl/9GZY//Wn2z/1pZc/9eldf/Bl2b/kUcA/4w9AP+OQAD/lUwA/59eAP+cWQD/jT8A/5ZOAP+eXADy////AP///wD///8A////ANKaZPLSmmT/0ppk/9KZY//KiEn/8d/P///////////////////////47+f/05tm/8iCP//KiEj/yohJ/8eCP//RmGH//vfy///////n1sP/rXQ7/4k4AP+TTAD/nVoA/5xYAP+cVwD/nFgA/5xYAPL///8A////AP///wD///8A0ppk8tKaZP/SmmT/0ptl/8uLTf/aq37////////////////////////////+/fz/6c2y/961jv/etY7/6Myx//78+v//////////////////////3MWv/5xXD/+ORAD/mFQA/51ZAP+cWAD/nFgA8v///wD///8A////AP///wDSmmTy0ppk/9KaZP/SmmT/0ppk/8mFRP/s1b//////////////////////////////////////////////////////////////////////////////+PD/0JFU/7NzMv+WUQD/kUsA/5tXAP+dWQDy////AP///wD///8A////ANKaZP/SmmT/0ppk/9KaZP/Sm2X/z5NZ/8yMT//z5NX/////////////////////////////////////////////////////////////////9Ofa/8yNUP/UmGH/36p5/8yTWv+qaSD/kksA/5ROAPz///8A////AP///wD///8A0ppk5NKaZP/SmmT/0ppk/9KaZP/TnGf/zY9T/82OUv/t1sD//////////////////////////////////////////////////////+7Yw//OkFX/zI5R/9OcZ//SmmP/26V0/9ymdf/BhUf/ol8R6P///wD///8A////AP///wDSmmQ80ppk9tKaZP/SmmT/0ppk/9KaZP/TnGj/zpFW/8qJSv/dson/8uHS//////////////////////////////////Lj0//etIv/y4lL/86QVf/TnGj/0ppk/9KaZP/RmWP/05xn/9ymdfjUnWdC////AP///wD///8A////ANKaZADSmmQc0ppkotKaZP/SmmT/0ppk/9KaZP/Tm2b/0Zli/8qJSf/NjlH/16Z3/+G8mP/myKr/5siq/+G8mP/Xp3f/zY5S/8qISf/RmGH/05tm/9KaZP/SmmT/0ppk/9KaZP/SmmSm0pljINWdaQD///8A////AP///wD///8A0ppkANKaZADSmmQA0ppkQtKaZMrSmmT/0ppk/9KaZP/SmmT/0ptl/9GYYf/Nj1P/y4lL/8qISP/KiEj/y4lK/82PU//RmGH/0ptl/9KaZP/SmmT/0ppk/9KaZP/SmmTO0ppkRtKaZADSmmQA0ppkAP///wD///8A////AP///wDSmmQA0ppkANKaZADSmmQA0ppkANKaZGzSmmTu0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmTw0ppkcNKaZADSmmQA0ppkANKaZADSmmQA////AP///wD///8A////ANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZBLSmmSQ0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppklNKaZBTSmmQA0ppkANKaZADSmmQA0ppkANKaZAD///8A////AP///wD///8A0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQy0ppkutKaZP/SmmT/0ppk/9KaZP/SmmT/0ppk/9KaZP/SmmT/0ppkvtKaZDbSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkAP///wD///8A////AP///wDSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkXNKaZODSmmT/0ppk/9KaZP/SmmT/0ppk5NKaZGDSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA////AP///wD///8A////ANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkBtKaZIbSmmTo0ppk6tKaZIrSmmQK0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZADSmmQA0ppkANKaZAD///8A////AP/8P///+B///+AH//+AAf//AAD//AAAP/AAAA/gAAAHwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA+AAAAfwAAAP/AAAP/8AAP//gAH//+AH///4H////D//" rel="icon" />
+  
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="wrapper">
+<header id="title-block-header">
+<h1 class="title" style="text-align:center"><code class="sourceCode cpp">serial_gate</code>
+: a first step towards non-local concurrency</h1>
+<table style="border:none;float:right">
+  <tr>
+    <td>Document #:</td>
+    <td>
+      P4366R0
+      [<a href="https://wg21.link/P4366">Latest</a>]
+      [<a href="https://wg21.link/P4366/status">Status</a>]
+    </td>
+  </tr>
+  <tr>
+    <td>Date:</td>
+    <td>2026-09-29</td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top">Project:</td>
+    <td>Programming Language C++</td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top">Audience:</td>
+    <td>
+      SG1, LEWG<br>
+    </td>
+  </tr>
+  <tr>
+    <td style="vertical-align:top">Reply-to:</td>
+    <td>
+      Lucian Radu Teodorescu (Garmin)<br>&lt;<a href="mailto:lucteo@lucteo.ro" class="email">lucteo@lucteo.ro</a>&gt;<br>
+      Dietmar Kühl (Bloomberg)<br>&lt;<a href="mailto:dkuhl@bloomberg.net" class="email">dkuhl@bloomberg.net</a>&gt;<br>
+      Ruslan Arutyunyan (Intel)<br>&lt;<a href="mailto:ruslan.arutyunyan@intel.com" class="email">ruslan.arutyunyan@intel.com</a>&gt;<br>
+    </td>
+  </tr>
+</table>
+</header>
+<div style="clear:both">
+<div id="TOC" role="doc-toc">
+<h1 id="toctitle">Contents</h1>
+<ul>
+<li><a href="#changes" id="toc-changes"><span class="toc-section-number">1</span> Changes<span></span></a>
+<ul>
+<li><a href="#r0" id="toc-r0"><span class="toc-section-number">1.1</span> R0<span></span></a></li>
+</ul></li>
+<li><a href="#introduction" id="toc-introduction"><span class="toc-section-number">2</span> Introduction<span></span></a></li>
+<li><a href="#examples" id="toc-examples"><span class="toc-section-number">3</span> Examples<span></span></a>
+<ul>
+<li><a href="#protecting-non-thread-safe-state" id="toc-protecting-non-thread-safe-state"><span class="toc-section-number">3.1</span> Protecting non-thread-safe
+state<span></span></a></li>
+<li><a href="#executing-work-after-protected-work-completes" id="toc-executing-work-after-protected-work-completes"><span class="toc-section-number">3.2</span> Executing work after protected
+work completes<span></span></a></li>
+<li><a href="#serializing-protocol-operations" id="toc-serializing-protocol-operations"><span class="toc-section-number">3.3</span> Serializing protocol
+operations<span></span></a></li>
+<li><a href="#saving-documents" id="toc-saving-documents"><span class="toc-section-number">3.4</span> Saving
+documents<span></span></a></li>
+<li><a href="#saving-documents-if-not-already-in-progress" id="toc-saving-documents-if-not-already-in-progress"><span class="toc-section-number">3.5</span> Saving documents if not already in
+progress<span></span></a></li>
+</ul></li>
+<li><a href="#api" id="toc-api"><span class="toc-section-number">4</span> API<span></span></a></li>
+<li><a href="#design-space-discussions" id="toc-design-space-discussions"><span class="toc-section-number">5</span> Design-space
+discussions<span></span></a>
+<ul>
+<li><a href="#using-asynchronous-scopes" id="toc-using-asynchronous-scopes"><span class="toc-section-number">5.1</span> Using asynchronous
+scopes<span></span></a></li>
+<li><a href="#admission-and-cancellation" id="toc-admission-and-cancellation"><span class="toc-section-number">5.2</span> Admission and
+cancellation<span></span></a></li>
+<li><a href="#speculative-execution" id="toc-speculative-execution"><span class="toc-section-number">5.3</span> Speculative
+execution<span></span></a></li>
+<li><a href="#fairness" id="toc-fairness"><span class="toc-section-number">5.4</span> Fairness<span></span></a></li>
+<li><a href="#no-implicit-scheduler-transition" id="toc-no-implicit-scheduler-transition"><span class="toc-section-number">5.5</span> No implicit scheduler
+transition<span></span></a></li>
+<li><a href="#protected-data" id="toc-protected-data"><span class="toc-section-number">5.6</span> Protected
+data<span></span></a></li>
+<li><a href="#do-we-need-concepts" id="toc-do-we-need-concepts"><span class="toc-section-number">5.7</span> Do we need
+concepts?<span></span></a></li>
+<li><a href="#more-scope-algorithms" id="toc-more-scope-algorithms"><span class="toc-section-number">5.8</span> More scope
+algorithms<span></span></a></li>
+<li><a href="#making-it-synchronous" id="toc-making-it-synchronous"><span class="toc-section-number">5.9</span> Making it
+synchronous<span></span></a></li>
+<li><a href="#why-not-use-a-single-threaded-scheduler" id="toc-why-not-use-a-single-threaded-scheduler"><span class="toc-section-number">5.10</span> Why not use a single-threaded
+scheduler?<span></span></a></li>
+</ul></li>
+<li><a href="#safety-and-progress" id="toc-safety-and-progress"><span class="toc-section-number">6</span> Safety and progress<span></span></a>
+<ul>
+<li><a href="#safety" id="toc-safety"><span class="toc-section-number">6.1</span> Safety<span></span></a></li>
+<li><a href="#progress" id="toc-progress"><span class="toc-section-number">6.2</span> Progress<span></span></a></li>
+</ul></li>
+<li><a href="#prior-art-and-implementation-experience" id="toc-prior-art-and-implementation-experience"><span class="toc-section-number">7</span> Prior art and implementation
+experience<span></span></a></li>
+<li><a href="#proposed-wording" id="toc-proposed-wording"><span class="toc-section-number">8</span> Proposed
+wording<span></span></a></li>
+<li><a href="#polls" id="toc-polls"><span class="toc-section-number">9</span> Polls<span></span></a>
+<ul>
+<li><a href="#sg1-brno-2026-for-p4215r0" id="toc-sg1-brno-2026-for-p4215r0"><span class="toc-section-number">9.1</span> SG1, Brno 2026, for <span class="citation" data-cites="P4215R0"><span>[P4215R0]</span></span><span></span></a></li>
+</ul></li>
+<li><a href="#acknowledgements" id="toc-acknowledgements"><span class="toc-section-number">10</span>
+Acknowledgements<span></span></a></li>
+<li><a href="#bibliography" id="toc-bibliography"><span class="toc-section-number">11</span> References<span></span></a></li>
+</ul>
+</div>
+<style>
+@media screen {
+    #TOC {
+        position: fixed;
+        width: min(20%, 30em);
+        height: 100%;
+        left: 0;
+        top: 0;
+        overflow-y: scroll;
+        padding-left: 1em;
+        padding-right: 1em;
+        text-align: left;
+        a {
+            font-size: 100%;
+        }
+    }
+    body {
+        padding-left: min(26%, 32em);
+    }
+}
+</style>
+<h1 class="unnumbered unlisted" id="abstract">Abstract<a href="#abstract" class="self-link"></a></h1>
+<p>We have decades of experience showing that programming with locks is
+hard, error-prone, and often inefficient. Senders/receivers provide an
+asynchronous alternative for expressing concurrent abstractions.
+Unfortunately, C++26 does not provide primitives for dealing with
+non-local concurrency, nor does it provide a transition path for
+applications that currently use locks to move to asynchronous
+applications relying on senders/receivers.</p>
+<p>This paper is the first in a series that aims to bridge that gap. It
+proposes
+<code class="sourceCode cpp">serial_gate</code>
+, an asynchronous alternative to a mutex. Because mutexes are the most
+widely used legacy synchronization primitive, adding such a primitive
+provides an important first step.</p>
+<h1 data-number="1" id="changes"><span class="header-section-number">1</span> Changes<a href="#changes" class="self-link"></a></h1>
+<h2 data-number="1.1" id="r0"><span class="header-section-number">1.1</span> R0<a href="#r0" class="self-link"></a></h2>
+<ul>
+<li>Initial revision of the paper.</li>
+<li>Incorporated feedback from SG1 following <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span>, primarily by splitting
+<code class="sourceCode cpp">serial_gate</code>
+into a separate paper and incorporating several minor suggestions.</li>
+</ul>
+<h1 data-number="2" id="introduction"><span class="header-section-number">2</span> Introduction<a href="#introduction" class="self-link"></a></h1>
+<p><span class="citation" data-cites="P2300R10"><a href="https://wg21.link/p2300r10" role="doc-biblioref">[P2300R10]</a></span> describes the framework for
+senders/receivers and introduces primitives for handling concurrency.
+These primitives operate locally: they connect senders that appear in
+the same scope. However, concurrent behavior may require different parts
+of an application to interact. This is <em>non-local concurrency</em>,
+for which C++26 currently lacks good solutions. The closest facility is
+<code class="sourceCode cpp">counting_scope</code>
+, which does not require the senders spawned within it to be local;
+however, it does not allow us to impose constraints between different
+work items.</p>
+<p><span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span> proposed a vision for
+primitives that solve non-local concurrency and described a principled
+approach to solving it.</p>
+<p>That approach is based on three pillars:</p>
+<ul>
+<li>The <em>essence of concurrency</em>: concurrency can be seen as a
+strict partial ordering over the execution of work items. If we focus on
+the required <em>happens-before</em> relations, and on the absence of
+such relations, we can model any concurrent problem.</li>
+<li>Safety and progress: taking ideas from <span class="citation" data-cites="P4214R0"><a href="https://wg21.link/p4214r0" role="doc-biblioref">[P4214R0]</a></span>, a good solution would
+guarantee safety and progress for the program (under certain
+assumptions) and make it hard for users to misuse the features.</li>
+<li>Classical synchronization primitives: taking inspiration from them
+would provide asynchronous primitives that let us build all types of
+concurrent programs and make the transition from old-style concurrency
+easier.</li>
+</ul>
+<p>Following these principles, <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span> proposes a first set of
+non-local concurrency primitives to be added to C++:</p>
+<table>
+<thead>
+<tr class="header">
+<th><div style="text-align:center">
+<strong>Proposed primitive</strong>
+</div></th>
+<th><div style="text-align:center">
+<strong>Corresponding legacy primitive</strong>
+</div></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>
+<code class="sourceCode cpp">serial_gate</code>
+</td>
+<td>
+<code class="sourceCode cpp">mutex</code>
+</td>
+</tr>
+<tr class="even">
+<td>
+<code class="sourceCode cpp">read_write_gate</code>
+</td>
+<td>
+<code class="sourceCode cpp">shared_mutex</code>
+</td>
+</tr>
+<tr class="odd">
+<td>
+<code class="sourceCode cpp">capacity_gate</code>
+</td>
+<td>
+<code class="sourceCode cpp">counting_semaphore</code>
+</td>
+</tr>
+<tr class="even">
+<td>
+<code class="sourceCode cpp">readiness_gate</code>
+</td>
+<td>
+<code class="sourceCode cpp">condition_variable</code>
+</td>
+</tr>
+<tr class="odd">
+<td>
+<code class="sourceCode cpp">completion_gate</code>
+</td>
+<td>
+<code class="sourceCode cpp">latch</code>
+</td>
+</tr>
+<tr class="even">
+<td>
+<code class="sourceCode cpp">phase_gate</code>
+</td>
+<td>
+<code class="sourceCode cpp">barrier</code>
+</td>
+</tr>
+</tbody>
+</table>
+<p>The same ideas also suggest how we can go beyond these primitives to
+provide more advanced facilities for dealing with non-local
+concurrency:</p>
+<ul>
+<li>A
+<code class="sourceCode cpp">keyed_serial_gate</code>
+serializes operations that have the same key, while allowing operations
+with different keys to proceed concurrently.</li>
+<li>A
+<code class="sourceCode cpp">budget_gate</code>
+admits operations while a resource budget is available; unlike
+<code class="sourceCode cpp">capacity_gate</code>
+, different operations may consume different amounts.</li>
+<li>A
+<code class="sourceCode cpp">priority_gate</code>
+admits pending operations according to priority.</li>
+<li>A
+<code class="sourceCode cpp">deadline_gate</code>
+admits, orders, or stops pending operations according to deadlines.</li>
+<li>A
+<code class="sourceCode cpp">rate_gate</code>
+admits operations according to a time-based rate rather than a
+concurrency bound.</li>
+<li>A
+<code class="sourceCode cpp">throttle_gate</code>
+spaces out admitted operations, for example by ensuring a minimum
+interval between starts.</li>
+<li>A
+<code class="sourceCode cpp">backpressure_gate</code>
+admits upstream work only when downstream capacity is available.</li>
+<li>A
+<code class="sourceCode cpp">coalescing_gate</code>
+combines compatible pending operations before admission.</li>
+<li>A
+<code class="sourceCode cpp">latest_only_gate</code>
+retains only the most recent pending operation and stops or discards
+older pending operations that have been superseded.</li>
+</ul>
+<p>We prefer using the word <em>gate</em> in these names because it
+suggests admission into a region of work and avoids implying blocking
+threads or legacy synchronization mechanics. It also resonates with the
+idea of adding concurrency constraints. <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span> contains a brief exploration
+of different possible names.</p>
+<p>This paper focuses on the first step in this journey:
+<code class="sourceCode cpp">serial_gate</code>
+.</p>
+<p>A serial gate is a primitive that allows work items to execute
+asynchronously while maintaining mutual exclusion. It is essentially a
+task queue from which at most one item can execute at a time.</p>
+<h1 data-number="3" id="examples"><span class="header-section-number">3</span> Examples<a href="#examples" class="self-link"></a></h1>
+<p>Below, we show several examples of using a
+<code class="sourceCode cpp">serial_gate</code>
+. For brevity, we assume that spawned senders either complete without
+<code class="sourceCode cpp">set_error</code>
+or handle errors before being passed to
+<code class="sourceCode cpp">spawn</code>
+, and that the enclosing program eventually joins the
+<code class="sourceCode cpp">counting_scope</code>
+.</p>
+<h2 data-number="3.1" id="protecting-non-thread-safe-state"><span class="header-section-number">3.1</span> Protecting non-thread-safe
+state<a href="#protecting-non-thread-safe-state" class="self-link"></a></h2>
+<p>A
+<code class="sourceCode cpp">serial_gate</code>
+can protect state accessed by asynchronous operations. Unlike a
+<code class="sourceCode cpp">mutex</code>
+, entering the protected region does not block the current thread of
+execution; it suspends the operation until it can make progress.</p>
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> cache <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> insert<span class="op">(</span>record<span class="op">)</span>;</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>;</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>serial_gate cache_gate;</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>cache c;</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>std<span class="op">::</span>execution<span class="op">::</span>counting_scope scope;</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> on_record<span class="op">(</span>record r<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> update</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">=</span> std<span class="op">::</span>execution<span class="op">::</span>just<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>r<span class="op">))</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> std<span class="op">::</span>execution<span class="op">::</span>then<span class="op">([&amp;](</span>record r<span class="op">)</span> <span class="kw">noexcept</span> <span class="op">{</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>      c<span class="op">.</span>insert<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>r<span class="op">))</span>;</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">})</span>;</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> protected_update <span class="op">=</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    std<span class="op">::</span>execution<span class="op">::</span>within<span class="op">(</span>cache_gate<span class="op">.</span>acquire<span class="op">()</span>, std<span class="op">::</span>move<span class="op">(</span>update<span class="op">))</span>;</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>spawn<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>protected_update<span class="op">)</span>, scope<span class="op">.</span>get_token<span class="op">())</span>;</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+<p>In this example,
+<code class="sourceCode cpp">cache_gate</code>
+serializes all calls to
+<code class="sourceCode cpp">cache<span class="op">::</span>insert</code>
+, even when multiple records are received concurrently.</p>
+<p>We envision another abstraction,
+<code class="sourceCode cpp">serialized_access<span class="op">&lt;</span>T<span class="op">&gt;</span></code>
+, that couples a value with the
+<code class="sourceCode cpp">serial_gate</code>
+used to access it. This abstraction would simplify the example. We will
+propose it in a dedicated paper.</p>
+<h2 data-number="3.2" id="executing-work-after-protected-work-completes"><span class="header-section-number">3.2</span> Executing work after protected
+work completes<a href="#executing-work-after-protected-work-completes" class="self-link"></a></h2>
+<p>Sometimes, we need to perform additional work after the protected
+operation completes. We might not want to put that additional work in
+the protected region, because it could delay other work that needs
+protection.</p>
+<p>For example, suppose that we want to perform some logging after
+updating the cache. We can express this as follows:</p>
+
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> on_record<span class="op">(</span>record r<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> update</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">=</span> std<span class="op">::</span>execution<span class="op">::</span>just<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>r<span class="op">))</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> std<span class="op">::</span>execution<span class="op">::</span>then<span class="op">([&amp;](</span>record r<span class="op">)</span> <span class="kw">noexcept</span> <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      c<span class="op">.</span>insert<span class="op">(</span>r<span class="op">)</span>;</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> r;</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">})</span>;</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> protected_update <span class="op">=</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    std<span class="op">::</span>execution<span class="op">::</span>within<span class="op">(</span>cache_gate<span class="op">.</span>acquire<span class="op">()</span>, std<span class="op">::</span>move<span class="op">(</span>update<span class="op">))</span>;</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">// NEW</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> with_logging</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">=</span> std<span class="op">::</span>move<span class="op">(</span>protected_update<span class="op">)</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> std<span class="op">::</span>execution<span class="op">::</span>then<span class="op">(</span>perform_logging_after_update<span class="op">)</span>;</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>spawn<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>with_logging<span class="op">)</span>, scope<span class="op">.</span>get_token<span class="op">())</span>;</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+<h2 data-number="3.3" id="serializing-protocol-operations"><span class="header-section-number">3.3</span> Serializing protocol
+operations<a href="#serializing-protocol-operations" class="self-link"></a></h2>
+<p>Some asynchronous resources support many callers but require only one
+operation to be active at a time. For example, a connection might
+require requests to be sent and responses to be consumed serially, even
+when callers enqueue work concurrently.</p>
+
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>serial_gate connection_gate;</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>connection conn;</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>std<span class="op">::</span>execution<span class="op">::</span>counting_scope scope;</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> submit_request<span class="op">(</span>request req<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  prepare<span class="op">(</span>req<span class="op">)</span>; <span class="co">// does not need exclusive access to conn</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> transaction</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">=</span> send_request<span class="op">(</span>conn, std<span class="op">::</span>move<span class="op">(</span>req<span class="op">))</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> std<span class="op">::</span>execution<span class="op">::</span>let_value<span class="op">([&amp;]</span> <span class="op">(</span>request req<span class="op">)</span> <span class="kw">noexcept</span>  <span class="op">{</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> read_response<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>req<span class="op">)</span>, conn<span class="op">)</span>;</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">})</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> std<span class="op">::</span>execution<span class="op">::</span>then<span class="op">(</span>process_response<span class="op">)</span>;</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> protected_transaction <span class="op">=</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    std<span class="op">::</span>execution<span class="op">::</span>within<span class="op">(</span>connection_gate<span class="op">.</span>acquire<span class="op">()</span>, std<span class="op">::</span>move<span class="op">(</span>transaction<span class="op">))</span>;</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>spawn<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>protected_transaction<span class="op">)</span>, scope<span class="op">.</span>get_token<span class="op">())</span>;</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  continue_after_submit<span class="op">()</span>; <span class="co">// does not wait for the transaction to finish</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+<p>The
+<code class="sourceCode cpp">serial_gate</code>
+constrains only the transaction that uses
+<code class="sourceCode cpp">conn</code>
+. Work performed before submitting the transaction and work performed
+after submission are not forced to wait for the protected operation to
+complete.</p>
+<h2 data-number="3.4" id="saving-documents"><span class="header-section-number">3.4</span> Saving documents<a href="#saving-documents" class="self-link"></a></h2>
+<p>Suppose that an application saves <em>documents</em> asynchronously,
+either to disk or to the cloud. In a text editor, saving might be
+triggered by events such as keystrokes or at regular intervals. We might
+not want multiple document-save operations to run concurrently, so we
+can route each save through a
+<code class="sourceCode cpp">serial_gate</code>
+:</p>
+
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>serial_gate gate;</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>std<span class="op">::</span>execution<span class="op">::</span>counting_scope scope;</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> trigger_save<span class="op">(</span>document d<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> work</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">=</span> std<span class="op">::</span>execution<span class="op">::</span>just<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>d<span class="op">))</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> std<span class="op">::</span>execution<span class="op">::</span>let_value<span class="op">(</span>save_async<span class="op">)</span>;</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> protected_work <span class="op">=</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    std<span class="op">::</span>execution<span class="op">::</span>within<span class="op">(</span>gate<span class="op">.</span>acquire<span class="op">()</span>, std<span class="op">::</span>move<span class="op">(</span>work<span class="op">))</span>;</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>spawn<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>protected_work<span class="op">)</span>, scope<span class="op">.</span>get_token<span class="op">())</span>;</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+<p>This guarantees that two
+<code class="sourceCode cpp">save_async</code>
+operations will not run concurrently.</p>
+<h2 data-number="3.5" id="saving-documents-if-not-already-in-progress"><span class="header-section-number">3.5</span> Saving documents if not already
+in progress<a href="#saving-documents-if-not-already-in-progress" class="self-link"></a></h2>
+<p>In the preceding example, a save might be triggered while another
+save operation is in progress. We might want to skip the new save rather
+than queue it. We can use the gate’s speculative-execution
+capability:</p>
+
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>serial_gate gate;</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>std<span class="op">::</span>execution<span class="op">::</span>counting_scope scope;</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> trigger_save<span class="op">(</span>document d<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> work</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">=</span> std<span class="op">::</span>execution<span class="op">::</span>just<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>d<span class="op">))</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> std<span class="op">::</span>execution<span class="op">::</span>let_value<span class="op">(</span>save_async<span class="op">)</span>;</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> protected_work <span class="op">=</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    std<span class="op">::</span>execution<span class="op">::</span>within<span class="op">(</span>gate<span class="op">.</span>try_acquire<span class="op">()</span>, std<span class="op">::</span>move<span class="op">(</span>work<span class="op">))</span>; <span class="co">// UPDATE: speculative execution</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">// NEW: ignore the error</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> handle_error</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">=</span> std<span class="op">::</span>move<span class="op">(</span>protected_work<span class="op">)</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> std<span class="op">::</span>execution<span class="op">::</span>upon_error<span class="op">([](</span>busy_error<span class="op">)</span> <span class="kw">noexcept</span> <span class="op">{})</span>;</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>spawn<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>handle_error<span class="op">)</span>, scope<span class="op">.</span>get_token<span class="op">())</span>;</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+<p>If work is already admitted to the gate,
+<code class="sourceCode cpp">gate<span class="op">.</span>try_acquire<span class="op">()</span></code>
+completes with
+<code class="sourceCode cpp">busy_error</code>
+, and the protected work is not executed.</p>
+<h1 data-number="4" id="api"><span class="header-section-number">4</span> API<a href="#api" class="self-link"></a></h1>
+<p>We propose adding the following API to
+<code class="sourceCode cpp">std<span class="op">::</span>execution</code>
+:</p>
+
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/// Indicates that the gate is busy, i.e., the `try_` operation failed.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> busy_error <span class="op">:</span> std<span class="op">::</span>exception <span class="op">{}</span>;</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">/// A gate that allows maximum one work item to be executed at a time.</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> serial_gate <span class="op">{</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  serial_gate<span class="op">()</span>;</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">~</span>serial_gate<span class="op">()</span>;</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  serial_gate<span class="op">(</span><span class="kw">const</span> serial_gate<span class="op">&amp;)</span> <span class="op">=</span> <span class="kw">delete</span>;</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  serial_gate<span class="op">(</span>serial_gate<span class="op">&amp;&amp;)</span>      <span class="op">=</span> <span class="kw">delete</span>;</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">/// Returns an enter-scope sender that serializes protected work through `*this`.</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>enter_scope_sender <span class="kw">auto</span> acquire<span class="op">()</span> <span class="kw">noexcept</span>;</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">/// Returns an enter-scope sender that tries to execute protected work through `*this`.</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">///</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">/// If the gate cannot be reserved immediately, the enter scope completes with</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="co">/// `set_error(busy_error{})`; otherwise it behaves like acquire().</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>enter_scope_sender <span class="kw">auto</span> try_acquire<span class="op">()</span> <span class="kw">noexcept</span>;</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>;</span></code></pre></div>
+
+<p>A
+<code class="sourceCode cpp">serial_gate</code>
+provides these synchronization guarantees:</p>
+<ul>
+<li>completion/release of one admitted work item synchronizes with
+admission/start of the next;</li>
+<li>a successful
+<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
+has the same synchronization guarantee;</li>
+<li>a failed
+<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
+establishes no synchronization.</li>
+</ul>
+<h1 data-number="5" id="design-space-discussions"><span class="header-section-number">5</span> Design-space discussions<a href="#design-space-discussions" class="self-link"></a></h1>
+<h2 data-number="5.1" id="using-asynchronous-scopes"><span class="header-section-number">5.1</span> Using asynchronous scopes<a href="#using-asynchronous-scopes" class="self-link"></a></h2>
+<p>This paper is based on <span class="citation" data-cites="P3955R1"><a href="https://wg21.link/p3955r1" role="doc-biblioref">[P3955R1]</a></span>, which introduces the idea of
+asynchronous scopes. Executing <em>protected work</em> for a
+<code class="sourceCode cpp">serial_gate</code>
+maps directly to this idea: the protected work runs within an
+asynchronous scope obtained from the gate.</p>
+<p>Implementing the <em>enter the gate</em> and <em>leave the gate</em>
+operations manually seems inferior to this solution.</p>
+<p>There is, however, another alternative, inspired by the API of
+<code class="sourceCode cpp">counting_scope</code>
+:</p>
+
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> serial_gate <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> token; <span class="co">// models std::execution::scope_token</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  token get_token<span class="op">()</span> <span class="kw">noexcept</span>;</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>;</span></code></pre></div>
+
+<p>At the usage site, instead of using
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>within<span class="op">(</span>gate<span class="op">.</span>acquire<span class="op">()</span>, work<span class="op">)</span></code>
+, we could use
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>associate<span class="op">(</span>work, gate<span class="op">.</span>get_token<span class="op">())</span></code>
+.</p>
+<p>Syntactically, the difference would be small. Semantically, however,
+gates do not fully match the scopes required by
+<code class="sourceCode cpp">scope_token</code>
+. The current C++26 standard says:</p>
+<blockquote>
+<p>The
+<code class="sourceCode cpp">scope_token</code>
+concept defines the requirements on a type
+<code class="sourceCode cpp">Token</code>
+that can be used to create associations between senders and an async
+scope. Every object of type
+<code class="sourceCode cpp">Token</code>
+is associated with an async scope that is referred to as its
+<em>associated scope</em>.</p>
+</blockquote>
+<p>Gates are not async scopes, so they do not properly fit the
+<code class="sourceCode cpp">scope_token</code>
+schema.</p>
+<p>Moreover, pursuing this design might tempt users to write
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>spawn<span class="op">(</span>work, gate<span class="op">.</span>get_token<span class="op">())</span></code>
+. That would be problematic: it would add a work item to the scope
+without anyone tracking its lifetime, introducing safety issues.</p>
+<h2 data-number="5.2" id="admission-and-cancellation"><span class="header-section-number">5.2</span> Admission and cancellation<a href="#admission-and-cancellation" class="self-link"></a></h2>
+<p>When an acquire operation is started, the gate either admits it
+immediately or registers it as a waiting operation. A waiting operation
+does not occupy the gate until it is admitted. From the perspective of
+work executed in a serial gate, we say that the gate is acquired while
+the work is running and released immediately after the work
+completes.</p>
+<p>Once an operation has been admitted, the gate remains occupied until
+the exit sender produced by the admission operation completes. This
+remains true if the protected work completes with
+<code class="sourceCode cpp">set_value</code>
+,
+<code class="sourceCode cpp">set_error</code>
+, or
+<code class="sourceCode cpp">set_stopped</code>
+.</p>
+<p>If an admitted operation completes with
+<code class="sourceCode cpp">set_stopped</code>
+, it has no effect on follow-up admitted items.</p>
+<p>A waiting operation will eventually be admitted to the gate; there is
+no way to cancel the admission. Once the operation runs, it can detect
+cancellation and complete immediately, but this still requires the
+operation to be admitted to the gate.</p>
+<p>This design intentionally does not cancel waiting acquisitions.
+Consequently, canceling an operation does not remove it from the gate’s
+waiting set, and shutdown may have to admit canceled operations before
+the gate can be destroyed.</p>
+<h2 data-number="5.3" id="speculative-execution"><span class="header-section-number">5.3</span> Speculative execution<a href="#speculative-execution" class="self-link"></a></h2>
+<p>As with the classic
+<code class="sourceCode cpp">try_lock</code>
+facility, gates can support speculative execution. Sometimes an
+operation is useful only if it can start immediately. If the non-local
+constraint would force the operation to wait, the program may prefer to
+skip that operation and continue with other work.</p>
+<p>To handle this case, we envision
+<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
+. When started,
+<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
+attempts to reserve the gate without registering the operation as a
+waiter. If the reservation cannot be made immediately, it completes with
+<code class="sourceCode cpp">set_error<span class="op">(</span>busy_error<span class="op">{})</span></code>
+. On success, it has the same semantics as
+<code class="sourceCode cpp">acquire<span class="op">()</span></code>
+.
+<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
+either admits the work immediately or fails.</p>
+<p>An alternative considered here was to send a
+<code class="sourceCode cpp">set_stopped<span class="op">()</span></code>
+signal instead of
+<code class="sourceCode cpp">set_error<span class="op">(</span>busy_error<span class="op">)</span></code>
+; in fact, <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span> proposed this. During the SG1
+discussions in Brno, it was argued that sending a dedicated error type
+would be better because the protected work might want to distinguish
+this <em>busy</em> condition from the entire work being canceled. In
+response, we changed the design to incorporate this feedback.</p>
+<h2 data-number="5.4" id="fairness"><span class="header-section-number">5.4</span> Fairness<a href="#fairness" class="self-link"></a></h2>
+<p>Work items executed within the serial gate will be backed by a task
+queue, but we do not specify their execution order. This is
+intentional.</p>
+<p>We recognize that some users might want fairness guarantees from a
+serial gate, meaning that work items are executed in the order they are
+submitted. However, we cannot confidently say that this represents the
+vast majority of our users. Guaranteeing fairness typically introduces
+performance penalties, and we do not want to commit to this path.</p>
+<p>If we later find that a fair serial gate is needed, we can add a new
+<code class="sourceCode cpp">fair_serial_queue</code>
+or retrofit fairness into the current API. We defer this addition until
+we know that it is required.</p>
+<p>Until then, we allow implementers to provide the best strategy that
+fits their customer base.</p>
+<h2 data-number="5.5" id="no-implicit-scheduler-transition"><span class="header-section-number">5.5</span> No implicit scheduler
+transition<a href="#no-implicit-scheduler-transition" class="self-link"></a></h2>
+<p>One question that arises is where an admitted operation is started. A
+<code class="sourceCode cpp">serial_gate</code>
+intentionally does not combine admission policy with execution-resource
+selection and therefore introduces no implicit scheduler transition.</p>
+<p>The sender returned by
+<code class="sourceCode cpp">acquire<span class="op">()</span></code>
+does not guarantee a completion scheduler. An immediately admitted
+acquisition may complete inline during start. A queued acquisition may
+complete on the execution agent that makes the gate available.
+Consequently, unless the protected sender performs an explicit
+transition, it may be started on that execution agent.</p>
+<p>Adding a scheduler to
+<code class="sourceCode cpp">serial_gate</code>
+would introduce several independent policy choices. The scheduler could
+belong to the gate or to each acquisition. Scheduling could happen
+before reserving the gate, in which case another operation may be
+admitted first, or after reserving it, in which case the gate remains
+unavailable while the scheduler is reached. The latter choice also
+requires scheduler failure and cancellation to relinquish the
+reservation correctly. A scheduler could control where the protected
+sender is started, but this would not determine where that sender
+subsequently executes or completes. These choices are execution policies
+rather than properties of mutual exclusion.</p>
+<p>
+<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
+makes the ordering of admission and scheduling particularly significant.
+If the scheduler transition happens first, availability is tested only
+after that transition, rather than when the acquire operation is
+started. If the gate is reserved first, a successful acquisition may not
+complete until later, the gate remains unavailable during the
+transition, and scheduling failure or cancellation must relinquish the
+reservation correctly.</p>
+<p>Keeping the gate scheduler-neutral is consistent with the <span class="citation" data-cites="P2300R10"><a href="https://wg21.link/p2300r10" role="doc-biblioref">[P2300R10]</a></span> principle that
+execution-resource transitions are explicit. When a protected sender
+must be started on a particular scheduler, this can be expressed
+directly:</p>
+
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> w <span class="op">=</span> within<span class="op">(</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    gate<span class="op">.</span>acquire<span class="op">()</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    starts_on<span class="op">(</span>my_scheduler, work<span class="op">))</span>;</span></code></pre></div>
+
+<p>Here the gate is acquired before the transition to
+<code class="sourceCode cpp">my_scheduler</code>
+; the scheduling delay is therefore part of the protected region. If the
+continuation following the protected region must execute on a particular
+scheduler, that is a separate transition:</p>
+
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> w <span class="op">=</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    within<span class="op">(</span>gate<span class="op">.</span>acquire<span class="op">()</span>, starts_on<span class="op">(</span>inside_scheduler, work<span class="op">))</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> continues_on<span class="op">(</span>outside_scheduler<span class="op">)</span>;</span></code></pre></div>
+
+<p>When one protected operation completes, releasing the gate may
+immediately admit another queued operation. Consequently, if
+<code class="sourceCode cpp">work1</code>
+completes on a particular execution resource, the gate may start a
+queued
+<code class="sourceCode cpp">work2</code>
+on that same execution resource. This cross-operation propagation of
+execution context is an intentional consequence of scheduler neutrality.
+A caller that does not want its protected operation to be started by the
+preceding operation should introduce an explicit transition inside the
+protected region, as in the first example above.</p>
+<h2 data-number="5.6" id="protected-data"><span class="header-section-number">5.6</span> Protected data<a href="#protected-data" class="self-link"></a></h2>
+<p>Like the proposed
+<code class="sourceCode cpp">synchronized_value</code>
+<span class="citation" data-cites="P0290R4"><a href="https://wg21.link/p0290r4" role="doc-biblioref">[P0290R4]</a></span> or Rust’s
+<code class="sourceCode cpp">Mutex</code>
+, we might want to protect data used in an asynchronous world. We
+designed
+<code class="sourceCode cpp">serial_gate</code>
+to support this use case. A facility for this use case is proposed in
+<span class="citation" data-cites="P4368R0"><a href="#ref-P4368R0" role="doc-biblioref"><strong>P4368R0?</strong></a></span>.</p>
+<h2 data-number="5.7" id="do-we-need-concepts"><span class="header-section-number">5.7</span> Do we need concepts?<a href="#do-we-need-concepts" class="self-link"></a></h2>
+<p>Because we envision adding other types of gates to the standard, we
+have considered whether the gates need a concept.</p>
+<p>Although some gates have similar interfaces, we found no good reason
+to introduce a concept. As with containers and algorithms, which
+interact through iterators, algorithms built on gates can interact
+through the exposed
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>enter_scope_sender</code>
+(see <span class="citation" data-cites="P3955R0"><a href="https://wg21.link/p3955r0" role="doc-biblioref">[P3955R0]</a></span>).</p>
+<h2 data-number="5.8" id="more-scope-algorithms"><span class="header-section-number">5.8</span> More scope algorithms<a href="#more-scope-algorithms" class="self-link"></a></h2>
+<p>Following <span class="citation" data-cites="P3955R0"><a href="https://wg21.link/p3955r0" role="doc-biblioref">[P3955R0]</a></span>, we might want to use more
+than just the
+<code class="sourceCode cpp">within</code>
+algorithm. We might use
+<code class="sourceCode cpp">enter_scopes</code>
+or
+<code class="sourceCode cpp">nest_scopes</code>
+when a particular work item needs to enter multiple scopes.</p>
+<p>This might be useful when a work item needs to execute as part of
+multiple gates, similar to taking multiple locks for an operation.
+Although this is possible, the scheme would have problems similar to
+those of multiple locks in synchronous code. Instead of a deadlock,
+however, we would have a livelock.</p>
+<p>This illustrates that the design of the serial gate is flexible
+enough to work with other scope algorithms.</p>
+<h2 data-number="5.9" id="making-it-synchronous"><span class="header-section-number">5.9</span> Making it synchronous<a href="#making-it-synchronous" class="self-link"></a></h2>
+<p>Although senders/receivers aim to limit the number of required
+synchronous calls, synchronous calls are sometimes useful. This raises
+the question of whether a serial gate can be used in a synchronous
+context. For example, an application might be moving from legacy
+primitives to senders/receivers and use a serial gate instead of a mutex
+while still having one context that cannot yet be made asynchronous.</p>
+<p>We can use a serial gate in a synchronous context by applying
+<code class="sourceCode cpp">sync_wait</code>
+to the resulting work:</p>
+
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>std<span class="op">::</span>this_thread<span class="op">::</span>sync_wait<span class="op">(</span>std<span class="op">::</span>execution<span class="op">::</span>within<span class="op">(</span>gate<span class="op">.</span>acquire<span class="op">()</span>, work<span class="op">))</span>;</span></code></pre></div>
+
+<h2 data-number="5.10" id="why-not-use-a-single-threaded-scheduler"><span class="header-section-number">5.10</span> Why not use a single-threaded
+scheduler?<a href="#why-not-use-a-single-threaded-scheduler" class="self-link"></a></h2>
+<p>Using a single-threaded scheduler is an alternative often considered
+for serializing work. However, it does not work in the general case.</p>
+<p>A single-threaded scheduler can serialize callbacks submitted to that
+scheduler, but it does not by itself impose serialization on arbitrary
+sender work that is submitted from other execution agents or whose
+asynchronous operation spans external events and resumes elsewhere. A
+<code class="sourceCode cpp">serial_gate</code>
+imposes the constraint on the sender’s protected operation independently
+of the execution resource used by that operation.</p>
+<h1 data-number="6" id="safety-and-progress"><span class="header-section-number">6</span> Safety and progress<a href="#safety-and-progress" class="self-link"></a></h1>
+<p>Following the ideas from <span class="citation" data-cites="P4214R0"><a href="https://wg21.link/p4214r0" role="doc-biblioref">[P4214R0]</a></span>, we assess the correctness of
+an application that uses
+<code class="sourceCode cpp">serial_gate</code>
+with respect to two aspects: safety (regarding problem-domain
+properties) and progress.</p>
+<h2 data-number="6.1" id="safety"><span class="header-section-number">6.1</span> Safety<a href="#safety" class="self-link"></a></h2>
+<p>Using
+<code class="sourceCode cpp">serial_gate</code>
+has two main preconditions:</p>
+<ul>
+<li>all work that runs through
+<code class="sourceCode cpp">serial_gate</code>
+needs to be safe (with respect to the application’s safety properties),
+regardless of the execution order of that work;</li>
+<li>all work needs to be completed before the
+<code class="sourceCode cpp">serial_gate</code>
+object is destroyed.</li>
+</ul>
+<p>The first precondition concerns external code and must be reasoned
+about outside
+<code class="sourceCode cpp">serial_gate</code>
+;
+<code class="sourceCode cpp">serial_gate</code>
+cannot enforce it.</p>
+<p>The second precondition is enforced by
+<code class="sourceCode cpp">serial_gate</code>
+. On destruction,
+<code class="sourceCode cpp">std<span class="op">::</span>terminate<span class="op">()</span></code>
+is called if any work remains incomplete.</p>
+<p>
+<code class="sourceCode cpp">serial_gate</code>
+is implemented on top of a task queue. An implementation can easily
+guarantee common safety properties for the queue itself, such as memory
+safety, thread safety, and arithmetic safety. Unless the application has
+safety requirements that rule out specific queue implementations (which
+rarely happens in practice), the implementation can ensure that the
+underlying implementation of
+<code class="sourceCode cpp">serial_gate</code>
+is safe with respect to the application’s safety properties.</p>
+<p>Deadlocks are a specific safety concern in concurrent code. Because
+<code class="sourceCode cpp">serial_gate</code>
+is not a blocking primitive, one cannot use it directly to create a
+deadlock.</p>
+<p>We assume that the application has safety requirements that rule out
+specific queue implementations, and that no-halting is not such a safety
+requirement.</p>
+<p>Together, these observations suggest that adding
+<code class="sourceCode cpp">serial_gate</code>
+to an application cannot lead to safety violations. If the application
+code is safe, adding
+<code class="sourceCode cpp">serial_gate</code>
+preserves that safety.</p>
+<h2 data-number="6.2" id="progress"><span class="header-section-number">6.2</span> Progress<a href="#progress" class="self-link"></a></h2>
+<p>To guarantee progress, a serial queue requires certain
+preconditions:</p>
+<ul>
+<li>each work item, when executed, eventually completes;</li>
+<li>there is a finite amount of work that is submitted to the
+queue;</li>
+<li>at least one work item is capable of producing the final observable
+answer;</li>
+<li>at least one such work item is eventually submitted to the
+queue.</li>
+</ul>
+<p>For
+<code class="sourceCode cpp">serial_gate</code>
+, a suitable implementation can prove that all submitted work is
+executed when the amount of work is bounded.</p>
+<p>Thus, if preconditions hold, adding a
+<code class="sourceCode cpp">serial_gate</code>
+to the application preserves progress.</p>
+<p>If both safety and progress hold, then, for sufficiently detailed
+safety properties, we achieve correctness.</p>
+<p>If the preconditions for progress are violated, we might still reach
+live-locks. A serial gate cannot detect or prevent them.</p>
+<h1 data-number="7" id="prior-art-and-implementation-experience"><span class="header-section-number">7</span> Prior art and implementation
+experience<a href="#prior-art-and-implementation-experience" class="self-link"></a></h1>
+<p>Serialized execution through task queues is a common concurrency
+pattern, although such queues do not always serialize entire
+asynchronous operations. Well-known examples include <a href="https://www.boost.org/doc/libs/latest/doc/html/boost_asio/overview/core/strands.html">strands
+in Boost.Asio</a> and <a href="https://developer.apple.com/library/archive/documentation/General/Conceptual/ConcurrencyProgrammingGuide/OperationQueues/OperationQueues.html">serial
+dispatch queues</a> in Grand Central Dispatch.</p>
+<p>Closer to the proposed facility, <a href="https://github.com/facebookexperimental/libunifex/blob/main/doc/api_reference.md#async_mutex">unifex::async_mutex</a>
+is a sender-based asynchronous mutex: acquisition occurs through a
+sender, while release remains manual. <a href="https://github.com/lewissbaker/cppcoro#async_mutex">cppcoro::async_mutex</a>
+supports both manual acquisition and
+<code class="sourceCode cpp">scoped_lock_async<span class="op">()</span></code>
+, whose result is an RAII lock.</p>
+<p>A prototype implementation of the proposed
+<code class="sourceCode cpp">serial_gate</code>
+is available in <a href="https://github.com/bemanproject/gates">beman.gates</a>.</p>
+<h1 data-number="8" id="proposed-wording"><span class="header-section-number">8</span> Proposed wording<a href="#proposed-wording" class="self-link"></a></h1>
+<p>TODO</p>
+<h1 data-number="9" id="polls"><span class="header-section-number">9</span> Polls<a href="#polls" class="self-link"></a></h1>
+<h2 data-number="9.1" id="sg1-brno-2026-for-p4215r0"><span class="header-section-number">9.1</span> SG1, Brno 2026, for <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span><a href="#sg1-brno-2026-for-p4215r0" class="self-link"></a></h2>
+<p>Poll: SG1 likes the design direction of <span class="citation" data-cites="P4215R0"><a href="https://wg21.link/p4215r0" role="doc-biblioref">[P4215R0]</a></span> and considers the gate
+facilities important for C++29.</p>
+
+<div class="sourceCode" id="cb11"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>| SF | F | N | A | SA |</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>| 11 | 0 | 0 | 0 | 0  |</span></code></pre></div>
+<h1 data-number="10" id="acknowledgements"><span class="header-section-number">10</span> Acknowledgements<a href="#acknowledgements" class="self-link"></a></h1>
+<p>The authors would like to thank the SG1 experts, especially Robert
+Leahy and Ian Petersen, for providing valuable feedback on the gates
+proposal.</p>
+<h1 data-number="11" id="bibliography"><span class="header-section-number">11</span> References<a href="#bibliography" class="self-link"></a></h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="1" role="doc-bibliography">
+<div id="ref-P0290R4" class="csl-entry" role="doc-biblioentry">
+[P0290R4] Anthony Williams. 2023-02-16. apply() for synchronized_value.
+<a href="https://wg21.link/p0290r4"><div class="csl-block">https://wg21.link/p0290r4</div></a>
+</div>
+<div id="ref-P2300R10" class="csl-entry" role="doc-biblioentry">
+[P2300R10] Eric Niebler, Michał Dominiak, Georgy Evtushenko, Lewis
+Baker, Lucian Radu Teodorescu, Lee Howes, Kirk Shoop, Michael Garland,
+Bryce Adelstein Lelbach. 2024-06-28. `std::execution`. <a href="https://wg21.link/p2300r10"><div class="csl-block">https://wg21.link/p2300r10</div></a>
+</div>
+<div id="ref-P3955R0" class="csl-entry" role="doc-biblioentry">
+[P3955R0] Robert Leahy. 2026-01-16. It’s Scopes All the Way Down. <a href="https://wg21.link/p3955r0"><div class="csl-block">https://wg21.link/p3955r0</div></a>
+</div>
+<div id="ref-P3955R1" class="csl-entry" role="doc-biblioentry">
+[P3955R1] Robert Leahy. 2026-08-10. It’s Scopes All the Way Down. <a href="https://wg21.link/p3955r1"><div class="csl-block">https://wg21.link/p3955r1</div></a>
+</div>
+<div id="ref-P4214R0" class="csl-entry" role="doc-biblioentry">
+[P4214R0] Lucian Radu Teodorescu. 2026-05-10. Composable Correctness and
+Progress Guarantees. <a href="https://wg21.link/p4214r0"><div class="csl-block">https://wg21.link/p4214r0</div></a>
+</div>
+<div id="ref-P4215R0" class="csl-entry" role="doc-biblioentry">
+[P4215R0] Lucian Radu Teodorescu. 2026-05-11. Primitives for Non-Local
+Concurrency. <a href="https://wg21.link/p4215r0"><div class="csl-block">https://wg21.link/p4215r0</div></a>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
