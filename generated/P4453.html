@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2026-11-03" />
+  <meta name="dcterms.date" content="2026-11-08" />
   <title>Memory allocation with senders/receivers; a response to
 IE-133</title>
   <style>
@@ -437,7 +437,7 @@ senders/receivers; a response to IE-133</h1>
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2026-11-03</td>
+    <td>2026-11-08</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -464,10 +464,24 @@ senders/receivers; a response to IE-133</h1>
 <ul>
 <li><a href="#the-concern" id="toc-the-concern"><span class="toc-section-number">1</span> The concern<span></span></a></li>
 <li><a href="#on-tasks-allocator" id="toc-on-tasks-allocator"><span class="toc-section-number">2</span> On
-<code class="sourceCode cpp">task</code>’s
-allocator<span></span></a></li>
-<li><a href="#on-parallel-schedulers-allocator" id="toc-on-parallel-schedulers-allocator"><span class="toc-section-number">3</span> On parallel scheduler’s
-allocator<span></span></a></li>
+<code class="sourceCode cpp">task</code>
+’s allocator<span></span></a></li>
+<li><a href="#on-the-parallel-schedulers-allocator" id="toc-on-the-parallel-schedulers-allocator"><span class="toc-section-number">3</span> On the parallel scheduler’s
+allocator<span></span></a>
+<ul>
+<li><a href="#conceptual-model" id="toc-conceptual-model"><span class="toc-section-number">3.1</span> Conceptual
+model<span></span></a></li>
+<li><a href="#who-should-control-which-allocations-an-analogy" id="toc-who-should-control-which-allocations-an-analogy"><span class="toc-section-number">3.2</span> Who should control which
+allocations? An analogy<span></span></a></li>
+<li><a href="#storage-space-for-the-internal-operation-state" id="toc-storage-space-for-the-internal-operation-state"><span class="toc-section-number">3.3</span> Storage space for the internal
+operation state<span></span></a></li>
+<li><a href="#embedded-platforms" id="toc-embedded-platforms"><span class="toc-section-number">3.4</span> Embedded
+platforms<span></span></a></li>
+<li><a href="#in-the-future-can-we-add-allocators" id="toc-in-the-future-can-we-add-allocators"><span class="toc-section-number">3.5</span> In the future, can we add
+allocators?<span></span></a></li>
+<li><a href="#bottom-line" id="toc-bottom-line"><span class="toc-section-number">3.6</span> Bottom line<span></span></a></li>
+</ul></li>
+<li><a href="#bibliography" id="toc-bibliography"><span class="toc-section-number">4</span> References<span></span></a></li>
 </ul>
 </div>
 <style>
@@ -492,7 +506,7 @@ allocator<span></span></a></li>
 }
 </style>
 <h1 class="unnumbered unlisted" id="abstract">Abstract<a href="#abstract" class="self-link"></a></h1>
-<p>This paper is a response to the IE-133, Irish NB concerns on memory
+<p>This paper responds to Irish NB comment IE-133 concerning memory
 allocation with senders/receivers.</p>
 <h1 data-number="1" id="the-concern"><span class="header-section-number">1</span> The concern<a href="#the-concern" class="self-link"></a></h1>
 <p>The Irish NB provided the following comment during C++26 ballot
@@ -510,11 +524,145 @@ embedded platforms.</p>
 <p>The earlier version, P2300R10, had none of these issues.</p>
 </blockquote>
 <h1 data-number="2" id="on-tasks-allocator"><span class="header-section-number">2</span> On
-<code class="sourceCode cpp">task</code>’s allocator<a href="#on-tasks-allocator" class="self-link"></a></h1>
+<code class="sourceCode cpp">task</code>
+’s allocator<a href="#on-tasks-allocator" class="self-link"></a></h1>
 <p>TODO (Dietmar)</p>
-<h1 data-number="3" id="on-parallel-schedulers-allocator"><span class="header-section-number">3</span> On parallel scheduler’s
-allocator<a href="#on-parallel-schedulers-allocator" class="self-link"></a></h1>
-<p>TODO (LucTeo)</p>
+<h1 data-number="3" id="on-the-parallel-schedulers-allocator"><span class="header-section-number">3</span> On the parallel scheduler’s
+allocator<a href="#on-the-parallel-schedulers-allocator" class="self-link"></a></h1>
+<h2 data-number="3.1" id="conceptual-model"><span class="header-section-number">3.1</span> Conceptual model<a href="#conceptual-model" class="self-link"></a></h2>
+<p>The main scenario for which the parallel scheduler (formerly the
+system scheduler) <span class="citation" data-cites="P2079R10"><a href="https://wg21.link/p2079r10" role="doc-biblioref">[P2079R10]</a></span> was designed is:</p>
+<ul>
+<li>parallel work uses a shared execution context, which manages
+execution resources to avoid oversubscription;</li>
+<li>multiple applications might use this context at once, allowing
+worker management to account for their combined demand;</li>
+<li>by default, the backend is intended to use OS-provided execution
+facilities, such as Windows Thread Pool or Grand Central Dispatch, where
+available.</li>
+</ul>
+<p>To support custom workflows, we also let applications replace the
+default mechanism and register their own backend.</p>
+<p>The implementation has two parts:</p>
+<ul>
+<li>backend: the implementation of the system execution context;</li>
+<li>frontend: the standard library implementation that calls the
+backend.</li>
+</ul>
+<p>The backend implements the interface described in the
+<code class="sourceCode cpp">parallel_scheduler_replacement</code>
+namespace, and the frontend communicates with it through this interface.
+Because the backend can be replaced, this communication crosses a
+type-erased boundary.</p>
+<h2 data-number="3.2" id="who-should-control-which-allocations-an-analogy"><span class="header-section-number">3.2</span> Who should control which
+allocations? An analogy<a href="#who-should-control-which-allocations-an-analogy" class="self-link"></a></h2>
+<p>Let us consider a similar case: a
+<code class="sourceCode cpp">static_thread_pool</code>
+and its scheduler. NVIDIA’s stdexec library <span class="citation" data-cites="stdexec"><a href="https://github.com/NVIDIA/stdexec/" role="doc-biblioref">[stdexec]</a></span> provides an implementation. Do
+we need an allocator? If so, where?</p>
+<p>If we look at NVIDIA’s
+<code class="sourceCode cpp">static_thread_pool</code>
+implementation, we see that the client cannot provide an allocator for a
+regular scheduling operation:</p>
+<ul>
+<li>obtaining a scheduler from
+<code class="sourceCode cpp">static_thread_pool</code>
+takes no client-provided allocator argument;</li>
+<li>the API of
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>schedule</code>
+does not require an allocator;</li>
+<li>the implementation does not use an allocator obtained from the
+receiver’s environment.</li>
+</ul>
+<p>For bulk scheduling, NVIDIA’s
+<code class="sourceCode cpp">static_thread_pool</code>
+implementation uses an allocator to create storage for the task
+descriptors. This allocator is internal; it is not obtained from the
+receiver’s environment.</p>
+<p>Scheduling individual items still requires storage for their
+operation states. Where does this come from? The scheduling operation
+state is embedded in the parent operation state object. Most of the
+time, this is just stack space. The size of the scheduling operation
+state is statically known, and there is no type-erased boundary between
+frontend and backend. We can therefore let the composition of operation
+states provide the needed storage.</p>
+<p>A parallel scheduler resembles a thread pool, with the main
+difference that the parallel scheduler’s context is intended to be
+shared between applications. We aim for similar allocator behavior. The
+backend knows its internal storage requirements and can manage that
+storage together with its execution resources. For example, it can
+maintain a pool of task descriptors and reuse them across operations.
+This allows the allocation strategy to be chosen for the backend as a
+whole.</p>
+<p>Thus, in the spirit of a regular thread pool, we should not need a
+client-provided allocator for the parallel scheduler.</p>
+<h2 data-number="3.3" id="storage-space-for-the-internal-operation-state"><span class="header-section-number">3.3</span> Storage space for the internal
+operation state<a href="#storage-space-for-the-internal-operation-state" class="self-link"></a></h2>
+<p>If we do not need a client-provided allocator, why do the backend’s
+scheduling methods take a
+<code class="sourceCode cpp">std<span class="op">::</span>span<span class="op">&lt;</span>std<span class="op">::</span>byte<span class="op">&gt;</span></code>
+parameter?</p>
+<p>Unlike a
+<code class="sourceCode cpp">static_thread_pool</code>
+, a parallel scheduler requires type erasure between the frontend and
+the backend. The size of the backend’s operation state is therefore
+unknown to the frontend, preventing direct composition with the parent’s
+operation state.</p>
+<p>To solve this issue, we allow the parent operation state to provide
+storage for the backend to use as it sees fit. If the backend operation
+state fits in that storage, it can be nested in the parent operation
+state, just as with
+<code class="sourceCode cpp">static_thread_pool</code>
+. No extra allocation is needed for that state.</p>
+<p>If the backend operation state cannot be placed in the space provided
+by the frontend, then it must obtain storage elsewhere. This is the
+responsibility of the backend. Different platforms might implement the
+allocation in different ways, optimizing for different things (speed,
+space, etc).</p>
+<h2 data-number="3.4" id="embedded-platforms"><span class="header-section-number">3.4</span> Embedded platforms<a href="#embedded-platforms" class="self-link"></a></h2>
+<p>Embedded platforms typically need a dedicated backend, which is
+likely to be provided by the application itself. Thus, <strong>the
+application has full control over the required memory
+allocation</strong>.</p>
+<h2 data-number="3.5" id="in-the-future-can-we-add-allocators"><span class="header-section-number">3.5</span> In the future, can we add
+allocators?<a href="#in-the-future-can-we-add-allocators" class="self-link"></a></h2>
+<p>Yes. The query mechanism in
+<code class="sourceCode cpp">receiver_proxy</code>
+allows us to add allocator support in future editions of the
+standard.</p>
+<p>We took an incremental approach, specifying a minimal set of
+operations while providing a query mechanism for future extensions. A
+backend can query whether the receiver exposes an allocator, even if
+that query is not specified in the standard. This also allows
+non-standard extensions for particular platforms (e.g., embedded
+platforms).</p>
+<p>However, there are costs to this. First, the query crosses the
+type-erased frontend/backend boundary. When additional storage is
+needed, querying the frontend has a performance cost even if the
+receiver’s environment provides no allocator. Second, the allocator
+itself also needs a type-erased representation, such as
+<code class="sourceCode cpp">std<span class="op">::</span>pmr<span class="op">::</span>polymorphic_allocator<span class="op">&lt;&gt;</span></code>.</p>
+<p>This is why we did not want to mandate these costs for all uses of
+the parallel scheduler without strong signals from the community that
+receiver-provided allocators are needed.</p>
+<h2 data-number="3.6" id="bottom-line"><span class="header-section-number">3.6</span> Bottom line<a href="#bottom-line" class="self-link"></a></h2>
+<p>We think that the current specification of the parallel scheduler is
+a good compromise that meets requirements from different industries. On
+embedded platforms, the backend can be fully customized to use the
+appropriate allocation strategy. In other domains, users do not have to
+pay for custom allocation logic when they do not need it.</p>
+<p>If this approach proves insufficient, we can extend it in C++29 or
+later.</p>
+<h1 data-number="4" id="bibliography"><span class="header-section-number">4</span> References<a href="#bibliography" class="self-link"></a></h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="1" role="doc-bibliography">
+<div id="ref-P2079R10" class="csl-entry" role="doc-biblioentry">
+[P2079R10] Lucian Radu Teodorescu, Ruslan Arutyunyan, Lee Howes, Michael
+Voss. 2025-06-25. Parallel Scheduler. <a href="https://wg21.link/p2079r10"><div class="csl-block">https://wg21.link/p2079r10</div></a>
+</div>
+<div id="ref-stdexec" class="csl-entry" role="doc-biblioentry">
+[stdexec] stdexec — Senders for C++. <a href="https://github.com/NVIDIA/stdexec/"><div class="csl-block">https://github.com/NVIDIA/stdexec/</div></a>
+</div>
+</div>
 </div>
 </div>
 </body>
