@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2026-11-08" />
+  <meta name="dcterms.date" content="2026-11-16" />
   <title>Memory allocation with senders/receivers; a response to
 IE-133</title>
   <style>
@@ -437,7 +437,7 @@ senders/receivers; a response to IE-133</h1>
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2026-11-08</td>
+    <td>2026-11-16</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -479,7 +479,8 @@ operation state<span></span></a></li>
 platforms<span></span></a></li>
 <li><a href="#in-the-future-can-we-add-allocators" id="toc-in-the-future-can-we-add-allocators"><span class="toc-section-number">3.5</span> In the future, can we add
 allocators?<span></span></a></li>
-<li><a href="#bottom-line" id="toc-bottom-line"><span class="toc-section-number">3.6</span> Bottom line<span></span></a></li>
+<li><a href="#bottom-line-for-parallel-scheduler" id="toc-bottom-line-for-parallel-scheduler"><span class="toc-section-number">3.6</span> Bottom line for parallel
+scheduler<span></span></a></li>
 </ul></li>
 <li><a href="#bibliography" id="toc-bibliography"><span class="toc-section-number">4</span> References<span></span></a></li>
 </ul>
@@ -526,7 +527,150 @@ embedded platforms.</p>
 <h1 data-number="2" id="on-tasks-allocator"><span class="header-section-number">2</span> On
 <code class="sourceCode cpp">task</code>
 ’s allocator<a href="#on-tasks-allocator" class="self-link"></a></h1>
-<p>TODO (Dietmar)</p>
+<p>The intention is that
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>task</code>
+can be used without any use of global
+<code class="sourceCode cpp"><span class="kw">operator</span> <span class="kw">new</span></code>
+and global
+<code class="sourceCode cpp"><span class="kw">operator</span> <span class="kw">delete</span></code>
+. For the allocation of the coroutine frame, the
+<code class="sourceCode cpp">promise_type</code>
+specifies corresponding overloads of the two operators. These get the
+arguments passed to the coroutine function and use an allocator if it is
+the second argument after a leading
+<code class="sourceCode cpp">std<span class="op">::</span>allocator_arg</code>
+argument.</p>
+<p>To implement scheduler affinity
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>task</code>
+uses a scheduler. The scheduler type used by a
+<code class="sourceCode cpp">task<span class="op">&lt;</span>R, E<span class="op">&gt;</span></code>
+is
+<code class="sourceCode cpp">E<span class="op">::</span>scheduler_type</code>
+if that type is defined or
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>task_scheduler</code>
+otherwise. The design objective was to allow using an allocator for any
+allocation, including any allocation in a type-erased scheduler. Even
+when using an allocator for a scheduler, a small object optimization
+should be allowed (used by both the <a href="https://github.com/NVIDIA/stdexec">
+<code class="sourceCode cpp">stdexec</code>
+</a> and the <a href="https://github.com/bemanproject/execution">
+<code class="sourceCode cpp">beman</code>
+</a> implementation). The type
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>task_scheduler</code>
+does support the use of an allocator for the purpose of its
+allocations.</p>
+<p>The specification of how the scheduler is obtained in <a href="https://wg21.link/task.state#4.3">[task.state] paragraph 4.3</a>
+uses neither the allocator from the
+<code class="sourceCode cpp">task</code>
+nor the allocator from the receiver’s environment (i.e.,
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>get_allocator<span class="op">(</span>std<span class="op">::</span>execution<span class="op">::</span>get_env<span class="op">(</span>rcvr<span class="op">))</span></code>
+). If the type of the scheduler obtained from the receiver (
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>get_start_scheduler<span class="op">(</span>std<span class="op">::</span>execution<span class="op">::</span>get_env<span class="op">(</span>rcvr<span class="op">))</span></code>
+) matches the
+<code class="sourceCode cpp">task</code>
+’s
+<code class="sourceCode cpp">scheduler_type</code>
+, the receiver’s scheduler can propagate its allocator. That is what
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>task_scheduler</code>
+would do as that object holds a
+<code class="sourceCode cpp">shared_ptr<span class="op">&lt;</span>parallel_scheduler_replacement<span class="op">::</span>parallel_scheduler_backend<span class="op">&gt;</span></code>
+and a copy of the scheduler would just copy this shared pointer. While
+that works it doesn’t match the design intent, e.g.:</p>
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>ex<span class="op">::</span>sync_wait<span class="op">(</span>ex<span class="op">::</span>starts_on<span class="op">(</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    ex<span class="op">::</span>task_scheduler<span class="op">(</span>big_scheduler<span class="op">()</span>, alloc<span class="op">)</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[](</span>std<span class="op">::</span>allocator_arg_t, <span class="kw">auto</span><span class="op">)</span> <span class="op">-&gt;</span> ex<span class="op">::</span>task<span class="op">&lt;</span><span class="dt">void</span>, allocator_env<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">auto</span> s <span class="op">=</span> <span class="kw">co_await</span> ex<span class="op">::</span>read_env<span class="op">(</span>ex<span class="op">::</span>get_start_scheduler<span class="op">)</span>;</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">co_await</span> ex<span class="op">::</span>starts_on<span class="op">(</span>s, ex<span class="op">::</span>just<span class="op">())</span>;</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}(</span>std<span class="op">::</span>allocator_arg, alloc<span class="op">)))</span>; </span></code></pre></div>
+
+<p>The specification should cater for the need of possibly converting
+the start scheduler into a type-erased scheduler using an allocator.
+That means, there should be two more options of how the scheduler may be
+built: instead of building the object of
+<code class="sourceCode cpp">start_scheduler_type</code>
+either using the start scheduler (i.e., the result of
+<code class="sourceCode cpp">std<span class="op">::</span>execution<span class="op">::</span>get_start_scheduler<span class="op">(</span>std<span class="op">::</span>execution<span class="op">::</span>get_env<span class="op">(</span>rcvr<span class="op">))</span></code>
+) or a default constructor, the construction should prefer to build the
+<code class="sourceCode cpp">start_scheduler_type</code>
+object using an allocator.</p>
+<p>Since there are two allocators available when the scheduler gets
+used, there is some design space. Here are some of the options:</p>
+<ol type="1">
+<li>Use the environment’s
+<code class="sourceCode cpp">get_allocator<span class="op">(</span>env<span class="op">)</span></code>
+. This use seems to be most aligned with the direction that the
+allocator passed to
+<code class="sourceCode cpp">task</code>
+is only used for the
+<code class="sourceCode cpp">promise_type</code>
+(and actually doesn’t get stored).</li>
+<li>Use
+<code class="sourceCode cpp">task</code>
+’s allocator. This seems to be the direction the issues is pointing.
+However, it directly contradicts earlier feedback asking that the
+allocator passed to the
+<code class="sourceCode cpp">task</code>
+is only used for the allocation of the
+<code class="sourceCode cpp">promise_type</code>
+.</li>
+<li>It can be argued that the receiver’s allocator should only be used
+for child sender uses. One way to provide finer control is to use a new
+<code class="sourceCode cpp">get_scheduler_allocator</code>
+query which could default to use
+<code class="sourceCode cpp">get_allocator</code>
+for environment not providing the new query.</li>
+<li>Use the “best” allocator, using the first expression which works
+using a fallback chain
+<code class="sourceCode cpp">get_scheduler_allocator<span class="op">(</span>env<span class="op">)</span></code>
+,
+<code class="sourceCode cpp">get_allocator<span class="op">(</span>env<span class="op">)</span></code>
+,
+<code class="sourceCode cpp">task</code>
+’s allocator.</li>
+</ol>
+<p>Our preferred approach is to use the first option, i.e., use the
+environment’s allocator. The section <a href="https://wg21.link/task.state#4">[task.state] paragraph 4</a> would
+become:</p>
+<p>
+<code class="sourceCode cpp"><span class="dt">void</span> start<span class="op">()</span> <span class="op">&amp;</span> <span class="kw">noexcept</span></code>
+</p>
+<p><span class="marginalizedparent"><a class="marginalized">4</a></span>
+<em>Effects</em>: Let <code><i>prom</i></code> be the object
+<code><i>handle</i>.promise()</code>. Associates
+<code><i>STATE</i>(<i>prom</i>)</code>,
+<code><i>RCVR</i>(<i>prom</i>)</code>, and
+<code><i>SCHED</i>(<i>prom</i>)</code> with
+<code class="sourceCode cpp"><span class="op">*</span><span class="kw">this</span></code>
+as follows:</p>
+<ul>
+<li><span class="marginalizedparent"><a class="marginalized">(4.1)</a></span>
+<code><i>STATE</i>(<i>prom</i>)</code> is
+<code class="sourceCode cpp"><span class="op">*</span><span class="kw">this</span></code>
+.</li>
+<li><span class="marginalizedparent"><a class="marginalized">(4.2)</a></span>
+<code><i>RCVR</i>(<i>prom</i>)</code> is <code><i>rcvr</i></code>.</li>
+<li><span class="marginalizedparent"><a class="marginalized">(4.3)</a></span> Let
+<code><i>ev</i></code> be the object <code>get_env(<i>rcvr</i>)</code>.
+<code><i>SCHED</i>(<i>prom</i>)</code> is an object initialized with
+<ul>
+<li><span class="marginalizedparent"><a class="marginalized">(4.3.1)</a></span>
+<code>start_scheduler_type(get_start_scheduler(<i>ev</i>),
+get_allocator(<i>ev</i>))</code> if this expression is valid;</li>
+<li><span class="marginalizedparent"><a class="marginalized">(4.3.2)</a></span>
+otherwise,
+<code>start_scheduler_type(get_start_scheduler(<i>ev</i>))</code> if
+this expression is valid;</li>
+<li><span class="marginalizedparent"><a class="marginalized">(4.3.3)</a></span>
+otherwise, <code>start_scheduler_type(get_allocator(<i>ev</i>))</code>
+if this expression is valid;</li>
+<li><span class="marginalizedparent"><a class="marginalized">(4.3.4)</a></span>
+otherwise, <code>start_scheduler_type()</code> if this expression is
+valid;</li>
+<li><span class="marginalizedparent"><a class="marginalized">(4.3.5)</a></span>
+otherwise the program is ill-formed.</li>
+</ul></li>
+</ul>
 <h1 data-number="3" id="on-the-parallel-schedulers-allocator"><span class="header-section-number">3</span> On the parallel scheduler’s
 allocator<a href="#on-the-parallel-schedulers-allocator" class="self-link"></a></h1>
 <h2 data-number="3.1" id="conceptual-model"><span class="header-section-number">3.1</span> Conceptual model<a href="#conceptual-model" class="self-link"></a></h2>
@@ -581,11 +725,10 @@ descriptors. This allocator is internal; it is not obtained from the
 receiver’s environment.</p>
 <p>Scheduling individual items still requires storage for their
 operation states. Where does this come from? The scheduling operation
-state is embedded in the parent operation state object. Most of the
-time, this is just stack space. The size of the scheduling operation
-state is statically known, and there is no type-erased boundary between
-frontend and backend. We can therefore let the composition of operation
-states provide the needed storage.</p>
+state is embedded in the parent operation state object. The size of the
+scheduling operation state is statically known, and there is no
+type-erased boundary between frontend and backend. We can therefore let
+the composition of operation states provide the needed storage.</p>
 <p>A parallel scheduler resembles a thread pool, with the main
 difference that the parallel scheduler’s context is intended to be
 shared between applications. We aim for similar allocator behavior. The
@@ -645,14 +788,17 @@ itself also needs a type-erased representation, such as
 <p>This is why we did not want to mandate these costs for all uses of
 the parallel scheduler without strong signals from the community that
 receiver-provided allocators are needed.</p>
-<h2 data-number="3.6" id="bottom-line"><span class="header-section-number">3.6</span> Bottom line<a href="#bottom-line" class="self-link"></a></h2>
+<h2 data-number="3.6" id="bottom-line-for-parallel-scheduler"><span class="header-section-number">3.6</span> Bottom line for parallel
+scheduler<a href="#bottom-line-for-parallel-scheduler" class="self-link"></a></h2>
 <p>We think that the current specification of the parallel scheduler is
-a good compromise that meets requirements from different industries. On
-embedded platforms, the backend can be fully customized to use the
-appropriate allocation strategy. In other domains, users do not have to
-pay for custom allocation logic when they do not need it.</p>
-<p>If this approach proves insufficient, we can extend it in C++29 or
-later.</p>
+a collective solution that meets requirements from different industries.
+We did have multiple iterations over the design to reach the consensus
+on the shape of the API. On embedded platforms, the backend can be fully
+customized to use the appropriate allocation strategy. In other domains,
+users do not have to pay for custom allocation logic when they do not
+need it.</p>
+<p>For more needs coming in the future, the design of parallel can be
+extended in C++29 and beyond.</p>
 <h1 data-number="4" id="bibliography"><span class="header-section-number">4</span> References<a href="#bibliography" class="self-link"></a></h1>
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="1" role="doc-bibliography">
 <div id="ref-P2079R10" class="csl-entry" role="doc-biblioentry">
