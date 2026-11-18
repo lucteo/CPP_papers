@@ -698,26 +698,21 @@ valid;</li>
 <li><span class="marginalizedparent"><a class="marginalized">(4.3.6)</a></span>
 otherwise the program is ill-formed.</li>
 </ul></li>
-<li><span class="marginalizedparent"><a class="marginalized">(4.4)</a></span> Let
-<code class="sourceCode default">sch</code>
-be equal to the result of
-<code>get_start_scheduler(get_env(<i>rcvr</i>))</code> if that
-expression is valid. If
-<code class="sourceCode default">sch</code>
-is defined it shall remain valid until the end of the asynchronous
-operation’s lifetime (<a href="https://wg21.link/exec.async.ops">[exec.async.ops]</a>). Let
-<code class="sourceCode default">alloc</code>
-be equal to the result of
-<code>get_scheduler_allocator(get_env(<i>rcvr</i>))</code> if that
-expression is valid. If
-<code class="sourceCode default">alloc</code>
-is defined it shall remain valid until the end of the asynchronous
-operation’s lifetime (<a href="https://wg21.link/exec.async.ops">[exec.async.ops]</a>).</li>
 </ul>
 
 </div>
 <p><span class="marginalizedparent"><a class="marginalized">5</a></span>
 Finally, invokes <code><i>handle</i>.resume()</code>.</p>
+<div class="add" style="color: #006e28">
+<p><span class="marginalizedparent"><a class="marginalized">6</a></span>
+<em>Remarks</em>: If
+<code>get_start_scheduler(get_env(<i>rcvr</i>))</code> is a valid
+expression, then the result shall remain valid for the duraton of the
+asynchronous operation’s lifetime. If
+<code>get_scheduler_allocator(get_env(<i>rcvr</i>))</code> is a valid
+expression, then the result shall remain valid for the duration of the
+asynchronous operation’s lifetime.</p>
+</div>
 <div class="draftnote" data-audience="the editor" style="color: #0000ff">
 <p>[ Drafting note for the editor: Add
 <code class="sourceCode default">get_scheduler_allocator</code>
@@ -739,8 +734,8 @@ add a new subsection ]</p>
 <p>get_scheduler_allocator [exec.get.scheduler.allocator]</p>
 <p><span class="marginalizedparent"><a class="marginalized">1</a></span>
 <code class="sourceCode default">get_scheduler_allocator</code>
-asks a queryable object for an associated allocator used for allocation
-needs of a scheduler.</p>
+asks a queryable object for an associated allocator to be used by a
+scheduler.</p>
 <p><span class="marginalizedparent"><a class="marginalized">2</a></span>
 The name
 <code class="sourceCode default">get_scheduler_allocator</code>
@@ -752,11 +747,12 @@ is expression equivalent to
 <code><i>MANDATE-NOTHROW</i>(<i>AS-CONST</i>(env).query(get_scheduler_allocator))</code>
 if that expression is well-formed, otherwise it is expression equivalent
 to
-<code><i>MANDATE-NOTHROW</i>(<i>AS-CONST</i>(env).query(get_allocator))</code>
-if that expression is well-formed.</p>
+<code><i>MANDATE-NOTHROW</i>(<i>AS-CONST</i>(env).query(get_allocator))</code>.</p>
 <p><span class="marginalizedparent"><a class="marginalized">3</a></span>
-<i>Mandates</i>: The expression above is well-formed, its type satisfies
-<code><i>simple-allocator</i></code> (<a href="https://wg21.link/allocator.requirements.general">[allocator.requirements.general]</a>).</p>
+<i>Mandates</i>: If the expression
+<code class="sourceCode default">get_scheduler_allocator(env)</code>
+is well-formed, its type satisfies <code><i>simple-allocator</i></code>
+(<a href="https://wg21.link/allocator.requirements.general">[allocator.requirements.general]</a>).</p>
 <p><span class="marginalizedparent"><a class="marginalized">4</a></span>
 <code>forwarding_query(get_scheduler_allocator)</code> is a core
 constant expression and has value <code>true</code></p>
