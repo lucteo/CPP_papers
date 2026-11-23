@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="mpark/wg21" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2026-09-29" />
+  <meta name="dcterms.date" content="2026-11-23" />
   <title>`serial_gate`: a first step towards non-local
 concurrency</title>
   <style>
@@ -430,14 +430,14 @@ code.sourceCode > span { display: inline; }
   <tr>
     <td>Document #:</td>
     <td>
-      P4366R0
+      P4366R1
       [<a href="https://wg21.link/P4366">Latest</a>]
       [<a href="https://wg21.link/P4366/status">Status</a>]
     </td>
   </tr>
   <tr>
     <td>Date:</td>
-    <td>2026-09-29</td>
+    <td>2026-11-23</td>
   </tr>
   <tr>
     <td style="vertical-align:top">Project:</td>
@@ -517,6 +517,8 @@ wording<span></span></a></li>
 <li><a href="#polls" id="toc-polls"><span class="toc-section-number">9</span> Polls<span></span></a>
 <ul>
 <li><a href="#sg1-brno-2026-for-p4215r0" id="toc-sg1-brno-2026-for-p4215r0"><span class="toc-section-number">9.1</span> SG1, Brno 2026, for <span class="citation" data-cites="P4215R0"><span>[P4215R0]</span></span><span></span></a></li>
+<li><a href="#sg1-buzios-2026" id="toc-sg1-buzios-2026"><span class="toc-section-number">9.2</span> SG1, Buzios
+2026<span></span></a></li>
 </ul></li>
 <li><a href="#acknowledgements" id="toc-acknowledgements"><span class="toc-section-number">10</span>
 Acknowledgements<span></span></a></li>
@@ -1257,6 +1259,17 @@ facilities important for C++29.</p>
 
 <div class="sourceCode" id="cb11"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>| SF | F | N | A | SA |</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>| 11 | 0 | 0 | 0 | 0  |</span></code></pre></div>
+
+<h2 data-number="9.2" id="sg1-buzios-2026"><span class="header-section-number">9.2</span> SG1, Buzios 2026<a href="#sg1-buzios-2026" class="self-link"></a></h2>
+<p>Poll: SG1 approves P4366R0 design direction of
+<code class="sourceCode cpp">serial_gate</code>
+as described in the design-space discussions of R0, including the
+non-cancellable acquire semantics. If cancellable acquire semantics are
+explored, that should be via a different type, in a different paper.</p>
+
+<div class="sourceCode" id="cb12"><pre class="sourceCode default"><code class="sourceCode default"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>| SF | F | N | A | SA |</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>| 7  | 1 | 0 | 0 | 0  |</span></code></pre></div>
+<p>Outcome: Unanimous consent.</p>
 <h1 data-number="10" id="acknowledgements"><span class="header-section-number">10</span> Acknowledgements<a href="#acknowledgements" class="self-link"></a></h1>
 <p>The authors would like to thank the SG1 experts, especially Robert
 Leahy and Ian Petersen, for providing valuable feedback on the gates
