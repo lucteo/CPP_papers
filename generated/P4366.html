@@ -876,10 +876,10 @@ capability:</p>
 <span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>spawn<span class="op">(</span>std<span class="op">::</span>move<span class="op">(</span>handle_error<span class="op">)</span>, scope<span class="op">.</span>get_token<span class="op">())</span>;</span>
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 
-<p>If work is already admitted to the gate,
-<code class="sourceCode cpp">gate<span class="op">.</span>try_acquire<span class="op">()</span></code>
-completes with
-<code class="sourceCode cpp">busy_error</code>
+<p>If the gate is occupied when the
+<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
+acquisition attempts admission, the acquisition completes with
+<code class="sourceCode cpp">set_error<span class="op">(</span>busy_error<span class="op">{})</span></code>
 , and the protected work is not executed.</p>
 <h1 data-number="4" id="api"><span class="header-section-number">4</span> API<a href="#api" class="self-link"></a></h1>
 <p>We propose adding the following API to
@@ -901,7 +901,7 @@ completes with
 <span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">/// Returns an enter-scope sender that tries to execute protected work through `*this`.</span></span>
 <span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">///</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">/// If the gate cannot be reserved immediately, the enter scope completes with</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">/// If the acquisition cannot be admitted during `start` without queueing, it completes with</span></span>
 <span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="co">/// `set_error(busy_error{})`; otherwise it behaves like acquire().</span></span>
 <span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  std<span class="op">::</span>execution<span class="op">::</span>enter_scope_sender <span class="kw">auto</span> try_acquire<span class="op">()</span> <span class="kw">noexcept</span>;</span>
 <span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>;</span></code></pre></div>
@@ -910,14 +910,33 @@ completes with
 <code class="sourceCode cpp">serial_gate</code>
 provides these synchronization guarantees:</p>
 <ul>
-<li>completion/release of one admitted work item synchronizes with
-admission/start of the next;</li>
+<li>release of the gate synchronizes with admission of the next
+acquisition;</li>
 <li>a successful
 <code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
 has the same synchronization guarantee;</li>
 <li>a failed
 <code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
 establishes no synchronization.</li>
+</ul>
+<p>Terminology:</p>
+<ul>
+<li><strong>Acquisition</strong> is the operation obtained by connecting
+the sender returned by
+<code class="sourceCode cpp">acquire<span class="op">()</span></code>
+or
+<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
+. When started, it attempts to gain exclusive use of the gate. If it
+succeeds, it completes with an exit scope sender.</li>
+<li><strong>Admission</strong> is the event at which an acquisition
+gains exclusive use of the gate.</li>
+<li><strong>Reserved</strong> means an admitted acquisition holds the
+gate.</li>
+<li>The gate is <strong>occupied</strong> from admission until the exit
+scope operation <em>releases</em> it. This includes any time before the
+protected work starts.</li>
+<li><strong>Immediately</strong>, when describing admission, means
+“during start, without queueing”.</li>
 </ul>
 <h1 data-number="5" id="design-space-discussions"><span class="header-section-number">5</span> Design-space discussions<a href="#design-space-discussions" class="self-link"></a></h1>
 <h2 data-number="5.1" id="using-asynchronous-scopes"><span class="header-section-number">5.1</span> Using asynchronous scopes<a href="#using-asynchronous-scopes" class="self-link"></a></h2>
@@ -966,51 +985,43 @@ schema.</p>
 . That would be problematic: it would add a work item to the scope
 without anyone tracking its lifetime, introducing safety issues.</p>
 <h2 data-number="5.2" id="admission-and-cancellation"><span class="header-section-number">5.2</span> Admission and cancellation<a href="#admission-and-cancellation" class="self-link"></a></h2>
-<p>When an acquire operation is started, the gate either admits it
-immediately or registers it as a waiting operation. A waiting operation
-does not occupy the gate until it is admitted. From the perspective of
-work executed in a serial gate, we say that the gate is acquired while
-the work is running and released immediately after the work
-completes.</p>
-<p>Once an operation has been admitted, the gate remains occupied until
-the exit sender produced by the admission operation completes. This
-remains true if the protected work completes with
+<p>When an
+<code class="sourceCode cpp">acquire<span class="op">()</span></code>
+acquisition is started, the gate either admits it immediately or queues
+it. The gate is occupied from admission until the exit scope operation
+releases it. With
+<code class="sourceCode cpp">within</code>
+, the exit scope operation runs after the protected work completes,
+whether it completes with
 <code class="sourceCode cpp">set_value</code>
 ,
 <code class="sourceCode cpp">set_error</code>
 , or
 <code class="sourceCode cpp">set_stopped</code>
 .</p>
-<p>If an admitted operation completes with
+<p>By design, a stop request leaves a waiting acquisition queued. Once
+the acquisition is admitted, the protected work may observe the stop
+request and complete with
 <code class="sourceCode cpp">set_stopped</code>
-, it has no effect on follow-up admitted items.</p>
-<p>A waiting operation will eventually be admitted to the gate; there is
-no way to cancel the admission. Once the operation runs, it can detect
-cancellation and complete immediately, but this still requires the
-operation to be admitted to the gate.</p>
-<p>This design intentionally does not cancel waiting acquisitions.
-Consequently, canceling an operation does not remove it from the gate’s
-waiting set, and shutdown may have to admit canceled operations before
+. Shutdown may therefore still have to drain waiting acquisitions before
 the gate can be destroyed.</p>
 <h2 data-number="5.3" id="speculative-execution"><span class="header-section-number">5.3</span> Speculative execution<a href="#speculative-execution" class="self-link"></a></h2>
 <p>As with the classic
 <code class="sourceCode cpp">try_lock</code>
 facility, gates can support speculative execution. Sometimes an
-operation is useful only if it can start immediately. If the non-local
-constraint would force the operation to wait, the program may prefer to
-skip that operation and continue with other work.</p>
+operation is useful only if its acquisition can be admitted without
+queueing. If the non-local constraint would force the operation to wait,
+the program may prefer to skip that operation and continue with other
+work.</p>
 <p>To handle this case, we envision
 <code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
-. When started,
-<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
-attempts to reserve the gate without registering the operation as a
-waiter. If the reservation cannot be made immediately, it completes with
+: such an acquisition attempts admission during
+<code class="sourceCode cpp">start</code>
+without joining the queue. On failure, it completes with
 <code class="sourceCode cpp">set_error<span class="op">(</span>busy_error<span class="op">{})</span></code>
-. On success, it has the same semantics as
+. On admission, it behaves like an
 <code class="sourceCode cpp">acquire<span class="op">()</span></code>
-.
-<code class="sourceCode cpp">try_acquire<span class="op">()</span></code>
-either admits the work immediately or fails.</p>
+acquisition.</p>
 <p>An alternative considered here was to send a
 <code class="sourceCode cpp">set_stopped<span class="op">()</span></code>
 signal instead of
@@ -1037,7 +1048,8 @@ we know that it is required.</p>
 fits their customer base.</p>
 <h2 data-number="5.5" id="no-implicit-scheduler-transition"><span class="header-section-number">5.5</span> No implicit scheduler
 transition<a href="#no-implicit-scheduler-transition" class="self-link"></a></h2>
-<p>One question that arises is where an admitted operation is started. A
+<p>One question that arises is where protected work starts after
+admission. A
 <code class="sourceCode cpp">serial_gate</code>
 intentionally does not combine admission policy with execution-resource
 selection and therefore introduces no implicit scheduler transition.</p>
@@ -1088,8 +1100,8 @@ scheduler, that is a separate transition:</p>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    within<span class="op">(</span>gate<span class="op">.</span>acquire<span class="op">()</span>, starts_on<span class="op">(</span>inside_scheduler, work<span class="op">))</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> continues_on<span class="op">(</span>outside_scheduler<span class="op">)</span>;</span></code></pre></div>
 
-<p>When one protected operation completes, releasing the gate may
-immediately admit another queued operation. Consequently, if
+<p>The exit scope operation may admit a waiting acquisition as part of
+releasing the gate. Consequently, if
 <code class="sourceCode cpp">work1</code>
 completes on a particular execution resource, the gate may start a
 queued
