@@ -2,8 +2,10 @@
 Source file for C++ standard papers
 
 ## Papers in this repo
-- D4215. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/4215.html)
-- D4214. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/4214.html)
+- P4366. Rendered [R1 (in progress)](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P4366R1/generated/P4366.html) | Official [isocpp link](https://isocpp.org/files/papers/P4366R0.html)
+- P4453. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/P4453.html) | Official [isocpp link](https://isocpp.org/files/papers/P4453R1.html)
+- P4215. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/P4215.html) | Official [WG21 link](https://wg21.link/P4215)
+- P4214. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/P4214.html) | Official [WG21 link](https://wg21.link/P4214)
 - P3804. Rendered [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/generated/P3804.html) | Official [WG21 link](https://wg21.link/P3804)
 - P3609. Rendered [R0 (in progress)](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/P3609R0/generated/P3609.html)
 - P3481. Rendered: [latest](https://html-preview.github.io/?url=https://github.com/lucteo/CPP_papers/blob/main/P3481.html) | Official [WG21 link](https://wg21.link/P3481)
